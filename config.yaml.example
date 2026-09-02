@@ -1,0 +1,325 @@
+agent:
+  name: "Rann Agent"
+  
+  # LLM Configuration
+  llm:
+    provider: "anthropic"  # anthropic | openai | ollama
+    model: "claude-sonnet-4-20250514"
+    temperature: 0.7
+    max_tokens: 8192
+    
+    # Fallback chain
+    fallback_providers:
+      - provider: "openai"
+        model: "gpt-4-turbo"
+      - provider: "ollama"
+        model: "llama3.1:70b"
+    
+    # Retry configuration
+    retry:
+      max_attempts: 3
+      backoff_multiplier: 2.0
+      retry_on:
+        - rate_limit_error
+        - timeout_error
+        - server_error
+  
+  # Self-Healing Configuration
+  self_healing:
+    enabled: true
+    max_retries: 3
+    strategies:
+      - analyze_error
+      - search_similar_issues
+      - propose_fixes
+      - execute_fix
+      - verify_resolution
+    
+    # Learn from failures
+    learn_from_errors: true
+    error_db: "~/.rann-agent/data/error_patterns.db"
+  
+  # Multi-Agent Orchestration
+  orchestration:
+    enabled: true
+    max_concurrent_agents: 5
+    max_depth: 3  # prevent infinite spawning
+    task_timeout: 3600  # seconds
+    
+    # Inter-agent communication
+    message_queue: "memory"  # memory | redis | rabbitmq
+    
+    # Coordination strategies
+    strategies:
+      - parallel  # independent tasks
+      - sequential  # dependent tasks
+      - dag  # dependency graph
+  
+  # Memory & Context
+  memory:
+    persist: true
+    database: "sqlite"  # sqlite | postgres | mongodb
+    
+    # Context window management
+    max_context_length: 100000
+    compression: true
+    
+    # Long-term memory
+    vector_search: false  # enable for semantic memory
+    embedding_model: "text-embedding-3-small"
+    
+    # Cross-session memory
+    global_memory: true
+    user_preferences: true
+    learned_patterns: true
+
+# Tool Configuration
+tools:
+  # Enabled tools
+  enabled:
+    - terminal
+    - files
+    - web
+    - code_exec
+    - git
+    - search
+    - vision
+    - browser
+  
+  # Tool-specific config
+  terminal:
+    default_timeout: 300
+    max_timeout: 3600
+    allow_background: true
+    allow_pty: true
+    shell: "/bin/bash"
+    
+    # Safety
+    dangerous_commands_require_confirmation:
+      - "rm -rf"
+      - "dd if="
+      - "mkfs"
+      - "> /dev/sd"
+  
+  files:
+    max_file_size: 10485760  # 10MB
+    allowed_extensions: []  # empty = all allowed
+    forbidden_paths:
+      - "/etc/passwd"
+      - "/etc/shadow"
+      - "~/.ssh/id_rsa"
+  
+  web:
+    max_concurrent_requests: 10
+    timeout: 30
+    user_agent: "Rann-Agent/1.0"
+    respect_robots_txt: true
+  
+  code_exec:
+    sandbox: true
+    timeout: 300
+    max_memory_mb: 2048
+    allowed_languages:
+      - python
+      - javascript
+      - typescript
+      - bash
+  
+  git:
+    default_branch: "main"
+    auto_commit: false
+    commit_message_template: "[Rann Agent] {summary}"
+  
+  browser:
+    headless: true
+    timeout: 30000
+    viewport:
+      width: 1920
+      height: 1080
+
+# Logging Configuration
+logging:
+  level: INFO  # DEBUG | INFO | WARNING | ERROR
+  
+  # File logging
+  file:
+    enabled: true
+    path: "~/.rann-agent/logs/agent.log"
+    max_size_mb: 100
+    backup_count: 5
+    rotation: "daily"
+  
+  # Console logging
+  console:
+    enabled: true
+    colorize: true
+    format: "rich"  # rich | simple | json
+  
+  # Structured logging
+  json_logs: false
+  
+  # Log categories
+  categories:
+    agent: INFO
+    tools: INFO
+    llm: INFO
+    orchestration: DEBUG
+    errors: ERROR
+
+# API Server Configuration
+api:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8000
+  
+  # Security
+  cors:
+    enabled: true
+    origins:
+      - "http://localhost:3000"
+      - "http://localhost:8000"
+  
+  # Authentication
+  auth:
+    enabled: false
+    type: "api_key"  # api_key | jwt | oauth
+    
+  # Rate limiting
+  rate_limit:
+    enabled: true
+    requests_per_minute: 60
+  
+  # WebSocket for streaming
+  websocket:
+    enabled: true
+    path: "/ws"
+
+# Background Task Queue
+task_queue:
+  enabled: true
+  backend: "memory"  # memory | redis | celery
+  
+  # Worker configuration
+  workers: 4
+  max_tasks_per_worker: 10
+  
+  # Task persistence
+  persist_tasks: true
+  task_retention_days: 30
+
+# Monitoring & Observability
+monitoring:
+  # Metrics
+  metrics:
+    enabled: true
+    port: 9090
+    path: "/metrics"
+    
+  # Tracing
+  tracing:
+    enabled: false
+    provider: "jaeger"  # jaeger | zipkin | datadog
+    
+  # Error tracking
+  sentry:
+    enabled: false
+    dsn: ""
+    traces_sample_rate: 0.1
+  
+  # Health checks
+  health_check:
+    enabled: true
+    interval: 60  # seconds
+
+# Session Management
+sessions:
+  # Persistence
+  persist: true
+  database: "~/.rann-agent/data/sessions.db"
+  
+  # Retention
+  retention_days: 90
+  auto_cleanup: true
+  
+  # Session limits
+  max_concurrent_sessions: 10
+  max_turns_per_session: 1000
+  
+  # Session recovery
+  auto_resume: true
+  checkpoint_interval: 10  # turns
+
+# Safety & Security
+safety:
+  # Input validation
+  validate_inputs: true
+  sanitize_shell_commands: true
+  
+  # Permissions
+  require_confirmation_for:
+    - destructive_operations
+    - file_deletions
+    - system_modifications
+    - network_requests_with_credentials
+  
+  # Sandboxing
+  sandbox_code_execution: true
+  isolate_tool_execution: false
+  
+  # Secret detection
+  detect_secrets: true
+  redact_secrets_in_logs: true
+  
+  # Rate limiting
+  rate_limit_llm_calls: true
+  max_llm_calls_per_minute: 30
+
+# Platform Integrations
+integrations:
+  telegram:
+    enabled: false
+    bot_token: ""
+    allowed_users: []
+    
+  discord:
+    enabled: false
+    bot_token: ""
+    allowed_guilds: []
+    
+  slack:
+    enabled: false
+    app_token: ""
+    bot_token: ""
+    
+  github:
+    enabled: false
+    token: ""
+    auto_create_issues: false
+    auto_create_prs: false
+
+# Advanced Features
+advanced:
+  # Parallel tool execution
+  parallel_tools: true
+  max_parallel_tools: 5
+  
+  # Streaming responses
+  streaming: true
+  stream_tokens: true
+  stream_tool_outputs: true
+  
+  # Caching
+  cache_llm_responses: true
+  cache_tool_results: true
+  cache_ttl: 3600  # seconds
+  
+  # Auto-documentation
+  auto_generate_docs: true
+  docs_path: "./docs"
+  
+  # Experimentation
+  enable_experimental_features: false
+  experiments:
+    - multi_modal_inputs
+    - voice_interface
+    - agent_swarms

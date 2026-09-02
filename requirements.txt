@@ -1,0 +1,78 @@
+# Core dependencies
+anthropic>=0.39.0
+openai>=1.54.0
+pydantic>=2.9.0
+pydantic-settings>=2.6.0
+python-dotenv>=1.0.0
+
+# Async & concurrency
+asyncio>=3.4.3
+aiofiles>=24.1.0
+aiohttp>=3.11.0
+
+# CLI & UI
+rich>=13.9.0
+click>=8.1.7
+typer>=0.15.0
+prompt-toolkit>=3.0.48
+
+# API Server
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+websockets>=14.0
+python-multipart>=0.0.12
+
+# Database & persistence
+sqlalchemy>=2.0.36
+alembic>=1.14.0
+aiosqlite>=0.20.0
+
+# HTTP & web
+httpx>=0.27.0
+beautifulsoup4>=4.12.3
+lxml>=5.3.0
+markdownify>=0.13.1
+
+# File operations
+pathlib>=1.0.1
+watchdog>=5.0.0
+pyyaml>=6.0.2
+toml>=0.10.2
+
+# Code execution & terminal
+ptyprocess>=0.7.0
+pexpect>=4.9.0
+
+# Git operations
+gitpython>=3.1.43
+
+# Logging & monitoring
+structlog>=24.4.0
+python-json-logger>=3.2.1
+sentry-sdk>=2.17.0
+
+# Testing
+pytest>=8.3.0
+pytest-asyncio>=0.24.0
+pytest-cov>=6.0.0
+pytest-timeout>=2.3.1
+
+# Code quality
+black>=24.10.0
+ruff>=0.7.0
+mypy>=1.13.0
+
+# Optional: Vector search (for semantic memory)
+# chromadb>=0.5.0
+# sentence-transformers>=3.0.0
+
+# Optional: Browser automation
+# playwright>=1.48.0
+
+# Optional: Redis for distributed task queue
+# redis>=5.2.0
+# celery>=5.4.0
+
+# Optional: Advanced NLP
+# spacy>=3.8.0
+# tiktoken>=0.8.0
