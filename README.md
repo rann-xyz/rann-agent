@@ -4,6 +4,23 @@
 
 Rann Agent combines the best features from the world's top AI coding tools PLUS unique capabilities no one else has!
 
+## ⚡ **Quick Start**
+
+```bash
+git clone https://github.com/rann-xyz/rann-agent.git
+cd rann-agent
+./install.sh
+source venv/bin/activate
+
+# Choose your interface:
+python terminal_app.py    # Terminal (CLI)
+python web_app.py         # Web (Browser)
+```
+
+📖 **[Complete Quick Start Guide: QUICKSTART.md](QUICKSTART.md)**
+
+---
+
 **What makes it special:**
 
 Rann Agent is not just an AI agent—it's a **self-learning, multi-agent orchestrating, autonomous coding powerhouse** that can:

@@ -20,7 +20,7 @@ from rich import box
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from rann_agent.agent import RannAgent
+from rann_agent.core.agent import Agent
 from rann_agent.intelligence import (
     CodebaseContext,
     CodeCompletion,
@@ -49,12 +49,12 @@ class TerminalApp:
         console.print("[bold cyan]🚀 Initializing Rann Agent...[/bold cyan]")
         
         try:
-            self.agent = RannAgent()
+            self.agent = Agent()
             self.codebase_context = CodebaseContext(str(self.current_workspace))
             self.code_completion = CodeCompletion()
             self.autonomous_coder = AutonomousCoder()
             
-            console.print("[bold green]✅ Agent ready![/bold green]\n")
+            console.print("[bold green]✅ Agent ready![/bold green]\\n")
         except Exception as e:
             console.print(f"[bold red]❌ Initialization failed: {e}[/bold red]")
             raise
