@@ -62,12 +62,25 @@ black>=24.10.0
 ruff>=0.7.0
 mypy>=1.13.0
 
-# Optional: Vector search (for semantic memory)
-# chromadb>=0.5.0
-# sentence-transformers>=3.0.0
+# Genius-level features
+# Vector search & RAG (for self-learning memory)
+chromadb>=0.5.0
+sentence-transformers>=3.0.0
 
-# Optional: Browser automation
-# playwright>=1.48.0
+# Browser automation (web control)
+playwright>=1.48.0
+
+# Multimodal - Vision
+pytesseract>=0.3.10
+Pillow>=10.0.0
+
+# Multimodal - Voice
+gtts>=2.5.0
+SpeechRecognition>=3.10.0
+
+# Advanced reasoning & planning
+numpy>=1.24.0
+scipy>=1.11.0
 
 # Optional: Redis for distributed task queue
 # redis>=5.2.0
