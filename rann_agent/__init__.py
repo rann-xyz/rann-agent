@@ -19,17 +19,13 @@ from rann_agent.core.exceptions import RannAgentError as RANNError
 from rann_agent.core.task_contract import TaskContract, TaskCategory, RiskLevel, AutonomyLevel
 from rann_agent.core.tool_result import ToolResult
 from rann_agent.core.evidence import EvidenceLedger, Evidence, EvidenceType
-from rann_agent.core.approval import ApprovalSystem, ApprovalType, ApprovalRequest
-from rann_agent.core.idempotency import OperationTracker, IdempotencyLevel
 from rann_agent.core.event_bus import EventBus, Event, EventType
 from rann_agent.core.autonomy import AutonomyGuard
+from rann_agent.core.approval import ApprovalSystem, ApprovalType, ApprovalRequest
+from rann_agent.core.idempotency import OperationTracker, IdempotencyLevel
 from rann_agent.core.schemas import (
-    TaskStatusSchema,
-    PlanSchema,
-    VerificationResultSchema,
-    FailureSchema,
-    LessonSchema,
-    FinalStatusSchema,
+    TaskStatusSchema, PlanSchema, VerificationResultSchema, FailureSchema,
+    LessonSchema, FinalStatusSchema
 )
 
 # Orchestration
@@ -42,11 +38,15 @@ from rann_agent.orchestration.command_policy import CommandPolicy, CommandRiskLe
 from rann_agent.planning.planner import Planner, Plan, PlanAction, PlanQualityGate
 from rann_agent.planning.progress import ProgressEngine, Iteration, StallReport
 from rann_agent.planning.recovery import RecoveryEngine, FailureAnalysis, FailureType, RecoveryResult
+from rann_agent.planning.semantic_diff import SemanticDiff, SemanticDiffResult, ImpactAnalyzer, ImpactReport
 
 # Memory
 from rann_agent.memory.working import WorkingMemory
 from rann_agent.memory.procedural import ProceduralMemory
 from rann_agent.memory.conflict import ConflictResolver, MemoryConflict, ConflictType
+from rann_agent.memory.project_store import ProjectMemoryStore, ProjectContext
+from rann_agent.memory.episodic_store import EpisodicMemoryStore, EpisodicEpisode
+from rann_agent.memory.semantic_store import SemanticMemoryStore, SemanticFact
 
 # Learning
 from rann_agent.learning.engine import LearningEngine, LearningEpisode, Lesson
@@ -61,10 +61,13 @@ from rann_agent.tools.executor import ToolExecutor
 from rann_agent.tools.discovery import ToolDiscovery
 from rann_agent.tools.real_terminal import RealTerminalExecutor
 from rann_agent.tools.filesystem import FilesystemEngine
+from rann_agent.tools.tool_registry import ToolRegistry, ToolMetadata, ToolStatus
 
 # Storage
 from rann_agent.storage.database import Database
 from rann_agent.storage.recovery import CrashRecovery, IncompleteRun, ReconciliationResult
+from rann_agent.storage.queue import DurableQueue, Job, JobStatus
+from rann_agent.storage.locks import LockManager, FileLock, WorkspaceLock, LockType
 
 # Cognition
 from rann_agent.cognition.evaluator import Evaluator, EvaluationResult
@@ -83,7 +86,7 @@ __all__ = [
     "AgentStateMachine", "AgentState", "EventEmitter", "EventType", "EventStatus", "RANNError",
     "TaskContract", "TaskCategory", "RiskLevel", "AutonomyLevel", "ToolResult",
     "EvidenceLedger", "Evidence", "EvidenceType",
-    "EventBus", "Event", "EventType",
+    "EventBus", "Event",
     "AutonomyGuard",
     "ApprovalSystem", "ApprovalType", "ApprovalRequest",
     "OperationTracker", "IdempotencyLevel",
@@ -96,17 +99,24 @@ __all__ = [
     "Planner", "Plan", "PlanAction", "PlanQualityGate",
     "ProgressEngine", "Iteration", "StallReport",
     "RecoveryEngine", "FailureAnalysis", "FailureType", "RecoveryResult",
+    "SemanticDiff", "SemanticDiffResult", "ImpactAnalyzer", "ImpactReport",
     # Memory
     "WorkingMemory", "ProceduralMemory",
     "ConflictResolver", "MemoryConflict", "ConflictType",
+    "ProjectMemoryStore", "ProjectContext",
+    "EpisodicMemoryStore", "EpisodicEpisode",
+    "SemanticMemoryStore", "SemanticFact",
     # Learning
     "LearningEngine", "LearningEpisode", "Lesson",
     # Skills
     "SkillRegistry", "SkillMetadata", "SkillLoader", "SkillEvaluator", "TestCase",
     # Tools
     "ToolExecutor", "ToolDiscovery", "RealTerminalExecutor", "FilesystemEngine",
+    "ToolRegistry", "ToolMetadata", "ToolStatus",
     # Storage
     "Database", "CrashRecovery", "IncompleteRun", "ReconciliationResult",
+    "DurableQueue", "Job", "JobStatus",
+    "LockManager", "FileLock", "WorkspaceLock", "LockType",
     # Cognition
     "Evaluator", "EvaluationResult", "StrategySelector", "StrategyType",
     # Security

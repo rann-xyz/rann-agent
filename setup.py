@@ -30,7 +30,7 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "rann-agent=rann_agent.cli.main:app",
+            "rann=rann_agent.cli.rann:cli",
         ],
     },
     include_package_data=True,
