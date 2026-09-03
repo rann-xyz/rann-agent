@@ -98,8 +98,8 @@ class TestSecretScrubber:
     
     def test_scrub_removes_secrets(self):
         s = SecretScrubber()
-        text = "API key is sk-1234567890abcdef"
+        # Long API key triggers redaction
+        text = "API key is sk-ant-api03abcdefghijklmnopqrstuvwxyz"
         scrubbed = s.scrub(text)
-        # API key patterns get truncated: sk-1234567890abcdef -> sk-123...cdef
-        assert "sk-1234567890abcdef" not in scrubbed
-        assert "sk-123...cdef" in scrubbed  # truncated form
+        assert "[REDACTED: api_key]" in scrubbed
+        assert "sk-ant-api03" not in scrubbed

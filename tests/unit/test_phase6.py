@@ -11,12 +11,8 @@ from rann_agent.skills.evaluator import SkillEvaluator, TestCase
 class TestSkillRegistry:
     def test_register_and_get(self):
         registry = SkillRegistry()
-        meta = SkillMetadata(
-            name="test_skill",
-            description="A test",
-            category="testing"
-        )
-        registry.register("test_skill", meta, "def run(): return 1")
+        meta = SkillMetadata(name="test_skill", description="A test", category="testing")
+        registry.register("test_skill", meta)
         
         skill = registry.get("test_skill")
         assert skill is not None
@@ -26,8 +22,7 @@ class TestSkillRegistry:
         registry = SkillRegistry()
         registry.register(
             "analyze_code",
-            SkillMetadata(name="analyze_code", description="Analyze code quality", category="dev"),
-            "code"
+            SkillMetadata(name="analyze_code", description="Analyze code quality", category="dev")
         )
         
         results = registry.search("analyze")
@@ -35,15 +30,15 @@ class TestSkillRegistry:
     
     def test_list_enabled(self):
         registry = SkillRegistry()
-        registry.register("s1", SkillMetadata(name="s1", description="", category="dev"), "code")
-        registry.register("s2", SkillMetadata(name="s2", description="", category="dev"), "code")
+        registry.register("s1", SkillMetadata(name="s1", description="", category="dev"))
+        registry.register("s2", SkillMetadata(name="s2", description="", category="dev"))
         
         enabled = registry.list_enabled()
         assert len(enabled) >= 2
     
     def test_enable_disable(self):
         registry = SkillRegistry()
-        registry.register("toggle_test", SkillMetadata(name="toggle_test", description="", category="test"), "code")
+        registry.register("toggle_test", SkillMetadata(name="toggle_test", description="", category="test"))
         
         registry.disable("toggle_test")
         disabled = registry.list_disabled()
