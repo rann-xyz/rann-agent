@@ -4,6 +4,7 @@ LLM Provider abstraction layer
 
 from typing import List, Dict, Any, Optional, AsyncIterator
 import asyncio
+import json
 from abc import ABC, abstractmethod
 import structlog
 
@@ -127,10 +128,20 @@ class CustomProvider(BaseLLMProvider):
         self.temperature = kwargs.get("temperature", 0.7)
         self.max_tokens = kwargs.get("max_tokens", 4096)
 
-    async def complete(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
+    async def complete(self, messages: List[Dict[str, str]], tools: List[Dict] = None) -> Dict[str, Any]:
         """Generate completion with custom API (OpenAI-compatible)"""
         import aiohttp
 
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+        }
+        if tools:
+            payload["tools"] = tools
+        
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{self.base_url}/v1/chat/completions",
@@ -138,28 +149,57 @@ class CustomProvider(BaseLLMProvider):
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
                 },
-                json={
-                    "model": self.model,
-                    "messages": messages,
-                    "stream": False,
-                    "temperature": self.temperature,
-                    "max_tokens": self.max_tokens,
-                }
+                json=payload
             ) as resp:
                 if resp.status != 200:
                     text = await resp.text()
                     raise RuntimeError(f"Custom API error {resp.status}: {text}")
                 result = await resp.json()
-                return {
-                    "content": result["choices"][0]["message"]["content"],
+                
+                message = result["choices"][0]["message"]
+                response = {
+                    "content": message.get("content", ""),
                     "usage": result.get("usage", {}),
                     "model": result.get("model", self.model),
                 }
+                
+                # Parse tool calls if present (function calling format)
+                if "tool_calls" in message and message["tool_calls"]:
+                    response["tool_calls"] = [
+                        {
+                            "name": tc.get("function", {}).get("name") or tc.get("name"),
+                            "parameters": json.loads(tc.get("function", {}).get("arguments", "{}"))
+                                if isinstance(tc.get("function", {}).get("arguments"), str)
+                                else tc.get("function", {}).get("arguments", {}),
+                        }
+                        for tc in message["tool_calls"]
+                    ]
+                elif "tool_call" in message:
+                    # Some APIs use singular
+                    tc = message["tool_call"]
+                    response["tool_calls"] = [{
+                        "name": tc.get("function", {}).get("name") or tc.get("name"),
+                        "parameters": json.loads(tc.get("function", {}).get("arguments", "{}"))
+                            if isinstance(tc.get("function", {}).get("arguments"), str)
+                            else tc.get("function", {}).get("arguments", {}),
+                    }]
+                
+                return response
 
-    async def stream(self, messages: List[Dict[str, str]]) -> AsyncIterator[str]:
+    async def stream(self, messages: List[Dict[str, str]], tools: List[Dict] = None) -> AsyncIterator[str]:
         """Stream tokens from custom API (OpenAI-compatible)"""
         import aiohttp
 
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "stream": True,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+        }
+        if tools:
+            payload["tools"] = tools
+        
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{self.base_url}/v1/chat/completions",
@@ -167,13 +207,7 @@ class CustomProvider(BaseLLMProvider):
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
                 },
-                json={
-                    "model": self.model,
-                    "messages": messages,
-                    "stream": True,
-                    "temperature": self.temperature,
-                    "max_tokens": self.max_tokens,
-                }
+                json=payload
             ) as resp:
                 async for line in resp.content:
                     if line:
@@ -292,6 +326,10 @@ class LLMProvider:
             host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
             return OllamaProvider(model, host, **kwargs)
 
+        elif provider == "xkiro":
+            base_url = "https://api.xkiro.com"
+            return CustomProvider(api_key or os.getenv("HERMES_CUSTOM_API_XKIRO_COM_API_KEY", ""), model, base_url, **kwargs)
+
         elif provider == "custom":
             base_url = os.getenv("CUSTOM_API_BASE", "https://seekai.cc")
             return CustomProvider(api_key or "none", model, base_url, **kwargs)
@@ -303,7 +341,7 @@ class LLMProvider:
         """Complete with primary provider (no retry)"""
         return await self.primary.complete(messages)
     
-    async def complete_with_retry(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
+    async def complete_with_retry(self, messages: List[Dict[str, str]], tools: List[Dict] = None) -> Dict[str, Any]:
         """
         Complete with retry and fallback logic
         """
@@ -313,7 +351,7 @@ class LLMProvider:
         # Try primary provider with retries
         for attempt in range(max_attempts):
             try:
-                return await self.primary.complete(messages)
+                return await self.primary.complete(messages, tools=tools)
             except Exception as e:
                 logger.warning(
                     "llm_primary_failed",
@@ -329,7 +367,7 @@ class LLMProvider:
         for i, fallback in enumerate(self.fallbacks):
             try:
                 logger.info("trying_fallback", fallback_index=i)
-                return await fallback.complete(messages)
+                return await fallback.complete(messages, tools=tools)
             except Exception as e:
                 logger.warning("fallback_failed", fallback_index=i, error=str(e))
         

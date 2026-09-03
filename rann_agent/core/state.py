@@ -54,7 +54,7 @@ TERMINAL_STATES: Set[AgentState] = {
 # Valid state transitions per V3 Section 5
 VALID_TRANSITIONS: Dict[AgentState, Set[AgentState]] = {
     AgentState.QUEUED: {AgentState.ANALYZING},
-    AgentState.ANALYZING: {AgentState.CONTEXT_READY, AgentState.BLOCKED, AgentState.FAILED},
+    AgentState.ANALYZING: {AgentState.CONTEXT_READY, AgentState.BLOCKED, AgentState.FAILED, AgentState.COMPLETED},
     AgentState.CONTEXT_READY: {AgentState.PLANNING, AgentState.BLOCKED, AgentState.FAILED},
     AgentState.PLANNING: {AgentState.WAITING_POLICY, AgentState.EXECUTING, AgentState.FAILED},
     AgentState.WAITING_POLICY: {AgentState.EXECUTING, AgentState.BLOCKED, AgentState.FAILED},

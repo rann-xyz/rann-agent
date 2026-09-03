@@ -109,34 +109,23 @@ class RuntimeAgent:
         self._recovery_strategies.append(strategy)
     
     def _set_state(self, state: AgentState, reason: str = None) -> None:
-        """Set state with event emission. Silently skip if lifecycle already transitioned."""
-        # If lifecycle already transitioned to terminal, don't fight it
-        if self._lifecycle_state and self._lifecycle_state.is_terminal():
-            return
-        old_state = self._state
-        if old_state == state:
-            return
-        
-        # Check valid transition
-        if hasattr(AgentState, '_transitions'):
-            from rann_agent.core.state import VALID_TRANSITIONS
-            allowed = VALID_TRANSITIONS.get(old_state, set())
-            if state not in allowed and state not in (AgentState.COMPLETED, AgentState.FAILED):
-                # Skip silently - lifecycle may be handling state
-                return
-        
-        self._state = state
+        """Track state for logging. Lifecycle owns the state machine."""
+        # Always follow lifecycle state when available
+        if self._lifecycle_state:
+            self._state = self._lifecycle_state.state
+        else:
+            self._state = state
         
         if self._events:
             self._events.create_event(
                 EventType.STATE_CHANGED,
                 component="runtime_agent",
-                from_state=old_state.value,
+                from_state=self._state.value,
                 to_state=state.value,
                 reason=reason
             )
         
-        logger.info("agent_state_change", from_state=old_state.value, to_state=state.value, reason=reason)
+        logger.debug("runtime_state_sync", to_state=state.value, reason=reason)
     
     async def execute(
         self,
@@ -245,6 +234,8 @@ class RuntimeAgent:
             # Lifecycle already set state to FAILED
             logger.error("execute_failed", run_id=self.run_id, error=str(e))
             return {"error": str(e), "state": self._state.value}
+        
+        return {"error": "Unexpected: no result returned", "state": self._state.value}
     
     async def _execute_loop(self, lifecycle: AgentLifecycle) -> Dict[str, Any]:
         """Main execution loop with state transitions and budget tracking"""
@@ -268,7 +259,7 @@ class RuntimeAgent:
             ))
             
             try:
-                response = await self.llm.complete_with_retry(messages)
+                response = await self.llm.complete_with_retry(messages, tools=self.tools.get_definitions())
             except Exception as e:
                 lifecycle.events.emit(lifecycle.events.create_event(
                     EventType.MODEL_RESPONDED,
@@ -387,7 +378,7 @@ class RuntimeAgent:
         )
     
     def _extract_tool_calls(self, response: Dict) -> List[Dict]:
-        """Extract tool calls from LLM response"""
+        """Extract tool calls from LLM response - supports function calling and text markup"""
         # Support both OpenAI and Anthropic function calling formats
         if "tool_calls" in response:
             return response["tool_calls"]
@@ -400,6 +391,48 @@ class RuntimeAgent:
                         "name": block.get("name"),
                         "parameters": block.get("input", {})
                     }]
+        
+        # Text-based tool markup: <tool_name>\nkey: value\n</tool_name>
+        content = response.get("content", "")
+        if not content or not isinstance(content, str):
+            return []
+        
+        import re
+        # Match <write>\npath: ...\ncontent: ...\n</write>
+        write_match = re.search(r"<write>\s*\n(.*?)\n</write>", content, re.DOTALL)
+        if write_match:
+            params = {}
+            for line in write_match.group(1).split("\n"):
+                if ": " in line or ":" in line:
+                    idx = line.index(": ") if ": " in line else line.index(":")
+                    key = line[:idx].strip()
+                    val = line[idx+1:].strip() if ": " in line else line[idx+1:].strip()
+                    params[key] = val
+            return [{"name": "write", "parameters": params}]
+        
+        # Match <bash>\ncommand: ...\n</bash>
+        bash_match = re.search(r"<bash>\s*\n(.*?)\n</bash>", content, re.DOTALL)
+        if bash_match:
+            params = {}
+            for line in bash_match.group(1).split("\n"):
+                if ": " in line or ":" in line:
+                    idx = line.index(": ") if ": " in line else line.index(":")
+                    key = line[:idx].strip()
+                    val = line[idx+1:].strip() if ": " in line else line[idx+1:].strip()
+                    params[key] = val
+            return [{"name": "bash", "parameters": params}]
+        
+        # Match <read>\npath: ...\n</read>
+        read_match = re.search(r"<read>\s*\n(.*?)\n</read>", content, re.DOTALL)
+        if read_match:
+            params = {}
+            for line in read_match.group(1).split("\n"):
+                if ": " in line or ":" in line:
+                    idx = line.index(": ") if ": " in line else line.index(":")
+                    key = line[:idx].strip()
+                    val = line[idx+1:].strip() if ": " in line else line[idx+1:].strip()
+                    params[key] = val
+            return [{"name": "read", "parameters": params}]
         
         return []
     

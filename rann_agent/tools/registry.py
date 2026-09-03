@@ -170,3 +170,26 @@ class ToolRegistry:
             }
             for tool in self.tools.values()
         ]
+    
+    def get_definitions(self) -> List[Dict[str, Any]]:
+        """Get OpenAI-compatible tool definitions for LLM function calling"""
+        definitions = []
+        for tool in self.tools.values():
+            if tool.name not in self.config.tools.enabled:
+                continue
+            definitions.append({
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": {
+                        "type": "object",
+                        "properties": tool.parameters,
+                        "required": [
+                            k for k, v in tool.parameters.items()
+                            if v.get("required", False)
+                        ] if tool.parameters else []
+                    }
+                }
+            })
+        return definitions

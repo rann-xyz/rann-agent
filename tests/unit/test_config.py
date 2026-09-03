@@ -71,6 +71,7 @@ class TestConfigValidation:
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         monkeypatch.delenv("CUSTOM_API_KEY", raising=False)
         monkeypatch.delenv("HERMES_CUSTOM_SEEKAI_CC_API_KEY", raising=False)
+        monkeypatch.delenv("HERMES_CUSTOM_API_XKIRO_COM_API_KEY", raising=False)
         
         config = Config()
         warnings = config.validate_config()
@@ -101,8 +102,8 @@ class TestLLMConfig:
     def test_llm_config_defaults(self):
         """Test LLM config defaults"""
         llm_config = LLMConfig()
-        assert llm_config.provider == "custom"
-        assert llm_config.model == "claude-fable-5-1"
+        assert llm_config.provider == "xkiro"
+        assert llm_config.model == "minimax/minimax-m2.7-highspeed:free"
         assert llm_config.max_tokens == 8192
     
     def test_llm_config_custom(self):
