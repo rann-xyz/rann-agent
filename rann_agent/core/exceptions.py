@@ -141,11 +141,6 @@ class StateMachineError(RannAgentError):
     pass
 
 
-class InvalidStateTransitionError(StateMachineError):
-    """Invalid state transition attempted"""
-    pass
-
-
 class VerificationError(RannAgentError):
     """Task verification failed"""
     pass
