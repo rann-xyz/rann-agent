@@ -1,0 +1,69 @@
+{
+  "timestamp": "2026-09-03T12:06:24.107017",
+  "environment": {
+    "python_version": "3.14.4 (main, Jun 18 2026, 14:25:02) [GCC 15.2.0]",
+    "platform": "linux"
+  },
+  "simple_task": {
+    "success": true,
+    "first_attempt": true,
+    "latency": 0.04473543167114258,
+    "model_calls": 1,
+    "tool_calls": 0
+  },
+  "tool_execution": {
+    "terminal": {
+      "success": true,
+      "latency": 0.022016048431396484
+    },
+    "read_file": {
+      "success": true,
+      "latency": 0.004178762435913086
+    }
+  },
+  "summary": {
+    "timestamp": "2026-09-03T12:06:24.106959",
+    "task_success": [
+      true
+    ],
+    "first_attempt_success": [
+      true
+    ],
+    "tool_success": {
+      "terminal": {
+        "success": 1,
+        "failure": 0,
+        "success_rate": 1.0,
+        "avg_latency": 0.022016048431396484
+      },
+      "read_file": {
+        "success": 1,
+        "failure": 0,
+        "success_rate": 1.0,
+        "avg_latency": 0.004178762435913086
+      }
+    },
+    "test_success": 0,
+    "test_total": 0,
+    "recovery_success": 0,
+    "recovery_attempts": 0,
+    "latency": [
+      0.04473543167114258
+    ],
+    "token_usage": {
+      "input": 0,
+      "output": 0
+    },
+    "model_calls": 0,
+    "tool_calls": 2,
+    "failure_rate": 0.0,
+    "regression_count": 0,
+    "task_success_rate": 1.0,
+    "first_attempt_rate": 1.0,
+    "avg_latency": 0.04473543167114258
+  },
+  "test_suite": {
+    "exit_code": 0,
+    "passed": 1
+  }
+}
