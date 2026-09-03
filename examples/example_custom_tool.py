@@ -1,81 +1,52 @@
 #!/usr/bin/env python3
 """
-Example: Custom tool implementation
+RANN Agent - Custom Tool Example
+
+Shows how to register a custom tool with the tool registry.
 """
 
 import asyncio
-from typing import Dict, Any
-from rann_agent import Agent
-from rann_agent.tools.registry import Tool, ToolResult
+from rann_agent.tools.registry import ToolRegistry
+from rann_agent.tools.discovery import ToolDiscovery
 
 
-class WeatherTool(Tool):
-    """Custom tool: Get weather information"""
-    
-    name = "weather"
-    description = "Get current weather for a city"
-    parameters = {
-        "city": {"type": "string", "required": True},
-        "units": {"type": "string", "default": "celsius"},
+# Define a custom tool function
+def get_weather(city: str, units: str = "celsius") -> dict:
+    """Get weather for a city (simulated)"""
+    return {
+        "city": city,
+        "temperature": 22 if units == "celsius" else 72,
+        "units": units,
+        "condition": "sunny"
     }
-    
-    def __init__(self, config):
-        self.config = config
-    
-    async def execute(self, city: str, units: str = "celsius", **kwargs) -> Dict[str, Any]:
-        """Get weather (mock implementation)"""
-        # In real implementation, call weather API
-        
-        # Mock data
-        weather_data = {
-            "Jakarta": {"temp": 32, "condition": "Sunny"},
-            "London": {"temp": 15, "condition": "Cloudy"},
-            "Tokyo": {"temp": 22, "condition": "Rainy"},
-        }
-        
-        if city not in weather_data:
-            return ToolResult(
-                tool=self.name,
-                success=False,
-                error=f"Weather data not available for {city}"
-            ).to_dict()
-        
-        data = weather_data[city]
-        output = f"Weather in {city}: {data['temp']}°C, {data['condition']}"
-        
-        return ToolResult(
-            tool=self.name,
-            success=True,
-            output=output,
-            metadata={"city": city, "units": units}
-        ).to_dict()
 
 
 async def main():
-    print("🤖 Rann Agent - Custom Tool Example\n")
+    print("RANN Agent - Custom Tool Example\n")
     
-    # Create agent
-    agent = Agent()
+    # Create discovery and register custom tool
+    discovery = ToolDiscovery()
     
-    # Register custom tool
-    weather_tool = WeatherTool(agent.config)
-    agent.tools.register(weather_tool)
-    
-    print("Registered custom 'weather' tool\n")
-    
-    # Use the tool
-    print("Task: Get weather for multiple cities\n")
-    
-    result = await agent.execute(
-        goal="Get weather for Jakarta, London, and Tokyo. Compare temperatures.",
+    discovery.register(
+        name="weather",
+        func=get_weather,
+        description="Get current weather for a city",
+        risk_level="safe",
+        parameters={
+            "city": {"type": "string", "required": True},
+            "units": {"type": "string", "default": "celsius"}
+        }
     )
     
-    if result.get("done"):
-        print("✅ Task completed!\n")
-        print(result.get("output", ""))
-    else:
-        print("❌ Task failed\n")
-        print(result.get("error", ""))
+    # Verify it's registered
+    tool = discovery.get("weather")
+    print(f"Tool registered: {tool['name']}")
+    print(f"Description: {tool['description']}")
+    print(f"Risk level: {tool['risk_level']}")
+    
+    # Test the function directly
+    result = get_weather("Jakarta", "celsius")
+    print(f"\nWeather result: {result}")
 
 
 if __name__ == "__main__":
