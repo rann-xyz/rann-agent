@@ -92,7 +92,7 @@ class TestToolRegistry:
         config = Config()
         registry = ToolRegistry(config)
         
-        mock_tool = MockTool(config)
+        mock_tool = MockTool()
         registry.register(mock_tool)
         
         assert "mock_tool" in registry.tools
@@ -116,7 +116,7 @@ class TestToolRegistry:
         config = Config()
         registry = ToolRegistry(config)
         
-        mock_tool = MockTool(config)
+        mock_tool = MockTool()
         registry.register(mock_tool)
         config.tools.enabled.append("mock_tool")
         
@@ -143,7 +143,7 @@ class TestToolRegistry:
         config.tools.enabled = []
         registry = ToolRegistry(config)
         
-        mock_tool = MockTool(config)
+        mock_tool = MockTool()
         registry.register(mock_tool)
         
         result = await registry.execute("mock_tool", {"input": "test"})
@@ -157,7 +157,7 @@ class TestToolRegistry:
         config = Config()
         registry = ToolRegistry(config)
         
-        failing_tool = FailingTool(config)
+        failing_tool = FailingTool()
         registry.register(failing_tool)
         config.tools.enabled.append("failing_tool")
         
@@ -172,7 +172,7 @@ class TestToolRegistry:
         config = Config()
         registry = ToolRegistry(config)
         
-        mock_tool = MockTool(config)
+        mock_tool = MockTool()
         registry.register(mock_tool)
         config.tools.enabled.append("mock_tool")
         
@@ -199,15 +199,13 @@ class TestToolBase:
     
     def test_tool_validation_success(self):
         """Test parameter validation succeeds"""
-        config = Config()
-        tool = MockTool(config)
+        tool = MockTool()
         
         assert tool.validate_parameters(input="test") is True
     
     def test_tool_validation_missing_required(self):
         """Test validation fails with missing required param"""
-        config = Config()
-        tool = MockTool(config)
+        tool = MockTool()
         
         with pytest.raises(ValueError, match="Missing required parameter"):
             tool.validate_parameters()  # Missing 'input'

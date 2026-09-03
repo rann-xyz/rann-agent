@@ -4,9 +4,17 @@ Pytest configuration and fixtures
 
 import pytest
 import asyncio
+import os
 from pathlib import Path
 import tempfile
 import shutil
+from unittest.mock import Mock, AsyncMock, patch
+
+# Set mock API keys BEFORE importing anything that reads them
+os.environ.setdefault("ANTHROPIC_API_KEY", "test-anthropic-key")
+os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
+os.environ.setdefault("OLLAMA_HOST", "http://localhost:11434")
+
 
 # Configure asyncio for pytest
 @pytest.fixture(scope="session")
@@ -26,6 +34,19 @@ def temp_dir():
 
 
 @pytest.fixture
+def mock_llm_provider():
+    """Mock LLM provider for testing"""
+    provider = Mock()
+    provider.complete = AsyncMock(return_value={
+        "content": "Mocked response",
+        "usage": {"input_tokens": 10, "output_tokens": 20},
+        "model": "mock-model",
+    })
+    provider.stream = AsyncMock(return_value=iter(["Mocked", " stream", " response"]))
+    return provider
+
+
+@pytest.fixture
 def mock_config():
     """Mock configuration for testing"""
     from rann_agent.core.config import Config
@@ -36,6 +57,17 @@ def mock_config():
     config.tools.enabled = ["terminal", "files"]
     
     return config
+
+
+@pytest.fixture
+def mock_agent_with_llm(mock_llm_provider):
+    """Create a mock agent with mocked LLM provider"""
+    from rann_agent.core.agent import Agent
+    
+    with patch("rann_agent.core.agent.LLMProvider", return_value=mock_llm_provider):
+        agent = Agent()
+        agent.llm = mock_llm_provider
+        return agent
 
 
 @pytest.fixture
