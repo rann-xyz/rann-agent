@@ -31,17 +31,17 @@ from rann_agent.core.verification import (
 class TestAgentStateMachine:
     def test_initial_state(self):
         sm = AgentStateMachine("run-123")
-        assert sm.state == AgentState.CREATED
-        assert not sm.is_terminal
+        assert sm.state == AgentState.QUEUED
+        assert not sm.is_terminal()
         assert not sm.is_running
     
     def test_valid_transition(self):
         sm = AgentStateMachine("run-123")
-        record = sm.transition(AgentState.INITIALIZING, reason="test")
+        record = sm.transition(AgentState.ANALYZING, reason="test")
         
-        assert sm.state == AgentState.INITIALIZING
-        assert record.from_state == AgentState.CREATED
-        assert record.to_state == AgentState.INITIALIZING
+        assert sm.state == AgentState.ANALYZING
+        assert record.from_state == AgentState.QUEUED
+        assert record.to_state == AgentState.ANALYZING
         assert record.reason == "test"
     
     def test_invalid_transition_raises(self):
@@ -53,54 +53,57 @@ class TestAgentStateMachine:
     def test_terminal_states(self):
         sm = AgentStateMachine("run-123")
         
-        sm.transition(AgentState.INITIALIZING)
-        sm.transition(AgentState.UNDERSTANDING)
+        sm.transition(AgentState.ANALYZING)
+        sm.transition(AgentState.CONTEXT_READY)
         sm.transition(AgentState.PLANNING)
         sm.transition(AgentState.EXECUTING)
         sm.transition(AgentState.VERIFYING)
+        sm.transition(AgentState.ACCEPTANCE_CHECK)
         sm.transition(AgentState.COMPLETED)
         
         assert sm.state == AgentState.COMPLETED
-        assert sm.is_terminal
+        assert sm.is_terminal()
     
     def test_can_transition(self):
         sm = AgentStateMachine("run-123")
         
-        assert sm.can_transition(AgentState.INITIALIZING)
+        assert sm.can_transition(AgentState.ANALYZING)
         assert not sm.can_transition(AgentState.COMPLETED)
     
     def test_history(self):
         sm = AgentStateMachine("run-123")
-        sm.transition(AgentState.INITIALIZING)
-        sm.transition(AgentState.UNDERSTANDING)
+        sm.transition(AgentState.ANALYZING)
+        sm.transition(AgentState.CONTEXT_READY)
         
         assert len(sm.history) == 2
-        assert sm.history[0].from_state == AgentState.CREATED
-        assert sm.history[1].to_state == AgentState.UNDERSTANDING
+        assert sm.history[0].from_state == AgentState.QUEUED
+        assert sm.history[1].to_state == AgentState.CONTEXT_READY
     
     def test_restart_from_failed(self):
         sm = AgentStateMachine("run-123")
-        sm.transition(AgentState.INITIALIZING)
+        sm.transition(AgentState.ANALYZING)
         sm.transition(AgentState.FAILED)
         
-        record = sm.restart()
-        assert sm.state == AgentState.CREATED
-        assert record.reason == "restart"
+        # Terminal states cannot transition - restart must be done externally
+        assert sm.is_terminal()
+        assert sm.state == AgentState.FAILED
+        # Restart would require external intervention (e.g., loading from checkpoint)
     
     def test_restart_from_non_terminal_raises(self):
         sm = AgentStateMachine("run-123")
-        sm.transition(AgentState.INITIALIZING)
+        sm.transition(AgentState.ANALYZING)
         
+        # Can't restart (transition to QUEUED) from non-initial state
         with pytest.raises(InvalidStateTransitionError):
-            sm.restart()
+            sm.transition(AgentState.QUEUED, reason="restart")
     
     def test_all_states_defined(self):
-        """Ensure all states from spec are defined"""
+        """Ensure all V3 states from spec are defined"""
         expected = {
-            "created", "initializing", "understanding", "planning",
-            "executing", "observing", "verifying", "reflecting",
-            "replanning", "waiting", "checkpointing", "completed",
-            "failed", "cancelled"
+            "queued", "analyzing", "context_ready", "planning",
+            "waiting_policy", "executing", "verifying", "recovering",
+            "acceptance_check", "learning", "completed", "failed",
+            "cancelled", "timed_out", "blocked", "rolled_back"
         }
         actual = {s.value for s in AgentState}
         assert expected == actual
