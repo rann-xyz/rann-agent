@@ -69,6 +69,8 @@ class TestConfigValidation:
         """Test validation warns about missing API key"""
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("CUSTOM_API_KEY", raising=False)
+        monkeypatch.delenv("HERMES_CUSTOM_SEEKAI_CC_API_KEY", raising=False)
         
         config = Config()
         warnings = config.validate_config()
@@ -99,8 +101,8 @@ class TestLLMConfig:
     def test_llm_config_defaults(self):
         """Test LLM config defaults"""
         llm_config = LLMConfig()
-        assert llm_config.provider == "anthropic"
-        assert llm_config.temperature == 0.7
+        assert llm_config.provider == "custom"
+        assert llm_config.model == "claude-fable-5-1"
         assert llm_config.max_tokens == 8192
     
     def test_llm_config_custom(self):
