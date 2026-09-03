@@ -11,7 +11,7 @@ setup(
     version="1.0.0",
     author="Rann",
     author_email="rann@example.com",
-    description="Next-generation autonomous AI agent with self-healing and multi-agent orchestration",
+    description="Next-generation autonomous AI engineering platform",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/rann-xyz/rann-agent",
