@@ -72,7 +72,7 @@ def run(task: str, dry_run: bool, workspace: str, max_iterations: int, max_token
             max_tokens=max_tokens,
             max_turns=max_iterations,
         )
-        agent = RuntimeAgent(budget=budget, workspace=workspace)
+        agent = RuntimeAgent(budget=budget)
 
         click.echo(f"Executing: {task}")
         click.echo(f"Workspace: {workspace}")

@@ -117,6 +117,77 @@ class OpenAIProvider(BaseLLMProvider):
                 yield chunk.choices[0].delta.content
 
 
+class CustomProvider(BaseLLMProvider):
+    """Custom API-compatible provider (e.g., seekai.cc)"""
+
+    def __init__(self, api_key: str, model: str, base_url: str = "http://localhost:8000", **kwargs):
+        self.model = model
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.temperature = kwargs.get("temperature", 0.7)
+        self.max_tokens = kwargs.get("max_tokens", 4096)
+
+    async def complete(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
+        """Generate completion with custom API (OpenAI-compatible)"""
+        import aiohttp
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{self.base_url}/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "stream": False,
+                    "temperature": self.temperature,
+                    "max_tokens": self.max_tokens,
+                }
+            ) as resp:
+                if resp.status != 200:
+                    text = await resp.text()
+                    raise RuntimeError(f"Custom API error {resp.status}: {text}")
+                result = await resp.json()
+                return {
+                    "content": result["choices"][0]["message"]["content"],
+                    "usage": result.get("usage", {}),
+                    "model": result.get("model", self.model),
+                }
+
+    async def stream(self, messages: List[Dict[str, str]]) -> AsyncIterator[str]:
+        """Stream tokens from custom API (OpenAI-compatible)"""
+        import aiohttp
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{self.base_url}/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "stream": True,
+                    "temperature": self.temperature,
+                    "max_tokens": self.max_tokens,
+                }
+            ) as resp:
+                async for line in resp.content:
+                    if line:
+                        import json
+                        try:
+                            data = json.loads(line)
+                            if "choices" in data and data["choices"]:
+                                content = data["choices"][0]["delta"].get("content", "")
+                                if content:
+                                    yield content
+                        except json.JSONDecodeError:
+                            continue
+
+
 class OllamaProvider(BaseLLMProvider):
     """Ollama local models provider"""
     
@@ -220,7 +291,11 @@ class LLMProvider:
         elif provider == "ollama":
             host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
             return OllamaProvider(model, host, **kwargs)
-        
+
+        elif provider == "custom":
+            base_url = os.getenv("CUSTOM_API_BASE", "https://seekai.cc")
+            return CustomProvider(api_key or "none", model, base_url, **kwargs)
+
         else:
             raise ValueError(f"Unknown provider: {provider}")
     

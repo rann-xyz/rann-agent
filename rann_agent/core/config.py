@@ -11,8 +11,8 @@ import os
 
 
 class LLMConfig(BaseModel):
-    provider: str = "anthropic"
-    model: str = "claude-sonnet-4-20250514"
+    provider: str = "custom"
+    model: str = "claude-fable-5-1"
     temperature: float = 0.7
     max_tokens: int = 8192
     fallback_providers: List[Dict[str, str]] = []
@@ -143,6 +143,8 @@ class Config(BaseSettings):
             return self.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
         elif provider == "openai":
             return self.openai_api_key or os.getenv("OPENAI_API_KEY")
+        elif provider == "custom":
+            return os.getenv("CUSTOM_API_KEY") or os.getenv("HERMES_CUSTOM_SEEKAI_CC_API_KEY")
         return None
     
     def validate_config(self) -> List[str]:

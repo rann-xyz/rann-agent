@@ -73,7 +73,7 @@ class AgentLifecycle:
                 budget=self.budget_engine.budget.__dict__
             ))
             
-            self.state_machine.transition(AgentState.INITIALIZING, reason="run_started")
+            self.state_machine.transition(AgentState.ANALYZING, reason="run_started")
             self.budget_engine.start_run()
             
             self.events.emit(self.events.create_event(
@@ -169,7 +169,7 @@ class AgentLifecycle:
     
     def checkpoint(self, data: Dict[str, Any], reason: str = "manual") -> None:
         """Create a checkpoint"""
-        self.state_machine.transition(AgentState.CHECKPOINTING, reason=reason)
+        self.state_machine.transition(AgentState.RECOVERING, reason=reason)
         
         self._checkpoint_data = {
             "state": self.state_machine.state.value,
@@ -199,7 +199,7 @@ class AgentLifecycle:
     
     def can_resume_from_checkpoint(self) -> bool:
         """Check if we can resume from checkpoint"""
-        return bool(self._checkpoint_data) and self.state_machine.state == AgentState.CREATED
+        return bool(self._checkpoint_data) and self.state_machine.state == AgentState.QUEUED
     
     # === Recovery ===
     

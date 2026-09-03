@@ -67,8 +67,9 @@ class RuntimeAgent:
         self.memory = MemoryManager(self.config) if memory else None
         self.coordinator = Coordinator(self.config, self) if self.config.agent.orchestration.enabled else None
         
-        # Phase 1: State machine
-        self._state = AgentState.CREATED
+        # Phase 1: State machine (use lifecycle's)
+        self._state = AgentState.QUEUED
+        self._lifecycle_state = None  # Set during execute()
         
         # Phase 1: Events
         self._events: EventEmitter = None  # Created per-run
@@ -101,15 +102,29 @@ class RuntimeAgent:
     
     @property
     def is_terminal(self) -> bool:
-        return self._state in {AgentState.COMPLETED, AgentState.FAILED, AgentState.CANCELLED}
+        return self._state in {AgentState.COMPLETED, AgentState.FAILED, AgentState.CANCELLED, AgentState.TIMED_OUT, AgentState.BLOCKED, AgentState.ROLLED_BACK}
     
     def add_recovery_strategy(self, strategy: Callable) -> None:
         """Add a recovery strategy function"""
         self._recovery_strategies.append(strategy)
     
     def _set_state(self, state: AgentState, reason: str = None) -> None:
-        """Set state with event emission"""
+        """Set state with event emission. Silently skip if lifecycle already transitioned."""
+        # If lifecycle already transitioned to terminal, don't fight it
+        if self._lifecycle_state and self._lifecycle_state.is_terminal():
+            return
         old_state = self._state
+        if old_state == state:
+            return
+        
+        # Check valid transition
+        if hasattr(AgentState, '_transitions'):
+            from rann_agent.core.state import VALID_TRANSITIONS
+            allowed = VALID_TRANSITIONS.get(old_state, set())
+            if state not in allowed and state not in (AgentState.COMPLETED, AgentState.FAILED):
+                # Skip silently - lifecycle may be handling state
+                return
+        
         self._state = state
         
         if self._events:
@@ -143,11 +158,12 @@ class RuntimeAgent:
             self._budget_engine.budget.max_turns = max_turns
         
         lifecycle = AgentLifecycle(self.run_id, goal, self._budget_engine.budget)
+        self._lifecycle_state = lifecycle.state_machine
         
         try:
             async with lifecycle.run():
-                # INITIALIZING
-                self._set_state(AgentState.INITIALIZING)
+                # ANALYZING
+                self._set_state(AgentState.ANALYZING)
                 self.context = Context()
                 self.context.add_user_message(goal, context)
                 
@@ -166,8 +182,8 @@ class RuntimeAgent:
                             memory_length=len(memory_context)
                         ))
                 
-                # UNDERSTANDING
-                self._set_state(AgentState.UNDERSTANDING)
+                # CONTEXT_READY
+                self._set_state(AgentState.CONTEXT_READY)
                 await asyncio.sleep(0)  # Allow event processing
                 
                 # PLANNING
@@ -222,11 +238,11 @@ class RuntimeAgent:
                 return final_result
                 
         except BudgetExceededError as e:
-            self._set_state(AgentState.FAILED, reason="budget_exhausted")
+            # Lifecycle already set state to FAILED
             return {"error": "Budget exhausted", "details": e.details, "state": self._state.value}
             
         except Exception as e:
-            self._set_state(AgentState.FAILED, reason=str(e))
+            # Lifecycle already set state to FAILED
             logger.error("execute_failed", run_id=self.run_id, error=str(e))
             return {"error": str(e), "state": self._state.value}
     
@@ -234,12 +250,12 @@ class RuntimeAgent:
         """Main execution loop with state transitions and budget tracking"""
         turn = 0
         
-        while not lifecycle.state_machine.is_terminal:
+        while not lifecycle.state_machine.is_terminal():
             # Check budget
             lifecycle.check_budget()
             
-            # OBSERVING state
-            self._set_state(AgentState.OBSERVING)
+            # EXECUTING state (inside loop)
+            self._set_state(AgentState.EXECUTING)
             
             # Get LLM response
             messages = self.context.get_messages()
@@ -297,8 +313,8 @@ class RuntimeAgent:
                     "turns": turn
                 }
             
-            # Execute tools
-            self._set_state(AgentState.EXECUTING)
+            # VERIFYING (tool execution complete, check results)
+            self._set_state(AgentState.VERIFYING)
             
             tool_results = []
             for tool_call in tool_calls:
