@@ -4,24 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RANN Agent - AI That Executes</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #0a0a0b;
-      --bg-secondary: #121214;
-      --bg-tertiary: #1a1a1d;
+      --bg2: #121214;
+      --bg3: #1a1a1d;
       --border: #2a2a2e;
       --text: #ededef;
-      --text-secondary: #8b8b8f;
-      --text-muted: #5c5c5f;
+      --text2: #8b8b8f;
+      --text3: #5c5c5f;
       --accent: #ff6b35;
-      --accent-hover: #ff8255;
+      --accent2: #ff8255;
       --success: #22c55e;
       --error: #ef4444;
-      --warning: #f59e0b;
       --font: 'Inter', system-ui, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
+      --mono: 'JetBrains Mono', monospace;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,10 +29,79 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      line-height: 1.6;
+      overflow-x: hidden;
     }
 
-    a { color: inherit; text-decoration: none; }
+    /* Smooth scroll */
+    html { scroll-behavior: smooth; }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-30px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(30px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.3); }
+      50% { box-shadow: 0 0 40px rgba(255, 107, 53, 0.5), 0 0 60px rgba(255, 107, 53, 0.2); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes typing {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes bounceIn {
+      0% { transform: scale(0.3); opacity: 0; }
+      50% { transform: scale(1.05); }
+      70% { transform: scale(0.9); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    @keyframes ripple {
+      to { transform: scale(4); opacity: 0; }
+    }
 
     /* Nav */
     .nav {
@@ -42,66 +109,109 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 56px;
-      background: rgba(10, 10, 11, 0.8);
-      backdrop-filter: blur(12px);
+      height: 60px;
+      background: rgba(10, 10, 11, 0.85);
+      backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
+      padding: 0 32px;
       z-index: 100;
+      transition: all 0.3s ease;
+    }
+
+    .nav.scrolled {
+      background: rgba(10, 10, 11, 0.98);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
     }
 
     .nav-logo {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       font-weight: 600;
-      font-size: 16px;
+      font-size: 17px;
+      animation: fadeIn 0.6s ease;
     }
 
     .nav-logo-icon {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       background: var(--accent);
-      border-radius: 8px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 14px;
+      animation: glow 3s ease-in-out infinite;
     }
 
     .nav-links {
       display: flex;
-      gap: 32px;
+      gap: 36px;
     }
 
     .nav-links a {
-      color: var(--text-secondary);
+      color: var(--text2);
       font-size: 14px;
-      transition: color 0.2s;
+      font-weight: 500;
+      padding: 8px 0;
+      position: relative;
+      transition: color 0.3s ease;
+      cursor: pointer;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--accent);
+      border-radius: 1px;
+      transition: width 0.3s ease;
     }
 
     .nav-links a:hover, .nav-links a.active {
       color: var(--text);
     }
 
-    .nav-cta {
-      display: flex;
-      gap: 12px;
+    .nav-links a:hover::after, .nav-links a.active::after {
+      width: 100%;
     }
 
     .btn {
-      padding: 8px 16px;
-      border-radius: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       border: none;
       font-family: var(--font);
-      transition: all 0.2s;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.6s ease, height 0.6s ease;
+    }
+
+    .btn:active::after {
+      width: 300px;
+      height: 300px;
     }
 
     .btn-primary {
@@ -109,80 +219,103 @@
       color: #fff;
     }
 
-    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:hover {
+      background: var(--accent2);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(255, 107, 53, 0.35);
+    }
 
     .btn-secondary {
-      background: var(--bg-tertiary);
+      background: var(--bg3);
       color: var(--text);
       border: 1px solid var(--border);
     }
 
-    .btn-secondary:hover { border-color: var(--text-muted); }
+    .btn-secondary:hover {
+      border-color: var(--text3);
+      transform: translateY(-2px);
+    }
 
-    /* Main content */
-    .main {
-      padding-top: 56px;
-      min-height: 100vh;
+    /* Main */
+    .main { padding-top: 60px; }
+
+    /* Page transitions */
+    .page {
+      display: none;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .page.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
     }
 
     /* Hero */
     .hero {
       max-width: 900px;
       margin: 0 auto;
-      padding: 120px 24px 80px;
+      padding: 100px 24px 60px;
       text-align: center;
     }
 
     .hero h1 {
-      font-size: clamp(40px, 8vw, 64px);
+      font-size: clamp(36px, 8vw, 58px);
       font-weight: 700;
-      line-height: 1.1;
-      margin-bottom: 24px;
-      background: linear-gradient(135deg, #fff 0%, #8b8b8f 100%);
+      line-height: 1.15;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #fff 0%, #b0b0b5 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      animation: fadeInUp 0.8s ease;
     }
 
     .hero p {
       font-size: 18px;
-      color: var(--text-secondary);
-      max-width: 600px;
+      color: var(--text2);
+      max-width: 550px;
       margin: 0 auto 40px;
+      animation: fadeInUp 0.8s ease 0.1s both;
     }
 
-    /* Quick input */
-    .quick-input {
-      max-width: 700px;
-      margin: 0 auto;
+    /* Input box */
+    .input-wrap {
+      animation: fadeInUp 0.8s ease 0.2s both;
     }
 
     .input-box {
       display: flex;
       gap: 12px;
-      background: var(--bg-secondary);
+      background: var(--bg2);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 8px;
-      transition: border-color 0.2s;
+      padding: 6px;
+      transition: all 0.3s ease;
+      max-width: 680px;
+      margin: 0 auto;
     }
 
     .input-box:focus-within {
       border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+      transform: scale(1.01);
     }
 
     .input-box input {
       flex: 1;
       background: transparent;
       border: none;
-      padding: 16px;
+      padding: 18px 20px;
       font-size: 16px;
       color: var(--text);
       font-family: var(--font);
       outline: none;
     }
 
-    .input-box input::placeholder { color: var(--text-muted); }
+    .input-box input::placeholder { color: var(--text3); }
 
     .input-box button {
       padding: 16px 32px;
@@ -190,40 +323,61 @@
       color: #fff;
       border: none;
       border-radius: 12px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
       font-family: var(--font);
+      transition: all 0.3s ease;
     }
 
-    .input-box button:hover { background: var(--accent-hover); }
+    .input-box button:hover {
+      background: var(--accent2);
+      transform: scale(1.02);
+    }
 
-    .input-hint {
-      margin-top: 16px;
+    .input-box button:active {
+      transform: scale(0.98);
+    }
+
+    .quick-chips {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      animation: fadeInUp 0.8s ease 0.3s both;
+    }
+
+    .chip {
+      padding: 8px 16px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 20px;
       font-size: 13px;
-      color: var(--text-muted);
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.3s ease;
     }
 
-    .input-hint span {
-      color: var(--text-secondary);
-      background: var(--bg-tertiary);
-      padding: 4px 10px;
-      border-radius: 6px;
-      margin: 0 4px;
+    .chip:hover {
+      border-color: var(--accent);
+      color: var(--text);
+      transform: translateY(-2px);
     }
 
-    /* Features grid */
+    /* Features */
     .features {
       max-width: 1100px;
       margin: 0 auto;
-      padding: 80px 24px;
+      padding: 60px 24px;
     }
 
-    .features h2 {
-      font-size: 32px;
+    .section-title {
+      font-size: 28px;
       font-weight: 600;
       text-align: center;
-      margin-bottom: 48px;
+      margin-bottom: 40px;
+      animation: fadeInUp 0.6s ease;
     }
 
     .features-grid {
@@ -233,90 +387,146 @@
     }
 
     .feature-card {
-      background: var(--bg-secondary);
+      background: var(--bg2);
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 28px;
+      transition: all 0.4s ease;
+      animation: fadeInUp 0.6s ease both;
+    }
+
+    .feature-card:nth-child(1) { animation-delay: 0.1s; }
+    .feature-card:nth-child(2) { animation-delay: 0.15s; }
+    .feature-card:nth-child(3) { animation-delay: 0.2s; }
+    .feature-card:nth-child(4) { animation-delay: 0.25s; }
+    .feature-card:nth-child(5) { animation-delay: 0.3s; }
+    .feature-card:nth-child(6) { animation-delay: 0.35s; }
+
+    .feature-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--bg3);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 18px;
+      transition: all 0.3s ease;
+    }
+
+    .feature-card:hover .feature-icon {
+      background: var(--accent);
+      transform: scale(1.1) rotate(5deg);
     }
 
     .feature-card h3 {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 600;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .feature-card p {
       font-size: 14px;
-      color: var(--text-secondary);
+      color: var(--text2);
       line-height: 1.6;
-    }
-
-    .feature-icon {
-      width: 44px;
-      height: 44px;
-      background: var(--bg-tertiary);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-      font-size: 20px;
     }
 
     /* Stats */
     .stats {
-      background: var(--bg-secondary);
+      background: var(--bg2);
       border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
-      padding: 60px 24px;
+      padding: 50px 24px;
     }
 
-    .stats-inner {
+    .stats-grid {
       max-width: 900px;
       margin: 0 auto;
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 40px;
+      gap: 30px;
       text-align: center;
     }
 
+    .stat-item {
+      animation: fadeInUp 0.6s ease both;
+    }
+
+    .stat-item:nth-child(1) { animation-delay: 0.1s; }
+    .stat-item:nth-child(2) { animation-delay: 0.15s; }
+    .stat-item:nth-child(3) { animation-delay: 0.2s; }
+    .stat-item:nth-child(4) { animation-delay: 0.25s; }
+
     .stat-value {
-      font-size: 40px;
+      font-size: 38px;
       font-weight: 700;
-      font-family: var(--font-mono);
+      font-family: var(--mono);
       color: var(--accent);
     }
 
     .stat-label {
-      font-size: 14px;
-      color: var(--text-secondary);
+      font-size: 13px;
+      color: var(--text2);
       margin-top: 4px;
     }
 
-    /* Chat Page */
+    /* Chat page */
     .chat-page {
-      display: none;
       max-width: 900px;
       margin: 0 auto;
       padding: 80px 24px 40px;
     }
 
     .chat-messages {
-      min-height: 400px;
+      min-height: 50vh;
       max-height: 60vh;
       overflow-y: auto;
       margin-bottom: 24px;
+      padding-right: 8px;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+      background: var(--bg2);
+      border-radius: 3px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb:hover {
+      background: var(--text3);
     }
 
     .message {
       display: flex;
-      gap: 16px;
-      margin-bottom: 24px;
+      gap: 14px;
+      margin-bottom: 20px;
+      animation: fadeInUp 0.4s ease;
     }
 
-    .message.user { flex-direction: row-reverse; }
+    .message.user {
+      flex-direction: row-reverse;
+      animation: slideInRight 0.4s ease;
+    }
 
-    .message-avatar {
+    .message.assistant {
+      animation: slideInLeft 0.4s ease;
+    }
+
+    .msg-avatar {
       width: 36px;
       height: 36px;
       border-radius: 10px;
@@ -326,62 +536,78 @@
       font-size: 13px;
       font-weight: 600;
       flex-shrink: 0;
+      transition: transform 0.3s ease;
     }
 
-    .message.assistant .message-avatar { background: var(--accent); }
-    .message.user .message-avatar { background: var(--bg-tertiary); }
+    .message.assistant .msg-avatar {
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
 
-    .message-bubble {
-      max-width: 80%;
+    .message.user .msg-avatar {
+      background: var(--bg3);
+    }
+
+    .message:hover .msg-avatar {
+      transform: scale(1.1);
+    }
+
+    .msg-bubble {
+      max-width: 75%;
       padding: 16px 20px;
       border-radius: 16px;
       font-size: 15px;
-      line-height: 1.6;
+      line-height: 1.65;
+      transition: all 0.3s ease;
     }
 
-    .message.assistant .message-bubble {
-      background: var(--bg-secondary);
+    .message.assistant .msg-bubble {
+      background: var(--bg2);
       border: 1px solid var(--border);
       border-radius: 16px 16px 16px 4px;
     }
 
-    .message.user .message-bubble {
+    .message.user .msg-bubble {
       background: var(--accent);
       color: #fff;
       border-radius: 16px 16px 4px 16px;
     }
 
-    .message-bubble pre {
-      background: var(--bg);
-      padding: 16px;
-      border-radius: 8px;
-      margin: 12px 0;
-      overflow-x: auto;
-      font-family: var(--font-mono);
-      font-size: 13px;
+    .msg-bubble:hover {
+      transform: scale(1.01);
     }
 
-    .message-bubble code {
+    .msg-bubble pre {
+      background: var(--bg);
+      padding: 14px;
+      border-radius: 8px;
+      margin: 10px 0;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 13px;
+      border: 1px solid var(--border);
+    }
+
+    .msg-bubble code {
       background: var(--bg);
       padding: 2px 6px;
       border-radius: 4px;
-      font-family: var(--font-mono);
+      font-family: var(--mono);
       font-size: 13px;
     }
 
-    .message-bubble pre code {
+    .msg-bubble pre code {
       background: transparent;
       padding: 0;
     }
 
-    /* Thinking indicator */
+    /* Thinking dots */
     .thinking {
       display: flex;
       align-items: center;
       gap: 8px;
-      color: var(--text-muted);
+      color: var(--text3);
       font-size: 14px;
-      padding: 8px 0;
     }
 
     .thinking-dots {
@@ -392,78 +618,112 @@
     .thinking-dots span {
       width: 6px;
       height: 6px;
-      background: var(--text-muted);
+      background: var(--text3);
       border-radius: 50%;
-      animation: thinking 1.4s infinite;
+      animation: bounce 1.4s infinite ease-in-out;
     }
 
+    .thinking-dots span:nth-child(1) { animation-delay: 0s; }
     .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
     .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
 
-    @keyframes thinking {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 1; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+      40% { transform: scale(1); opacity: 1; }
     }
 
-    /* Settings Page */
+    /* Settings page */
     .settings-page {
-      display: none;
       max-width: 700px;
       margin: 0 auto;
       padding: 80px 24px 40px;
     }
 
     .settings-page h2 {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 600;
-      margin-bottom: 32px;
+      margin-bottom: 28px;
+      animation: fadeInUp 0.5s ease;
     }
 
     .settings-section {
-      background: var(--bg-secondary);
+      background: var(--bg2);
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 24px;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
+      animation: fadeInUp 0.5s ease both;
     }
+
+    .settings-section:nth-child(2) { animation-delay: 0.1s; }
+    .settings-section:nth-child(3) { animation-delay: 0.15s; }
 
     .settings-section h3 {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
-    .api-providers {
+    .settings-section > p {
+      font-size: 13px;
+      color: var(--text2);
+      margin-bottom: 16px;
+    }
+
+    .provider-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
+      gap: 10px;
+      margin-bottom: 16px;
     }
 
-    .api-btn {
+    .provider-btn {
       padding: 16px;
-      background: var(--bg-tertiary);
+      background: var(--bg3);
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 12px;
       color: var(--text);
       font-size: 14px;
       cursor: pointer;
       text-align: left;
-      transition: all 0.2s;
+      transition: all 0.3s ease;
       font-family: var(--font);
     }
 
-    .api-btn:hover { border-color: var(--accent); }
-    .api-btn.active { border-color: var(--accent); background: rgba(255, 107, 53, 0.1); }
+    .provider-btn:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
 
-    .api-btn-name { font-weight: 600; display: block; }
-    .api-btn-desc { color: var(--text-secondary); font-size: 12px; margin-top: 2px; }
-    .api-btn-free { color: var(--success); font-size: 11px; }
+    .provider-btn.active {
+      border-color: var(--accent);
+      background: rgba(255, 107, 53, 0.1);
+    }
+
+    .provider-btn .name {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .provider-btn .free {
+      font-size: 10px;
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .provider-btn .desc {
+      font-size: 11px;
+      color: var(--text2);
+      margin-top: 2px;
+    }
 
     .api-input-row {
       display: flex;
-      gap: 12px;
-      margin-top: 16px;
+      gap: 10px;
     }
 
     .api-input-row input {
@@ -471,101 +731,53 @@
       padding: 12px 16px;
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 10px;
       color: var(--text);
       font-size: 14px;
       font-family: var(--font);
+      transition: all 0.3s ease;
     }
 
     .api-input-row input:focus {
       outline: none;
       border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
     }
 
     .api-status {
-      margin-top: 16px;
+      margin-top: 14px;
       padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 14px;
+      border-radius: 10px;
+      font-size: 13px;
       display: none;
     }
 
     .api-status.show { display: block; }
-    .api-status.success { background: rgba(34, 197, 94, 0.1); color: var(--success); }
-    .api-status.error { background: rgba(239, 68, 68, 0.1); color: var(--error); }
-
-    /* Dashboard Page */
-    .dashboard-page {
-      display: none;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 80px 24px 40px;
+    .api-status.success {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--success);
+      animation: bounceIn 0.5s ease;
+    }
+    .api-status.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--error);
+      animation: shake 0.5s ease;
     }
 
-    .dashboard-page h2 {
-      font-size: 28px;
-      font-weight: 600;
-      margin-bottom: 32px;
-    }
-
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .dash-card {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-    }
-
-    .dash-card-label {
-      font-size: 12px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .dash-card-value {
-      font-size: 28px;
-      font-weight: 700;
-      font-family: var(--font-mono);
-      margin-top: 8px;
-    }
-
-    .dash-card-value.accent { color: var(--accent); }
-    .dash-card-value.success { color: var(--success); }
-    .dash-card-value.warning { color: var(--warning); }
-
-    .dash-section {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 20px;
-    }
-
-    .dash-section h3 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 16px;
-    }
-
-    .system-check {
-      display: grid;
-      gap: 12px;
+    /* System checks */
+    .check-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .check-item {
       display: flex;
       justify-content: space-between;
       padding: 12px 16px;
-      background: var(--bg-tertiary);
+      background: var(--bg3);
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .check-status {
@@ -575,24 +787,118 @@
     }
 
     .check-status.ok { color: var(--success); }
-    .check-status.error { color: var(--error); }
-    .check-status.warning { color: var(--warning); }
+    .check-status.warn { color: var(--error); }
+
+    /* Dashboard page */
+    .dashboard-page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px 40px;
+    }
+
+    .dashboard-page h2 {
+      font-size: 26px;
+      font-weight: 600;
+      margin-bottom: 28px;
+      animation: fadeInUp 0.5s ease;
+    }
+
+    .dash-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .dash-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      animation: fadeInUp 0.5s ease both;
+      transition: all 0.3s ease;
+    }
+
+    .dash-card:nth-child(1) { animation-delay: 0.05s; }
+    .dash-card:nth-child(2) { animation-delay: 0.1s; }
+    .dash-card:nth-child(3) { animation-delay: 0.15s; }
+    .dash-card:nth-child(4) { animation-delay: 0.2s; }
+
+    .dash-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+    }
+
+    .dash-label {
+      font-size: 11px;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .dash-value {
+      font-size: 26px;
+      font-weight: 700;
+      font-family: var(--mono);
+      margin-top: 8px;
+    }
+
+    .dash-value.accent { color: var(--accent); }
+    .dash-value.success { color: var(--success); }
+
+    .dash-section {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 18px;
+      animation: fadeInUp 0.5s ease both;
+    }
+
+    .dash-section h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .quick-btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .quick-btn {
+      padding: 10px 18px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: var(--font);
+    }
+
+    .quick-btn:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
 
     /* Responsive */
     @media (max-width: 768px) {
       .nav-links { display: none; }
-      .stats-inner { grid-template-columns: repeat(2, 1fr); }
-      .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
-      .api-providers { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .dash-stats { grid-template-columns: repeat(2, 1fr); }
+      .provider-grid { grid-template-columns: 1fr; }
+      .input-box { flex-direction: column; }
+      .input-box button { width: 100%; }
+      .msg-bubble { max-width: 85%; }
     }
-
-    /* Page visibility */
-    .page { display: none; }
-    .page.active { display: block; }
   </style>
 </head>
 <body>
-  <nav class="nav">
+  <!-- Nav -->
+  <nav class="nav" id="nav">
     <a href="#" class="nav-logo" onclick="showPage('home')">
       <div class="nav-logo-icon">RA</div>
       <span>RANN Agent</span>
@@ -603,58 +909,58 @@
       <a href="#" onclick="showPage('settings')" id="nav-settings">Settings</a>
       <a href="#" onclick="showPage('dashboard')" id="nav-dashboard">Dashboard</a>
     </div>
-    <div class="nav-cta">
-      <button class="btn btn-secondary" onclick="showPage('chat')">Start Chatting</button>
-    </div>
+    <button class="btn btn-primary" onclick="showPage('chat')">Start Chat</button>
   </nav>
 
   <main class="main">
-    <!-- HOME PAGE -->
+    <!-- HOME -->
     <div class="page active" id="page-home">
       <div class="hero">
         <h1>Just Tell Me What To Do</h1>
-        <p>Natural language AI agent that understands and executes your instructions. No commands to remember, no syntax to learn.</p>
+        <p>Natural language AI that understands your instructions and executes them. No commands to memorize.</p>
         
-        <div class="quick-input">
+        <div class="input-wrap">
           <div class="input-box">
-            <input type="text" id="home-input" placeholder="Create a Python script that fetches weather data..." onkeypress="if(event.key==='Enter')executeFromHome()">
-            <button onclick="executeFromHome()">Execute</button>
+            <input type="text" id="home-input" placeholder="Create a Python script that fetches weather data..." onkeypress="if(event.key==='Enter')executeHome()">
+            <button onclick="executeHome()">Execute</button>
           </div>
-          <p class="input-hint">
-            Try: <span onclick="document.getElementById('home-input').value='create a new file called hello.py'">create file</span>
-            <span onclick="document.getElementById('home-input').value='run the tests'">run tests</span>
-            <span onclick="document.getElementById('home-input').value='explain what this code does'">explain code</span>
-          </p>
+        </div>
+        
+        <div class="quick-chips">
+          <span class="chip" onclick="setInput('create a file called hello.py')">create file</span>
+          <span class="chip" onclick="setInput('run the tests')">run tests</span>
+          <span class="chip" onclick="setInput('explain what this code does')">explain code</span>
+          <span class="chip" onclick="setInput('commit and push to github')">commit & push</span>
         </div>
       </div>
 
       <div class="features">
-        <h2>What I Can Do</h2>
+        <h2 class="section-title">What I Can Do</h2>
         <div class="features-grid">
           <div class="feature-card">
             <div class="feature-icon">&#128221;</div>
             <h3>Write & Edit Code</h3>
-            <p>Create files, fix bugs, refactor, add features. Works with Python, JavaScript, Go, Rust, and more.</p>
+            <p>Create files, fix bugs, refactor, add features. Python, JavaScript, Go, Rust, and more.</p>
           </div>
           <div class="feature-card">
             <div class="feature-icon">&#128187;</div>
             <h3>Run Commands</h3>
-            <p>Execute terminal commands, run tests, build projects, install dependencies, manage processes.</p>
+            <p>Execute terminal commands, run tests, build projects, install dependencies.</p>
           </div>
           <div class="feature-card">
             <div class="feature-icon">&#128270;</div>
             <h3>Search & Research</h3>
-            <p>Web search for latest info, find files, grep through code, read documentation.</p>
+            <p>Web search for latest info, find files, grep through code, read docs.</p>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">&#12824</div>
+            <div class="feature-icon">&#12824;</div>
             <h3>Git Operations</h3>
-            <p>Commit changes, create branches, merge, push, pull, view history, resolve conflicts.</p>
+            <p>Commit changes, create branches, merge, push, pull, view history.</p>
           </div>
           <div class="feature-card">
             <div class="feature-icon">&#128203;</div>
             <h3>Remember Context</h3>
-            <p>Learns from previous tasks, remembers your project structure, adapts to your style.</p>
+            <p>Learns from previous tasks, remembers project structure, adapts to your style.</p>
           </div>
           <div class="feature-card">
             <div class="feature-icon">&#128737;</div>
@@ -665,20 +971,20 @@
       </div>
 
       <div class="stats">
-        <div class="stats-inner">
-          <div>
+        <div class="stats-grid">
+          <div class="stat-item">
             <div class="stat-value">169</div>
             <div class="stat-label">Tests Passing</div>
           </div>
-          <div>
+          <div class="stat-item">
             <div class="stat-value">121</div>
             <div class="stat-label">Modules</div>
           </div>
-          <div>
+          <div class="stat-item">
             <div class="stat-value">16</div>
             <div class="stat-label">States</div>
           </div>
-          <div>
+          <div class="stat-item">
             <div class="stat-value">6</div>
             <div class="stat-label">Providers</div>
           </div>
@@ -686,152 +992,182 @@
       </div>
     </div>
 
-    <!-- CHAT PAGE -->
+    <!-- CHAT -->
     <div class="page chat-page" id="page-chat">
       <div class="chat-messages" id="chat-messages">
         <div class="message assistant">
-          <div class="message-avatar">RA</div>
-          <div class="message-bubble">Hello! I'm RANN Agent. Tell me what you'd like me to do, and I'll execute it for you. What can I help with?</div>
+          <div class="msg-avatar">RA</div>
+          <div class="msg-bubble">Hello! I'm RANN Agent. Just tell me what you'd like me to do, and I'll execute it. What can I help with?</div>
         </div>
       </div>
-      <div class="quick-input">
+      <div class="input-wrap">
         <div class="input-box">
-          <input type="text" id="chat-input" placeholder="What would you like me to do?" onkeypress="if(event.key==='Enter')sendMessage()">
-          <button onclick="sendMessage()">Send</button>
+          <input type="text" id="chat-input" placeholder="What would you like me to do?" onkeypress="if(event.key==='Enter')sendMsg()">
+          <button onclick="sendMsg()">Send</button>
         </div>
       </div>
     </div>
 
-    <!-- SETTINGS PAGE -->
+    <!-- SETTINGS -->
     <div class="page settings-page" id="page-settings">
       <h2>Settings</h2>
       
       <div class="settings-section">
         <h3>AI Provider</h3>
-        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">Choose an AI provider to power the agent. Free options are available.</p>
+        <p>Choose an AI provider. Free options are marked with FREE.</p>
         
-        <div class="api-providers">
-          <button class="api-btn" onclick="selectProvider('groq')" id="provider-groq">
-            <span class="api-btn-name">Groq <span class="api-btn-free">FREE</span></span>
-            <span class="api-btn-desc">Llama 3.1 70B - Very fast</span>
+        <div class="provider-grid">
+          <button class="provider-btn" onclick="selectProvider('groq')" id="prov-groq">
+            <div class="name">Groq <span class="free">FREE</span></div>
+            <div class="desc">Llama 3.1 70B - Very fast</div>
           </button>
-          <button class="api-btn" onclick="selectProvider('xkiro')" id="provider-xkiro">
-            <span class="api-btn-name">xkiro <span class="api-btn-free">FREE</span></span>
-            <span class="api-btn-desc">MiniMax - Free tier</span>
+          <button class="provider-btn" onclick="selectProvider('xkiro')" id="prov-xkiro">
+            <div class="name">xkiro <span class="free">FREE</span></div>
+            <div class="desc">MiniMax - Free tier</div>
           </button>
-          <button class="api-btn" onclick="selectProvider('deepseek')" id="provider-deepseek">
-            <span class="api-btn-name">DeepSeek <span class="api-btn-free">FREE</span></span>
-            <span class="api-btn-desc">DeepSeek V3 - Good quality</span>
+          <button class="provider-btn" onclick="selectProvider('deepseek')" id="prov-deepseek">
+            <div class="name">DeepSeek <span class="free">FREE</span></div>
+            <div class="desc">DeepSeek V3 - Good quality</div>
           </button>
-          <button class="api-btn" onclick="selectProvider('openai')" id="provider-openai">
-            <span class="api-btn-name">OpenAI</span>
-            <span class="api-btn-desc">GPT-4o - Premium</span>
+          <button class="provider-btn" onclick="selectProvider('openai')" id="prov-openai">
+            <div class="name">OpenAI</div>
+            <div class="desc">GPT-4o - Premium</div>
           </button>
-          <button class="api-btn" onclick="selectProvider('anthropic')" id="provider-anthropic">
-            <span class="api-btn-name">Anthropic</span>
-            <span class="api-btn-desc">Claude - Premium</span>
+          <button class="provider-btn" onclick="selectProvider('anthropic')" id="prov-anthropic">
+            <div class="name">Anthropic</div>
+            <div class="desc">Claude - Premium</div>
           </button>
-          <button class="api-btn" onclick="selectProvider('ollama')" id="provider-ollama">
-            <span class="api-btn-name">Ollama <span class="api-btn-free">FREE</span></span>
-            <span class="api-btn-desc">Local models - No API needed</span>
+          <button class="provider-btn" onclick="selectProvider('ollama')" id="prov-ollama">
+            <div class="name">Ollama <span class="free">FREE</span></div>
+            <div class="desc">Local models</div>
           </button>
         </div>
         
         <div class="api-input-row">
           <input type="password" id="api-key-input" placeholder="Enter API key...">
-          <button class="btn btn-primary" onclick="saveApiKey()">Save</button>
+          <button class="btn btn-primary" onclick="saveKey()">Save</button>
         </div>
         
         <div class="api-status" id="api-status"></div>
       </div>
 
       <div class="settings-section">
-        <h3>System Check</h3>
-        <div class="system-check" id="system-checks">
+        <h3>System Status</h3>
+        <div class="check-list">
           <div class="check-item">
-            <span>Python</span>
+            <span>Python Environment</span>
             <span class="check-status ok">&#10003; OK</span>
           </div>
           <div class="check-item">
             <span>Network</span>
             <span class="check-status ok">&#10003; OK</span>
           </div>
+          <div class="check-item">
+            <span>API Backend</span>
+            <span class="check-status ok" id="api-backend-status">&#10003; Ready</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- DASHBOARD PAGE -->
+    <!-- DASHBOARD -->
     <div class="page dashboard-page" id="page-dashboard">
       <h2>Dashboard</h2>
       
-      <div class="dashboard-grid">
+      <div class="dash-stats">
         <div class="dash-card">
-          <div class="dash-card-label">Tasks Completed</div>
-          <div class="dash-card-value" id="dash-tasks">0</div>
+          <div class="dash-label">Tasks Completed</div>
+          <div class="dash-value" id="dash-tasks">0</div>
         </div>
         <div class="dash-card">
-          <div class="dash-card-label">Success Rate</div>
-          <div class="dash-card-value success" id="dash-success">100%</div>
+          <div class="dash-label">Success Rate</div>
+          <div class="dash-value success" id="dash-success">100%</div>
         </div>
         <div class="dash-card">
-          <div class="dash-card-label">Provider</div>
-          <div class="dash-card-value accent" id="dash-provider">-</div>
+          <div class="dash-label">Provider</div>
+          <div class="dash-value accent" id="dash-provider">-</div>
         </div>
         <div class="dash-card">
-          <div class="dash-card-label">Status</div>
-          <div class="dash-card-value success" id="dash-status">Ready</div>
-        </div>
-      </div>
-
-      <div class="dash-section">
-        <h3>System Checks</h3>
-        <div class="system-check" id="dash-checks">
-          <div class="check-item">
-            <span>Python Environment</span>
-            <span class="check-status ok">&#10003; OK</span>
-          </div>
-          <div class="check-item">
-            <span>API Connection</span>
-            <span class="check-status warning">&#10003; Configure</span>
-          </div>
-          <div class="check-item">
-            <span>Memory Store</span>
-            <span class="check-status ok">&#10003; OK</span>
-          </div>
+          <div class="dash-label">Status</div>
+          <div class="dash-value success" id="dash-status">Ready</div>
         </div>
       </div>
 
       <div class="dash-section">
         <h3>Quick Actions</h3>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-          <button class="btn btn-secondary" onclick="quickAction('list files')">List Files</button>
-          <button class="btn btn-secondary" onclick="quickAction('show git status')">Git Status</button>
-          <button class="btn btn-secondary" onclick="quickAction('run tests')">Run Tests</button>
-          <button class="btn btn-secondary" onclick="quickAction('show memory stats')">Memory Stats</button>
+        <div class="quick-btns">
+          <button class="quick-btn" onclick="quickAction('list files in current directory')">List Files</button>
+          <button class="quick-btn" onclick="quickAction('show git status')">Git Status</button>
+          <button class="quick-btn" onclick="quickAction('run tests')">Run Tests</button>
+          <button class="quick-btn" onclick="quickAction('show memory stats')">Memory Stats</button>
+          <button class="quick-btn" onclick="quickAction('show system info')">System Info</button>
+        </div>
+      </div>
+
+      <div class="dash-section">
+        <h3>System Checks</h3>
+        <div class="check-list">
+          <div class="check-item">
+            <span>Python Environment</span>
+            <span class="check-status ok">&#10003; OK</span>
+          </div>
+          <div class="check-item">
+            <span>Memory Store</span>
+            <span class="check-status ok">&#10003; OK</span>
+          </div>
+          <div class="check-item">
+            <span>API Configuration</span>
+            <span class="check-status ok" id="dash-api-check">&#10003; Configure</span>
+          </div>
         </div>
       </div>
     </div>
   </main>
 
   <script>
-    // API Base URL
-    var API_BASE = 'http://127.0.0.1:5555/api';
-    var selectedProvider = null;
+    // Config
+    var API = 'http://127.0.0.1:5555/api';
+    var selectedProv = null;
     var chatHistory = [];
     var taskCount = 0;
 
+    // Nav scroll effect
+    window.addEventListener('scroll', function() {
+      var nav = document.getElementById('nav');
+      if (window.scrollY > 20) {
+        nav.classList.add('scrolled');
+      } else {
+        nav.classList.remove('scrolled');
+      }
+    });
+
     // Page navigation
     function showPage(page) {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(function(p) {
+        p.classList.remove('active');
+      });
+      document.querySelectorAll('.nav-links a').forEach(function(a) {
+        a.classList.remove('active');
+      });
+      
       document.getElementById('page-' + page).classList.add('active');
       document.getElementById('nav-' + page).classList.add('active');
+      
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       
       if (page === 'settings') checkApiStatus();
     }
 
-    // Execute from home page
-    function executeFromHome() {
+    // Set input from chip
+    function setInput(text) {
+      var input = document.getElementById('home-input');
+      input.value = text;
+      input.focus();
+    }
+
+    // Execute from home
+    function executeHome() {
       var input = document.getElementById('home-input');
       var task = input.value.trim();
       if (!task) return;
@@ -839,28 +1175,28 @@
       input.value = '';
       showPage('chat');
       document.getElementById('chat-input').value = task;
-      sendMessage();
+      sendMsg();
     }
 
     // Send message
-    async function sendMessage() {
+    async function sendMsg() {
       var input = document.getElementById('chat-input');
-      var message = input.value.trim();
-      if (!message) return;
+      var msg = input.value.trim();
+      if (!msg) return;
       
-      addMessage('user', message);
+      addMessage('user', msg);
       input.value = '';
-      chatHistory.push({ role: 'user', content: message });
+      chatHistory.push({ role: 'user', content: msg });
       
       addThinking();
       
       try {
-        var resp = await fetch(API_BASE + '/chat', {
+        var resp = await fetch(API + '/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             provider: localStorage.getItem('rann_provider') || 'groq',
-            message: message,
+            message: msg,
             history: chatHistory
           })
         });
@@ -883,24 +1219,24 @@
         }
       } catch (e) {
         removeThinking();
-        addMessage('assistant', 'Cannot connect to RANN API. Please start the backend:\n\n```\npython web_api.py\n```\n\nThen refresh this page.');
+        addMessage('assistant', 'Cannot connect to RANN API. Start the backend:\n\n```\npython web_api.py\n```\n\nThen refresh this page.');
       }
     }
 
-    // Add message to chat
+    // Add message
     function addMessage(role, content) {
       var messages = document.getElementById('chat-messages');
       var div = document.createElement('div');
       div.className = 'message ' + role;
       
-      // Format code blocks
+      // Format
       content = content.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
       content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
       content = content.replace(/\n/g, '<br>');
       
       div.innerHTML = 
-        '<div class="message-avatar">' + (role === 'user' ? 'You' : 'RA') + '</div>' +
-        '<div class="message-bubble">' + content + '</div>';
+        '<div class="msg-avatar">' + (role === 'user' ? 'You' : 'RA') + '</div>' +
+        '<div class="msg-bubble">' + content + '</div>';
       messages.appendChild(div);
       messages.scrollTop = messages.scrollHeight;
     }
@@ -912,8 +1248,8 @@
       div.className = 'message assistant';
       div.id = 'thinking';
       div.innerHTML = 
-        '<div class="message-avatar">RA</div>' +
-        '<div class="message-bubble"><div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div> Thinking...</div></div>';
+        '<div class="msg-avatar">RA</div>' +
+        '<div class="msg-bubble"><div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div> Thinking...</div></div>';
       messages.appendChild(div);
       messages.scrollTop = messages.scrollHeight;
     }
@@ -924,22 +1260,24 @@
     }
 
     // Provider selection
-    function selectProvider(provider) {
-      selectedProvider = provider;
-      document.querySelectorAll('.api-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('provider-' + provider).classList.add('active');
+    function selectProvider(prov) {
+      selectedProv = prov;
+      document.querySelectorAll('.provider-btn').forEach(function(b) {
+        b.classList.remove('active');
+      });
+      document.getElementById('prov-' + prov).classList.add('active');
       document.getElementById('api-status').className = 'api-status';
       document.getElementById('api-status').textContent = '';
     }
 
     // Save API key
-    async function saveApiKey() {
+    async function saveKey() {
       var key = document.getElementById('api-key-input').value.trim();
       if (!key) {
         showStatus('Please enter an API key', 'error');
         return;
       }
-      if (!selectedProvider) {
+      if (!selectedProv) {
         showStatus('Please select a provider first', 'error');
         return;
       }
@@ -947,7 +1285,7 @@
       showStatus('Saving...', '');
       
       try {
-        var resp = await fetch(API_BASE + '/key/' + selectedProvider, {
+        var resp = await fetch(API + '/key/' + selectedProv, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ api_key: key })
@@ -955,20 +1293,19 @@
         
         if (resp.ok) {
           showStatus('API key saved successfully!', 'success');
-          localStorage.setItem('rann_provider', selectedProvider);
-          document.getElementById('dash-provider').textContent = selectedProvider;
+          localStorage.setItem('rann_provider', selectedProv);
+          document.getElementById('dash-provider').textContent = selectedProv;
           document.getElementById('dash-status').textContent = 'Connected';
-          document.getElementById('dash-status').className = 'dash-card-value success';
+          document.getElementById('dash-api-check').innerHTML = '&#10003; Connected';
         } else {
           var err = await resp.json();
           showStatus('Error: ' + (err.error || 'Failed'), 'error');
         }
       } catch (e) {
-        // Save locally as fallback
         localStorage.setItem('rann_api_key', key);
-        localStorage.setItem('rann_provider', selectedProvider);
+        localStorage.setItem('rann_provider', selectedProv);
         showStatus('Saved locally!', 'success');
-        document.getElementById('dash-provider').textContent = selectedProvider;
+        document.getElementById('dash-provider').textContent = selectedProv;
       }
     }
 
@@ -981,40 +1318,34 @@
     // Check API status
     async function checkApiStatus() {
       try {
-        var resp = await fetch(API_BASE + '/status');
+        var resp = await fetch(API + '/status');
         if (resp.ok) {
           var data = await resp.json();
+          document.getElementById('api-backend-status').innerHTML = '&#10003; Online';
           if (data.configured_providers && data.configured_providers.length > 0) {
             var p = data.configured_providers[0];
             document.getElementById('dash-provider').textContent = p;
-            document.getElementById('dash-status').textContent = 'Connected';
-            document.getElementById('provider-' + p).classList.add('active');
+            document.getElementById('prov-' + p).classList.add('active');
           }
         }
       } catch (e) {
-        // API not running
+        document.getElementById('api-backend-status').innerHTML = '&#10007; Start web_api.py';
+        document.getElementById('api-backend-status').className = 'check-status warn';
       }
     }
 
-    // Quick actions
+    // Quick action
     function quickAction(task) {
       showPage('chat');
       document.getElementById('chat-input').value = task;
-      sendMessage();
+      sendMsg();
     }
 
-    // Load state on start
+    // Init
     window.onload = function() {
       var provider = localStorage.getItem('rann_provider');
       if (provider) {
         document.getElementById('dash-provider').textContent = provider;
-        try {
-          fetch(API_BASE + '/key/' + provider).then(r => r.ok && r.json()).then(d => {
-            if (d && d.has_key) {
-              document.getElementById('dash-status').textContent = 'Connected';
-            }
-          });
-        } catch (e) {}
       }
     };
   </script>
