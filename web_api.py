@@ -23,7 +23,7 @@ CONFIG_FILE = KEYS_DIR / "config.json"
 PROVIDERS = {
     "xkiro": {
         "name": "xkiro",
-        "base_url": "https://api.xkiro.com",
+        "base_url": "https://api.xkiro.com/v1",
         "default_model": "minimax/minimax-m2.7-highspeed:free",
         "api_type": "openai",
         "free": True
@@ -269,7 +269,9 @@ class APIHandler(BaseHTTPRequestHandler):
 
         req = urllib.request.Request(url, data=payload, headers={
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {api_key}'
+            'Authorization': f'Bearer {api_key}',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json'
         }, method='POST')
 
         try:
@@ -303,7 +305,9 @@ class APIHandler(BaseHTTPRequestHandler):
         req = urllib.request.Request(url, data=payload, headers={
             'Content-Type': 'application/json',
             'x-api-key': api_key,
-            'anthropic-version': '2023-06-01'
+            'anthropic-version': '2023-06-01',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json'
         }, method='POST')
 
         try:
