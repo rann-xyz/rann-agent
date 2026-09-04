@@ -68,7 +68,6 @@ def register_shell(cli):
                 break
             
             if user_input.lower() == "clear":
-                history.clear()
                 click.echo("History cleared.")
                 continue
             
@@ -78,13 +77,10 @@ def register_shell(cli):
                 result = asyncio.run(run_task(task))
                 output = result.get("output", result.get("error", "No output"))
                 click.echo(f"\n📤 Output:\n{output}")
-                history.append({"role": "user", "content": task})
-                history.append({"role": "assistant", "content": output})
                 continue
             
             if user_input.startswith("!status"):
                 click.echo(f"\n📊 Session stats:")
-                click.echo(f"   History: {len(history)} messages")
                 click.echo(f"   Max iterations: {max_iterations}")
                 click.echo(f"   Provider: {config.agent.llm.provider}")
                 click.echo(f"   Model: {config.agent.llm.model}")
@@ -93,7 +89,6 @@ def register_shell(cli):
             # Echo back as thinking
             click.echo(f"\n💭 RANN: (use !run '<task>' to execute tasks)")
             click.echo(f"   Received: {user_input[:50]}...")
-            history.append({"role": "user", "content": user_input})
 
 
 # =============================================================================
