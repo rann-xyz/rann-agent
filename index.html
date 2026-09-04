@@ -912,7 +912,8 @@
             <button class="api-btn" onclick="showApiInput('anthropic')">Anthropic</button>
           </div>
           <div class="api-input-area" id="api-input-area" style="display:none;">
-            <input type="password" id="api-key-input" placeholder="Enter API key...">
+            <input type="password" id="api-key-input" placeholder="Enter API key..." style="flex:2">
+            <input type="text" id="api-model-input" placeholder="Model (optional)" style="flex:1">
             <button class="api-save-btn" onclick="saveApiKey()">Save & Connect</button>
           </div>
           <div class="api-status" id="api-status"></div>
@@ -936,32 +937,62 @@
   </footer>
 
   <script>
+    // RANN Agent Web API Base URL
+    var API_BASE = 'http://127.0.0.1:5555/api';
+
     // State
     var currentProvider = null;
     var apiKey = null;
     var chatHistory = [];
+    var providerConfigs = {};
 
-    // Provider configs
-    var providerConfigs = {
-      xkiro: { baseUrl: 'https://api.xkiro.com', model: 'minimax/minimax-m2.7-highspeed:free', free: true },
-      groq: { baseUrl: 'https://api.groq.com/openai/v1', model: 'llama-3.1-70b-versatile', free: true },
-      deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', free: true },
-      anthropic: { baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-4-20250514', free: false },
-      openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o', free: false }
-    };
+    // Load provider configs from API
+    async function loadProviders() {
+      try {
+        var resp = await fetch(API_BASE + '/providers');
+        if (resp.ok) {
+          var providers = await resp.json();
+          providers.forEach(function(p) {
+            providerConfigs[p.id] = {
+              baseUrl: p.base_url,
+              model: p.default_model,
+              free: p.free
+            };
+          });
+        }
+      } catch (e) {
+        // Fallback to built-in configs
+        providerConfigs = {
+          xkiro: { baseUrl: 'https://api.xkiro.com', model: 'minimax/minimax-m2.7-highspeed:free', free: true },
+          groq: { baseUrl: 'https://api.groq.com/openai/v1', model: 'llama-3.1-70b-versatile', free: true },
+          deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', free: true },
+          anthropic: { baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-4-20250514', free: false },
+          openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o', free: false }
+        };
+      }
+    }
 
     function showApiInput(provider) {
       currentProvider = provider;
       var inputArea = document.getElementById('api-input-area');
       var input = document.getElementById('api-key-input');
+      var modelSelect = document.getElementById('api-model-input');
+      
       input.placeholder = 'Enter ' + provider + ' API key...';
       input.value = '';
+      
+      // Set default model if available
+      if (providerConfigs[provider]) {
+        if (modelSelect) modelSelect.value = providerConfigs[provider].model;
+      }
+      
       inputArea.style.display = 'flex';
       input.focus();
     }
 
-    function saveApiKey() {
+    async function saveApiKey() {
       var input = document.getElementById('api-key-input');
+      var modelInput = document.getElementById('api-model-input');
       apiKey = input.value.trim();
       
       if (!apiKey) {
@@ -974,24 +1005,51 @@
         return;
       }
       
-      // Save to localStorage (in production, would save to backend)
-      localStorage.setItem('rann_api_key', apiKey);
-      localStorage.setItem('rann_provider', currentProvider);
+      showStatus('Connecting...', '');
       
-      showStatus('API key saved! Connecting...', 'success');
-      
-      // Enable chat
-      var chatInput = document.getElementById('chat-input');
-      var sendBtn = document.querySelector('.chat-send');
-      chatInput.disabled = false;
-      chatInput.placeholder = 'Type your message...';
-      sendBtn.disabled = false;
-      
-      // Add connection message
-      addChatMessage('assistant', 'Great! API key configured for ' + currentProvider + '. I am now connected and ready to help you. What would you like to work on?');
-      
-      // Hide API setup
-      document.getElementById('api-input-area').style.display = 'none';
+      try {
+        // Save via backend API
+        var resp = await fetch(API_BASE + '/key/' + currentProvider, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            api_key: apiKey,
+            model: modelInput ? modelInput.value : ''
+          })
+        });
+        
+        if (resp.ok) {
+          showStatus('API key saved!', 'success');
+          
+          // Enable chat
+          var chatInput = document.getElementById('chat-input');
+          var sendBtn = document.querySelector('.chat-send');
+          chatInput.disabled = false;
+          chatInput.placeholder = 'Type your message...';
+          sendBtn.disabled = false;
+          
+          addChatMessage('assistant', 'Great! API key configured for ' + currentProvider + '. I am now connected. What would you like to work on?');
+          
+          document.getElementById('api-input-area').style.display = 'none';
+        } else {
+          var err = await resp.json();
+          showStatus('Error: ' + (err.error || 'Failed to save'), 'error');
+        }
+      } catch (e) {
+        // Fallback: save locally
+        localStorage.setItem('rann_api_key', apiKey);
+        localStorage.setItem('rann_provider', currentProvider);
+        showStatus('Saved locally (start web_api.py for full functionality)', 'success');
+        
+        var chatInput = document.getElementById('chat-input');
+        var sendBtn = document.querySelector('.chat-send');
+        chatInput.disabled = false;
+        chatInput.placeholder = 'Type your message...';
+        sendBtn.disabled = false;
+        
+        addChatMessage('assistant', 'API key saved. I am now connected. What would you like to work on?');
+        document.getElementById('api-input-area').style.display = 'none';
+      }
     }
 
     function showStatus(message, type) {
@@ -1063,17 +1121,6 @@
       var message = input.value.trim();
       if (!message) return;
       
-      // Check API key
-      var savedKey = localStorage.getItem('rann_api_key');
-      var savedProvider = localStorage.getItem('rann_provider');
-      
-      if (!savedKey) {
-        addChatMessage('user', message);
-        addChatMessage('assistant', 'Please configure your API key first using the buttons above.');
-        input.value = '';
-        return;
-      }
-      
       addChatMessage('user', message);
       input.value = '';
       chatHistory.push({ role: 'user', content: message });
@@ -1081,76 +1128,42 @@
       addThinkingIndicator();
       
       try {
-        var config = providerConfigs[savedProvider] || providerConfigs.xkiro;
-        var response = await callAPI(savedProvider, savedKey, config, chatHistory);
+        // Try backend API first
+        var resp = await fetch(API_BASE + '/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: localStorage.getItem('rann_provider') || 'xkiro',
+            message: message,
+            history: chatHistory
+          })
+        });
         
         removeThinkingIndicator();
         
-        if (response.error) {
-          addChatMessage('assistant', 'Error: ' + response.error);
+        if (resp.ok) {
+          var data = await resp.json();
+          if (data.error) {
+            addChatMessage('assistant', 'Error: ' + data.error);
+          } else {
+            addChatMessage('assistant', data.content);
+            chatHistory.push({ role: 'assistant', content: data.content });
+          }
         } else {
-          addChatMessage('assistant', response.content);
-          chatHistory.push({ role: 'assistant', content: response.content });
+          var errData = await resp.json();
+          addChatMessage('assistant', 'Error: ' + (errData.error || 'Request failed'));
         }
-      } catch (err) {
+      } catch (e) {
         removeThinkingIndicator();
-        addChatMessage('assistant', 'Connection error. Please check your API key and try again.');
+        addChatMessage('assistant', 'Cannot connect to RANN API. Please start web_api.py:\n\n```\npython web_api.py\n```\n\nThen refresh this page.');
       }
     }
 
-    async function callAPI(provider, key, config, history) {
-      var url = config.baseUrl + '/chat/completions';
-      var headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + key
-      };
+    // Load saved settings and providers on page load
+    window.onload = async function() {
+      // Load provider configs
+      await loadProviders();
       
-      var body = {
-        model: config.model,
-        messages: [
-          { role: 'system', content: 'You are RANN Agent, an autonomous AI assistant. You help users with coding, file operations, research, and general tasks. Be concise and helpful. Format code with triple backticks.' },
-          ...history
-        ],
-        max_tokens: 2000,
-        temperature: 0.7
-      };
-      
-      // Anthropic uses different API format
-      if (provider === 'anthropic') {
-        url = config.baseUrl + '/v1/messages';
-        headers['x-api-key'] = key;
-        headers['anthropic-version'] = '2023-06-01';
-        delete headers['Authorization'];
-        body = {
-          model: config.model,
-          max_tokens: 2000,
-          messages: history
-        };
-      }
-      
-      var resp = await fetch(url, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(body)
-      });
-      
-      if (!resp.ok) {
-        var err = await resp.text();
-        return { error: 'API Error: ' + resp.status + ' - ' + err.substring(0, 100) };
-      }
-      
-      var data = await resp.json();
-      
-      // Parse response based on provider
-      if (provider === 'anthropic') {
-        return { content: data.content[0].text };
-      } else {
-        return { content: data.choices[0].message.content };
-      }
-    }
-
-    // Load saved settings on page load
-    window.onload = function() {
       var saved = localStorage.getItem('rann_settings');
       if (saved) {
         var settings = JSON.parse(saved);
@@ -1160,19 +1173,38 @@
         updateModels();
       }
       
-      // Check if API key exists
-      var savedKey = localStorage.getItem('rann_api_key');
-      var savedProvider = localStorage.getItem('rann_provider');
-      if (savedKey) {
-        currentProvider = savedProvider;
-        apiKey = savedKey;
-        var chatInput = document.getElementById('chat-input');
-        var sendBtn = document.querySelector('.chat-send');
-        chatInput.disabled = false;
-        chatInput.placeholder = 'Type your message...';
-        sendBtn.disabled = false;
-        document.getElementById('api-status').textContent = 'Connected to ' + savedProvider;
-        document.getElementById('api-status').className = 'api-status success';
+      // Check if API key exists (via backend)
+      try {
+        var resp = await fetch(API_BASE + '/status');
+        if (resp.ok) {
+          var data = await resp.json();
+          var configured = data.configured_providers || [];
+          if (configured.length > 0) {
+            var provider = configured[0];
+            currentProvider = provider;
+            var chatInput = document.getElementById('chat-input');
+            var sendBtn = document.querySelector('.chat-send');
+            chatInput.disabled = false;
+            chatInput.placeholder = 'Type your message...';
+            sendBtn.disabled = false;
+            document.getElementById('api-status').textContent = 'Connected to ' + provider;
+            document.getElementById('api-status').className = 'api-status success';
+          }
+        }
+      } catch (e) {
+        // API not running, check localStorage fallback
+        var savedKey = localStorage.getItem('rann_api_key');
+        var savedProvider = localStorage.getItem('rann_provider');
+        if (savedKey) {
+          currentProvider = savedProvider;
+          var chatInput = document.getElementById('chat-input');
+          var sendBtn = document.querySelector('.chat-send');
+          chatInput.disabled = false;
+          chatInput.placeholder = 'Type your message...';
+          sendBtn.disabled = false;
+          document.getElementById('api-status').textContent = 'Connected (local mode)';
+          document.getElementById('api-status').className = 'api-status success';
+        }
       }
     };
   </script>
