@@ -33,35 +33,57 @@ PROVIDERS = {
         "base_url": "https://api.groq.com/openai/v1",
         "default_model": "llama-3.1-70b-versatile",
         "api_type": "openai",
-        "free": True
+        "free": True,
+        "models": ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma-7b-it"]
     },
     "deepseek": {
         "name": "DeepSeek",
         "base_url": "https://api.deepseek.com/v1",
         "default_model": "deepseek-chat",
         "api_type": "openai",
-        "free": True
+        "free": True,
+        "models": ["deepseek-chat", "deepseek-coder"]
     },
     "openai": {
         "name": "OpenAI",
         "base_url": "https://api.openai.com/v1",
         "default_model": "gpt-4o",
         "api_type": "openai",
-        "free": False
+        "free": False,
+        "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"]
     },
     "anthropic": {
         "name": "Anthropic",
-        "base_url": "https://api.anthropic.com",
+        "base_url": "https://api.anthropic.com/v1",
         "default_model": "claude-sonnet-4-20250514",
         "api_type": "anthropic",
-        "free": False
+        "free": False,
+        "models": ["claude-sonnet-4-20250514", "claude-opus-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"]
+    },
+    "gemini": {
+        "name": "Google Gemini",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta",
+        "default_model": "gemini-1.5-flash",
+        "api_type": "gemini",
+        "free": True,
+        "models": ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"]
     },
     "ollama": {
         "name": "Ollama",
         "base_url": "http://localhost:11434/v1",
         "default_model": "llama3.2",
         "api_type": "openai",
-        "free": True
+        "free": True,
+        "models": ["llama3.2", "llama3.1", "mistral", "codellama", "phi3"]
+    },
+    "custom": {
+        "name": "Custom",
+        "base_url": "",
+        "default_model": "",
+        "api_type": "openai",
+        "free": True,
+        "custom": True,
+        "models": []
     }
 }
 
@@ -242,8 +264,46 @@ class APIHandler(BaseHTTPRequestHandler):
         try:
             if prov['api_type'] == 'anthropic':
                 self.chat_anthropic(api_key, base_url, model, message, history)
+            elif prov['api_type'] == 'gemini':
+                self.chat_gemini(api_key, base_url, model, message, history)
+            elif prov['api_type'] == 'custom':
+                self.chat_openai(api_key, base_url, model, message, history)
             else:
                 self.chat_openai(api_key, base_url, model, message, history)
+        except Exception as e:
+            self.send_json({'error': str(e)}, 500)
+
+    def chat_gemini(self, api_key, base_url, model, message, history):
+        import urllib.request
+        import urllib.error
+
+        url = f'{base_url}/models/{model}:generateContent?key={api_key}'
+
+        contents = []
+        for msg in history:
+            contents.append({
+                'role': 'model' if msg.get('role') == 'assistant' else 'user',
+                'parts': [{'text': msg.get('content', '')}]
+            })
+        contents.append({'role': 'user', 'parts': [{'text': message}]})
+
+        payload = json.dumps({
+            'contents': contents,
+            'generationConfig': {'maxOutputTokens': 2000, 'temperature': 0.7}
+        }).encode('utf-8')
+
+        req = urllib.request.Request(url, data=payload, headers={
+            'Content-Type': 'application/json'
+        }, method='POST')
+
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                result = json.loads(resp.read().decode())
+                content = result['candidates'][0]['content']['parts'][0]['text']
+                self.send_json({'content': content})
+        except urllib.error.HTTPError as e:
+            err = e.read().decode()[:200]
+            self.send_json({'error': f'API Error {e.code}: {err}'}, e.code)
         except Exception as e:
             self.send_json({'error': str(e)}, 500)
 
