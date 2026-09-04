@@ -1,169 +1,200 @@
-# RANN Agent
+# RANN Agent V3
 
-**RANN Agent** — Next-generation autonomous AI engineering platform that outperforms existing solutions through superior architecture, execution reliability, and measurable autonomy.
+> **THE MODEL GENERATES DECISIONS. RANN CONTROLS EXECUTION.**
 
-> "THE MODEL GENERATES DECISIONS. RANN CONTROLS EXECUTION."
+Autonomous AI engineering platform with 16-state machine, real terminal execution, evidence ledger, and structured memory.
+
+## Status
+
+- **169 tests passing** ✅
+- **35% code coverage** (9,170 executable lines)
+- **121 Python modules**
+- **End-to-end execution verified** — LLM → tool calls → terminal → file system
 
 ## Features
 
-### Core Architecture
-- **Explicit State Machine** — 14 defined states (CREATED → COMPLETED/FAILED) with validated transitions
-- **Structured Event System** — 25+ event types with full audit trail
-- **Budget Engine** — Token, time, tool call, model call, and cost limits with warnings
-- **Verification Engine** — Evidence-based task completion proof
+### 16-State V3 State Machine
+```
+QUEUED → ANALYZING → CONTEXT_READY → PLANNING → WAITING_POLICY → EXECUTING → VERIFYING → COMPLETED
+                              ↓            ↓              ↓            ↓
+                          BLOCKED      FAILED        BLOCKED      FAILED
+                                                          ↓
+                                      RECOVERING → ROLLED_BACK → TIMED_OUT → CANCELLED → ABORTED
+```
 
-### Cognition & Planning
-- **Task Graph** — Explicit dependency management with parallel execution support
-- **Strategy Selector** — DIRECT / PLANNER / MULTI-AGENT / RESEARCH routing
-- **Model Router** — Optimal model selection based on complexity, cost, and capabilities
-- **Evaluator** — Rubric-based scoring (correctness, efficiency, style, safety)
+### V3 Architecture
+- **RuntimeAgent** — Budget + lifecycle-driven execution loop
+- **AgentLifecycle** — State machine + event emission + checkpointing
+- **ToolRegistry** — OpenAI function-calling compatible tool definitions
+- **RealTerminalExecutor** — Actual shell execution (not simulated)
+- **CommandPolicy** — Risk classification (SAFE/LOW/MEDIUM/HIGH/CRITICAL)
+- **EvidenceLedger** — Timestamped execution proof chain
+- **EventBus** — 30+ event types with structured logging
 
-### Tool System
-- **Tool Executor** — Async execution with timeout, rate limiting, and sandbox support
-- **Tool Discovery** — Auto-scan and catalog available tools
-- **Tool Policy Engine** — Risk classification (SAFE/LOW/MEDIUM/HIGH/CRITICAL) with enforcement
+### Memory System
+- **ProjectMemoryStore** — Project metadata, dependencies, conventions
+- **EpisodicMemoryStore** — Goal/action/observation/outcome/lessons per session
+- **SemanticMemoryStore** — Key-value facts with similarity search
+- **ConflictResolver** — Merge strategy for concurrent memories
 
-### Memory & Learning
-- **Working Memory** — LRU key-value store with TTL and access tracking
-- **Procedural Memory** — Skill storage with categories, success tracking, and persistence
-- **Skills System** — Registry, loader, and evaluator for reusable procedures
-
-### Security
-- **Sandbox** — NONE / SUBPROCESS / DOCKER isolation modes
-- **Secrets Detection** — Regex patterns for API keys, passwords, tokens, certificates
-- **Input Validation** — Path traversal, command injection, and dangerous pattern blocking
+### Storage & Recovery
+- **SQLite Database** — 12 tables: runs, tasks, events, evidence, sessions, audit
+- **CrashRecovery** — WAL checkpoint + re-execution from last turn
+- **DurableQueue** — Persistent job queue with heartbeat
+- **ConcurrencyControl** — Workspace/repository/file/database locks (fcntl)
 
 ## Installation
 
 ```bash
 git clone https://github.com/rann-xyz/rann-agent.git
 cd rann-agent
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-```
-
-Or use the installer:
-
-```bash
-chmod +x install.sh && ./install.sh
+pip install -e .
 ```
 
 ## Quick Start
 
-```python
-from rann_agent.core.runtime import RuntimeAgent
-from rann_agent.core.budget import Budget
+```bash
+# System check
+rann doctor
 
-agent = RuntimeAgent(
-    budget=Budget(max_tokens=10000, max_turns=20),
-    verification_level="moderate"
-)
+# Run a task (uses xkiro/minimax-m2.7-highspeed:free by default)
+rann run "create a file hello.txt with content 'Hello World'"
 
-result = await agent.execute("Write a hello world program in Python")
-print(result["output"])
+# Dry run (no execution)
+rann run "fix the bug" --dry-run
+
+# Change model
+rann config set agent.llm.provider "anthropic"
+rann config set agent.llm.model "claude-sonnet-4-20250514"
+rann config get
 ```
 
-## CLI Usage
+## CLI Commands
 
-```bash
-# Chat mode
-python terminal_app.py chat --goal "Fix the bug in src/main.py"
+| Command | Description |
+|---------|-------------|
+| `rann run "<task>"` | Execute task with V3 agent |
+| `rann run "<task>" --dry-run` | Show plan without executing |
+| `rann doctor` | System health check |
+| `rann status` | Show tasks/runs/handlers |
+| `rann task list` | List recent tasks |
+| `rann task show <id>` | Show task details |
+| `rann memory search <query>` | Search episodic memory |
+| `rann audit` | Show audit log |
+| `rann config get` | Show current config |
+| `rann config set agent.llm.model <model>` | Change model |
+| `rann config list-providers` | Show available providers |
 
-# Stream mode
-python terminal_app.py chat --goal "Explain this code" --stream
+## Configuration
 
-# Serve API
-python terminal_app.py serve --port 8000
+Config file: `~/.rann_agent/config.yaml`
+
+```yaml
+agent:
+  llm:
+    provider: xkiro
+    model: minimax/minimax-m2.7-highspeed:free
+    max_tokens: 8192
+    temperature: 0.7
+    retry:
+      max_attempts: 3
+      backoff_multiplier: 2
+```
+
+### Available Providers
+
+| Provider | Base URL | Example Model | Notes |
+|----------|----------|---------------|-------|
+| `xkiro` | https://api.xkiro.com | minimax/minimax-m2.7-highspeed:free | Free tier |
+| `anthropic` | api.anthropic.com | claude-sonnet-4-20250514 | Needs ANTHROPIC_API_KEY |
+| `openai` | api.openai.com | gpt-4o | Needs OPENAI_API_KEY |
+| `custom` | https://seekai.cc | claude-fable-5-1 | Custom endpoint |
+| `ollama` | localhost:11434 | llama3.1:8b | Local Ollama |
+
+## Python API
+
+```python
+import asyncio
+from rann_agent.core.runtime import RuntimeAgent
+from rann_agent.core.budget import Budget
+from rann_agent.core.config import Config
+
+async def main():
+    config = Config()
+    budget = Budget(max_tokens=10000, max_turns=20)
+    agent = RuntimeAgent(budget=budget, config=config)
+    
+    result = await agent.execute("Write a hello world program in Python")
+    print(result)
+
+asyncio.run(main())
 ```
 
 ## Architecture
 
 ```
-TASK / GOAL
-    │
-    ▼
-CONTEXT ENGINE → TASK ANALYSIS → TASK GRAPH
-    │
-    ▼
-STRATEGY SELECTOR (DIRECT / PLANNER / MULTI-AGENT / RESEARCH)
-    │
-    ▼
-MODEL ROUTER → TOOL PLANNER → POLICY CHECK
-    │
-    ├─ DENY → REPLAN
-    └─ ALLOW → EXECUTE → OBSERVE → VERIFICATION
-                                │
-                    ┌──────────┴──────────┐
-                  FAIL                  PASS
-                    │                     │
-                RECOVERY               RESULT
-                    │                     │
-                RETRY/REPLAN/ROLLBACK ───┘
-                            │
-                           LEARN
-                            │
-                          MEMORY
-                            │
-                        COMPLETION
-```
-
-## Project Structure
-
-```
 rann_agent/
-├── core/           # State machine, events, budget, verification, runtime
-├── cognition/      # Evaluator, strategy selector
-├── orchestration/  # Task graph, tool policy, model router
-├── tools/          # Executor, discovery, built-in tools
-├── memory/         # Working memory, procedural memory
-├── skills/         # Registry, loader, evaluator
-├── interfaces/     # TUI, API client
-├── security/       # Sandbox, secrets, validation
-└── ...
+├── core/
+│   ├── runtime.py        # RuntimeAgent (budget + lifecycle + execute loop)
+│   ├── lifecycle.py      # AgentLifecycle (state machine context manager)
+│   ├── state.py          # 16-state machine + VALID_TRANSITIONS
+│   ├── event_bus.py      # EventEmitter + EventType + EventStatus
+│   ├── config.py         # Config + LLMConfig (pydantic)
+│   ├── budget.py         # Budget + BudgetEngine
+│   ├── task_contract.py  # TaskContract + TaskCategory + RiskLevel + AutonomyLevel
+│   ├── evidence.py       # EvidenceLedger (SHA256 proof chain)
+│   ├── tool_result.py    # ToolResult dataclass
+│   ├── approval.py       # Approval + AutonomyLevel
+│   ├── autonomy.py       # AutonomyGuard
+│   ├── idempotency.py    # IdempotencyKey + RetryCache
+│   ├── schemas.py        # Pydantic models
+│   └── llm_provider.py   # BaseLLMProvider + CustomProvider + AnthropicProvider
+├── orchestration/
+│   ├── command_policy.py # CommandPolicy (risk classification)
+│   └── model_router.py   # ModelRouter
+├── tools/
+│   ├── registry.py       # ToolRegistry (CRUD + get_definitions)
+│   ├── executor.py       # ToolExecutor (async timeout)
+│   ├── real_terminal.py  # RealTerminalExecutor (actual shell)
+│   └── filesystem.py     # FilesystemEngine
+├── planning/
+│   ├── planner.py        # Planner (strategy selection)
+│   ├── recovery.py       # RecoveryEngine
+│   ├── progress.py       # ProgressEngine
+│   └── semantic_diff.py  # SemanticDiff (AST-based)
+├── storage/
+│   ├── database.py       # SQLite (12 tables)
+│   ├── recovery.py       # CrashRecovery + WAL
+│   ├── queue.py          # DurableQueue
+│   └── locks.py          # ConcurrencyControl (fcntl)
+├── memory/
+│   ├── project_store.py  # ProjectMemoryStore
+│   ├── episodic_store.py # EpisodicMemoryStore
+│   ├── semantic_store.py # SemanticMemoryStore
+│   └── conflict.py       # ConflictResolver
+├── intelligence/
+│   └── learning.py       # LearningEngine
+└── cli/
+    └── rann.py           # CLI entry point (click)
 ```
 
-## Configuration
+## Test Results
 
-Copy and edit the config:
+```
+169 passed, 23 warnings (deprecation only)
+35.08% coverage (9,170 executable lines)
+```
 
+Run tests:
 ```bash
-cp config.yaml.example config.yaml
+pytest tests/unit/ -v
 ```
 
-Key settings in `config.yaml`:
+## GitHub
 
-```yaml
-agent:
-  llm:
-    provider: custom
-    model: claude-fable-5-1
-    api_base: https://seekai.cc/v1
-
-tools:
-  enabled:
-    - file_read
-    - file_write
-    - terminal
-    - git
-```
-
-## Testing
-
-```bash
-pytest tests/ -v
-```
-
-With coverage:
-
-```bash
-pytest tests/ --cov=rann_agent --cov-fail-under=15
-```
-
-## Documentation
-
-- [ROADMAP.md](ROADMAP.md) — Development phases and progress
-- [PROGRESS.md](PROGRESS.md) — Current implementation status
-- [docs/AUDIT.md](docs/AUDIT.md) — Forensic audit and architecture analysis
-- [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md) — Feature truth table
+https://github.com/rann-xyz/rann-agent
 
 ## License
 

@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Python 3.11 or higher
+- Python 3.11+ (tested on 3.14)
 - pip or uv package manager
 - Git
 
@@ -46,13 +46,13 @@ pre-commit install
 
 ```bash
 # Check CLI is available
-rann-agent --help
+rann --help
 
-# Show version
-rann-agent version
+# System check
+rann doctor
 
 # Show config
-rann-agent config-show
+rann config get
 ```
 
 ## API Keys Setup
@@ -144,7 +144,7 @@ pip install redis celery
 export PATH="$HOME/.local/bin:$PATH"
 
 # Or use python -m
-python -m rann_agent.cli.main --help
+python -m rann_agent.cli.rann --help
 ```
 
 ### Import Errors

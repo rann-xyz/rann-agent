@@ -1,4 +1,4 @@
-# Quick Start
+# Quick Start — RANN Agent V3
 
 Get RANN Agent running in 3 minutes.
 
@@ -7,61 +7,88 @@ Get RANN Agent running in 3 minutes.
 ```bash
 git clone https://github.com/rann-xyz/rann-agent.git
 cd rann-agent
-chmod +x install.sh && ./install.sh
+python -m venv venv && source venv/bin/activate
+pip install -e .
 ```
 
-## CLI Usage
+## System Check
 
 ```bash
-# Interactive chat mode
-python terminal_app.py chat
-
-# Single task
-python terminal_app.py chat --goal "Write a hello world program"
-
-# With streaming
-python terminal_app.py chat --goal "Explain this code" --stream
+rann doctor
 ```
 
-## API Server
+## Run Your First Task
 
 ```bash
-python terminal_app.py serve --port 8000
+rann run "create a file hello.txt with content 'Hello World'"
 ```
 
-Then open http://localhost:8000 in your browser.
+## Dry Run (no execution)
+
+```bash
+rann run "fix the bug in main.py" --dry-run
+```
+
+## Change Model
+
+```bash
+# See available providers
+rann config list-providers
+
+# Switch to Anthropic
+rann config set agent.llm.provider anthropic
+rann config set agent.llm.model claude-sonnet-4-20250514
+
+# Back to free tier
+rann config set agent.llm.provider xkiro
+rann config set agent.llm.model minimax/minimax-m2.7-highspeed:free
+```
 
 ## Python API
 
 ```python
+import asyncio
 from rann_agent.core.runtime import RuntimeAgent
 from rann_agent.core.budget import Budget
+from rann_agent.core.config import Config
 
-agent = RuntimeAgent(
-    budget=Budget(max_tokens=10000, max_turns=20)
-)
+async def main():
+    config = Config()
+    budget = Budget(max_tokens=10000, max_turns=20)
+    agent = RuntimeAgent(budget=budget, config=config)
+    
+    result = await agent.execute("Write a hello world program in Python")
+    print(result["output"])
 
-result = await agent.execute("Fix the bug in src/main.py")
-print(result["output"])
+asyncio.run(main())
 ```
 
-## Configuration
+## CLI Commands
 
-```bash
-cp config.yaml.example config.yaml
-```
-
-Set your API key in `config.yaml` or as environment variable:
-
-```bash
-export RANN_API_KEY=your-key
-```
+| Command | Description |
+|---------|-------------|
+| `rann run "<task>"` | Execute task |
+| `rann run "<task>" --dry-run` | Plan without executing |
+| `rann doctor` | System health check |
+| `rann status` | Show status |
+| `rann task list` | List tasks |
+| `rann config get` | Show config |
+| `rann config set <key> <value>` | Set config |
+| `rann memory search <query>` | Search memory |
+| `rann audit` | Audit log |
 
 ## Testing
 
 ```bash
 source venv/bin/activate
-pytest tests/ -v
+pytest tests/unit/ -v
+```
+
+## Web Interface
+
+```bash
+python web_app.py
+# Then open http://localhost:8000
 ```
 
 ## Next Steps
