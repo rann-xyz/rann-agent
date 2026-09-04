@@ -495,21 +495,22 @@ def register_serve(cli):
             import socketserver
             import os
             
-            # Find web_app.py path
-            web_app_path = Path(__file__).parent.parent.parent / "web_app.py"
-            if not web_app_path.exists():
-                web_app_path = Path.cwd() / "web_app.py"
+            # Find index.html path
+            web_path = Path(__file__).parent.parent.parent / "index.html"
+            if not web_path.exists():
+                web_path = Path.cwd() / "index.html"
             
-            if not web_app_path.exists():
-                click.echo(f"Error: web_app.py not found at {web_app_path}")
+            if not web_path.exists():
+                click.echo(f"Error: index.html not found at {web_path}")
                 return
             
-            os.chdir(web_app_path.parent)
+            os.chdir(web_path.parent)
             
             Handler = http.server.SimpleHTTPRequestHandler
+            Handler.extensions_map.update({".html": "text/html"})
             with socketserver.TCPServer((host, port), Handler) as httpd:
                 click.echo(f"🌐 RANN Agent Web Interface")
-                click.echo(f"   URL: http://{host}:{port}/web_app.py")
+                click.echo(f"   URL: http://{host}:{port}/")
                 click.echo(f"   Press Ctrl+C to stop")
                 httpd.serve_forever()
         except Exception as e:
