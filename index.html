@@ -494,6 +494,135 @@
 
     .chat-send:hover { background: var(--coral); }
 
+    /* API Setup */
+    .api-setup {
+      margin-top: 20px;
+      padding: 20px;
+      background: var(--dark-surface);
+      border-radius: 12px;
+    }
+
+    .api-setup h4 {
+      color: var(--ivory);
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .api-providers {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .api-btn {
+      padding: 8px 16px;
+      border: 1px solid var(--stone);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--warm-silver);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-sans);
+    }
+
+    .api-btn:hover {
+      border-color: var(--terracotta);
+      color: var(--terracotta);
+    }
+
+    .api-input-area {
+      margin-top: 16px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .api-input-area input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--stone);
+      border-radius: 6px;
+      background: var(--near-black);
+      color: var(--ivory);
+      font-size: 14px;
+      font-family: var(--font-sans);
+    }
+
+    .api-input-area input:focus {
+      outline: none;
+      border-color: var(--terracotta);
+    }
+
+    .api-save-btn {
+      padding: 10px 20px;
+      background: var(--terracotta);
+      color: var(--ivory);
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+    }
+
+    .api-save-btn:hover { background: var(--coral); }
+
+    .api-status {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--warm-silver);
+    }
+
+    .api-status.success { color: var(--green); }
+    .api-status.error { color: var(--red); }
+
+    /* Thinking indicator */
+    .thinking {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--stone);
+      font-size: 13px;
+      padding: 8px 0;
+    }
+
+    .thinking-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .thinking-dots span {
+      width: 6px;
+      height: 6px;
+      background: var(--stone);
+      border-radius: 50%;
+      animation: thinking 1.4s infinite;
+    }
+
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes thinking {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Tool badges */
+    .tool-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: var(--sand);
+      color: var(--charcoal);
+      border-radius: 4px;
+      font-size: 11px;
+      margin: 2px;
+    }
+
+    .tool-badge.code { background: var(--blue-light, #e8f0fa); color: var(--blue, #4a7fb5); }
+    .tool-badge.file { background: var(--green-light, #e8f5ed); color: var(--green, #2d8a4e); }
+    .tool-badge.web { background: var(--yellow-light, #faf3e6); color: var(--yellow, #c9943a); }
+    .tool-badge.git { background: var(--parchment); color: var(--olive); }
+
     /* Footer */
     footer {
       background: var(--near-black);
@@ -762,15 +891,31 @@
           <div class="chat-messages" id="chat-messages">
             <div class="chat-message assistant">
               <div class="chat-avatar">RA</div>
-              <div class="chat-bubble">Hello! I am RANN Agent. How can I help you today?</div>
+              <div class="chat-bubble">Hello! I'm RANN Agent. I need an API key to chat with you. Please configure your provider in the settings above, or use the quick setup below.</div>
             </div>
           </div>
           <div class="chat-input-area">
             <div class="chat-input-wrapper">
-              <input type="text" class="chat-input" id="chat-input" placeholder="Ask me anything..." onkeypress="if(event.key==='Enter')sendChat()">
-              <button class="chat-send" onclick="sendChat()">Send</button>
+              <input type="text" class="chat-input" id="chat-input" placeholder="Configure API key first, then chat..." onkeypress="if(event.key==='Enter')sendChat()" disabled>
+              <button class="chat-send" onclick="sendChat()" disabled>Send</button>
             </div>
           </div>
+        </div>
+        
+        <!-- API Key Setup -->
+        <div class="api-setup" id="api-setup">
+          <h4>Quick API Setup</h4>
+          <div class="api-providers">
+            <button class="api-btn" onclick="showApiInput('xkiro')">xkiro (Free)</button>
+            <button class="api-btn" onclick="showApiInput('groq')">Groq (Free)</button>
+            <button class="api-btn" onclick="showApiInput('deepseek')">DeepSeek</button>
+            <button class="api-btn" onclick="showApiInput('anthropic')">Anthropic</button>
+          </div>
+          <div class="api-input-area" id="api-input-area" style="display:none;">
+            <input type="password" id="api-key-input" placeholder="Enter API key...">
+            <button class="api-save-btn" onclick="saveApiKey()">Save & Connect</button>
+          </div>
+          <div class="api-status" id="api-status"></div>
         </div>
       </div>
     </div>
@@ -791,13 +936,80 @@
   </footer>
 
   <script>
+    // State
+    var currentProvider = null;
+    var apiKey = null;
+    var chatHistory = [];
+
+    // Provider configs
+    var providerConfigs = {
+      xkiro: { baseUrl: 'https://api.xkiro.com', model: 'minimax/minimax-m2.7-highspeed:free', free: true },
+      groq: { baseUrl: 'https://api.groq.com/openai/v1', model: 'llama-3.1-70b-versatile', free: true },
+      deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat', free: true },
+      anthropic: { baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-4-20250514', free: false },
+      openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o', free: false }
+    };
+
+    function showApiInput(provider) {
+      currentProvider = provider;
+      var inputArea = document.getElementById('api-input-area');
+      var input = document.getElementById('api-key-input');
+      input.placeholder = 'Enter ' + provider + ' API key...';
+      input.value = '';
+      inputArea.style.display = 'flex';
+      input.focus();
+    }
+
+    function saveApiKey() {
+      var input = document.getElementById('api-key-input');
+      apiKey = input.value.trim();
+      
+      if (!apiKey) {
+        showStatus('Please enter an API key', 'error');
+        return;
+      }
+      
+      if (!currentProvider) {
+        showStatus('Please select a provider first', 'error');
+        return;
+      }
+      
+      // Save to localStorage (in production, would save to backend)
+      localStorage.setItem('rann_api_key', apiKey);
+      localStorage.setItem('rann_provider', currentProvider);
+      
+      showStatus('API key saved! Connecting...', 'success');
+      
+      // Enable chat
+      var chatInput = document.getElementById('chat-input');
+      var sendBtn = document.querySelector('.chat-send');
+      chatInput.disabled = false;
+      chatInput.placeholder = 'Type your message...';
+      sendBtn.disabled = false;
+      
+      // Add connection message
+      addChatMessage('assistant', 'Great! API key configured for ' + currentProvider + '. I am now connected and ready to help you. What would you like to work on?');
+      
+      // Hide API setup
+      document.getElementById('api-input-area').style.display = 'none';
+    }
+
+    function showStatus(message, type) {
+      var status = document.getElementById('api-status');
+      status.textContent = message;
+      status.className = 'api-status ' + type;
+    }
+
     function updateModels() {
       var provider = document.getElementById('provider').value;
       var modelSelect = document.getElementById('model');
       var models = {
-        xkiro: [
-          { value: 'minimax/minimax-m2.7-highspeed:free', label: 'minimax/m2.7-highspeed (Free)' }
+        xkiro: [{ value: 'minimax/minimax-m2.7-highspeed:free', label: 'minimax/m2.7-highspeed (Free)' }],
+        groq: [
+          { value: 'llama-3.1-70b-versatile', label: 'Llama 3.1 70B (Fast)' },
+          { value: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B' }
         ],
+        deepseek: [{ value: 'deepseek-chat', label: 'DeepSeek V3' }],
         anthropic: [
           { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
           { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' }
@@ -807,7 +1019,7 @@
           { value: 'gpt-4o-mini', label: 'GPT-4o Mini' }
         ]
       };
-      modelSelect.innerHTML = models[provider].map(function(m) {
+      modelSelect.innerHTML = (models[provider] || []).map(function(m) {
         return '<option value="' + m.value + '">' + m.label + '</option>';
       }).join('');
     }
@@ -819,31 +1031,125 @@
       messageDiv.className = 'chat-message ' + (role === 'user' ? 'user' : 'assistant');
       messageDiv.innerHTML = 
         '<div class="chat-avatar">' + avatar + '</div>' +
-        '<div class="chat-bubble">' + content + '</div>';
+        '<div class="chat-bubble">' + content.replace(/\n/g, '<br>') + '</div>';
       messagesDiv.appendChild(messageDiv);
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    function sendChat() {
+    function addThinkingIndicator() {
+      var messagesDiv = document.getElementById('chat-messages');
+      var div = document.createElement('div');
+      div.className = 'chat-message assistant thinking-msg';
+      div.id = 'thinking-indicator';
+      div.innerHTML = 
+        '<div class="chat-avatar">RA</div>' +
+        '<div class="chat-bubble">' +
+        '<div class="thinking">' +
+          '<div class="thinking-dots"><span></span><span></span><span></span></div>' +
+          ' Thinking...' +
+        '</div>' +
+        '</div>';
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function removeThinkingIndicator() {
+      var el = document.getElementById('thinking-indicator');
+      if (el) el.remove();
+    }
+
+    async function sendChat() {
       var input = document.getElementById('chat-input');
       var message = input.value.trim();
       if (!message) return;
       
+      // Check API key
+      var savedKey = localStorage.getItem('rann_api_key');
+      var savedProvider = localStorage.getItem('rann_provider');
+      
+      if (!savedKey) {
+        addChatMessage('user', message);
+        addChatMessage('assistant', 'Please configure your API key first using the buttons above.');
+        input.value = '';
+        return;
+      }
+      
       addChatMessage('user', message);
       input.value = '';
+      chatHistory.push({ role: 'user', content: message });
       
-      setTimeout(function() {
-        var responses = [
-          "I am RANN Agent, an autonomous AI engineering platform. I can help you with coding tasks, file operations, Git management, and more.",
-          "I have analyzed your request. Use `rann run` command to execute tasks with me.",
-          "My capabilities include code generation, debugging, file management, web research, and continuous learning."
-        ];
-        var response = responses[Math.floor(Math.random() * responses.length)];
-        addChatMessage('assistant', response);
-      }, 800);
+      addThinkingIndicator();
+      
+      try {
+        var config = providerConfigs[savedProvider] || providerConfigs.xkiro;
+        var response = await callAPI(savedProvider, savedKey, config, chatHistory);
+        
+        removeThinkingIndicator();
+        
+        if (response.error) {
+          addChatMessage('assistant', 'Error: ' + response.error);
+        } else {
+          addChatMessage('assistant', response.content);
+          chatHistory.push({ role: 'assistant', content: response.content });
+        }
+      } catch (err) {
+        removeThinkingIndicator();
+        addChatMessage('assistant', 'Connection error. Please check your API key and try again.');
+      }
     }
 
-    // Load saved settings
+    async function callAPI(provider, key, config, history) {
+      var url = config.baseUrl + '/chat/completions';
+      var headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + key
+      };
+      
+      var body = {
+        model: config.model,
+        messages: [
+          { role: 'system', content: 'You are RANN Agent, an autonomous AI assistant. You help users with coding, file operations, research, and general tasks. Be concise and helpful. Format code with triple backticks.' },
+          ...history
+        ],
+        max_tokens: 2000,
+        temperature: 0.7
+      };
+      
+      // Anthropic uses different API format
+      if (provider === 'anthropic') {
+        url = config.baseUrl + '/v1/messages';
+        headers['x-api-key'] = key;
+        headers['anthropic-version'] = '2023-06-01';
+        delete headers['Authorization'];
+        body = {
+          model: config.model,
+          max_tokens: 2000,
+          messages: history
+        };
+      }
+      
+      var resp = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body)
+      });
+      
+      if (!resp.ok) {
+        var err = await resp.text();
+        return { error: 'API Error: ' + resp.status + ' - ' + err.substring(0, 100) };
+      }
+      
+      var data = await resp.json();
+      
+      // Parse response based on provider
+      if (provider === 'anthropic') {
+        return { content: data.content[0].text };
+      } else {
+        return { content: data.choices[0].message.content };
+      }
+    }
+
+    // Load saved settings on page load
     window.onload = function() {
       var saved = localStorage.getItem('rann_settings');
       if (saved) {
@@ -852,6 +1158,21 @@
         document.getElementById('max-iterations').value = settings.maxIterations || '50';
         document.getElementById('max-tokens').value = settings.maxTokens || '50000';
         updateModels();
+      }
+      
+      // Check if API key exists
+      var savedKey = localStorage.getItem('rann_api_key');
+      var savedProvider = localStorage.getItem('rann_provider');
+      if (savedKey) {
+        currentProvider = savedProvider;
+        apiKey = savedKey;
+        var chatInput = document.getElementById('chat-input');
+        var sendBtn = document.querySelector('.chat-send');
+        chatInput.disabled = false;
+        chatInput.placeholder = 'Type your message...';
+        sendBtn.disabled = false;
+        document.getElementById('api-status').textContent = 'Connected to ' + savedProvider;
+        document.getElementById('api-status').className = 'api-status success';
       }
     };
   </script>
