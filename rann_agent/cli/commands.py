@@ -492,22 +492,30 @@ def register_serve(cli):
     @cli.command("serve")
     @click.option("--port", default=8000, help="Port to listen on")
     @click.option("--host", default="127.0.0.1", help="Host to bind")
-    @click.option("--reload", is_flag=True, help="Auto-reload on changes")
-    def serve(port: int, host: str, reload: bool):
-        """Start RANN Agent API server."""
+    def serve(port: int, host: str):
+        """Start RANN Agent web interface."""
         try:
-            import uvicorn
-            from rann_agent.api.server import app
+            import http.server
+            import socketserver
+            import os
             
-            click.echo(f"Starting RANN Agent API server on {host}:{port}")
-            uvicorn.run(
-                "rann_agent.api.server:app",
-                host=host,
-                port=port,
-                reload=reload,
-            )
-        except ImportError:
-            click.echo("Error: uvicorn not installed. Run: pip install uvicorn")
+            # Find web_app.py path
+            web_app_path = Path(__file__).parent.parent.parent / "web_app.py"
+            if not web_app_path.exists():
+                web_app_path = Path.cwd() / "web_app.py"
+            
+            if not web_app_path.exists():
+                click.echo(f"Error: web_app.py not found at {web_app_path}")
+                return
+            
+            os.chdir(web_app_path.parent)
+            
+            Handler = http.server.SimpleHTTPRequestHandler
+            with socketserver.TCPServer((host, port), Handler) as httpd:
+                click.echo(f"🌐 RANN Agent Web Interface")
+                click.echo(f"   URL: http://{host}:{port}/web_app.py")
+                click.echo(f"   Press Ctrl+C to stop")
+                httpd.serve_forever()
         except Exception as e:
             click.echo(f"Error: {e}")
 
