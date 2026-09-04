@@ -239,8 +239,8 @@ def register_memory_commands(memory_group):
             memory_id = str(uuid.uuid4())[:12]
             
             conn.execute(
-                "INSERT INTO memories (memory_id, memory_type, content, confidence, created_at) VALUES (?, ?, ?, ?, ?)",
-                (memory_id, mem_type, content, 1.0, datetime.utcnow().isoformat())
+                "INSERT INTO memories (memory_id, memory_type, content, confidence, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (memory_id, mem_type, content, 1.0, datetime.utcnow().isoformat(), datetime.utcnow().isoformat())
             )
             conn.commit()
             click.echo(f"✅ Added {mem_type} memory: {memory_id}")
@@ -286,7 +286,7 @@ def register_session_commands(cli):
             db = Database()
             conn = db._get_conn()
             rows = conn.execute(
-                "SELECT run_id, goal, state, turns, created_at FROM runs ORDER BY created_at DESC LIMIT ?",
+                "SELECT run_id, task_id, start_time, end_time, result FROM runs ORDER BY start_time DESC LIMIT ?",
                 (limit,)
             ).fetchall()
             conn.close()
@@ -298,12 +298,9 @@ def register_session_commands(cli):
             click.echo(f"Sessions ({len(rows)}):\n")
             for r in rows:
                 sid = r["run_id"][:12]
-                state = r["state"] or "unknown"
-                turns = r["turns"] or 0
-                created = r["created_at"][:19] if r["created_at"] else ""
-                goal = (r["goal"] or "")[:40]
-                click.echo(f"  [{state:12}] {sid}... turns={turns} | {goal}...")
-                click.echo(f"               {created}")
+                start = r["start_time"][:19] if r["start_time"] else ""
+                result = (r["result"] or "")[:40]
+                click.echo(f"  {sid}... | {start} | {result}...")
                 
         except Exception as e:
             click.echo(f"Error: {e}")
@@ -401,13 +398,22 @@ def register_project_commands(cli):
             
             db = Database()
             conn = db._get_conn()
+            
+            # Store project in memories table with type=project
             import uuid
+            proj_memory_id = str(uuid.uuid4())[:12]
+            
+            metadata = json.dumps({
+                "name": name,
+                "path": str(proj_path),
+                "language": language,
+                "conventions": ""
+            })
             
             conn.execute(
-                """INSERT OR REPLACE INTO project_contexts 
-                   (project_id, workspace_root, language, conventions, dependencies, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (name, str(proj_path), language, "", "[]", datetime.utcnow().isoformat(), datetime.utcnow().isoformat())
+                """INSERT INTO memories (memory_id, memory_type, content, confidence, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (proj_memory_id, "project", metadata, 1.0, datetime.utcnow().isoformat(), datetime.utcnow().isoformat())
             )
             conn.commit()
             
@@ -452,15 +458,21 @@ def register_project_commands(cli):
             project_id = proj_path.name
             conventions = "\n".join(str(f.relative_to(proj_path)) for f in found)
             
-            # Save to database
+            # Save to memories table
             db = Database()
             conn = db._get_conn()
             
+            metadata = json.dumps({
+                "name": project_id,
+                "path": str(proj_path),
+                "language": "",
+                "conventions": conventions
+            })
+            
             conn.execute(
-                """INSERT OR REPLACE INTO project_contexts 
-                   (project_id, workspace_root, language, conventions, dependencies, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (project_id, str(proj_path), "", conventions, "[]", datetime.utcnow().isoformat(), datetime.utcnow().isoformat())
+                """INSERT INTO memories (memory_id, memory_type, content, confidence, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (project_id, "project", metadata, 1.0, datetime.utcnow().isoformat(), datetime.utcnow().isoformat())
             )
             conn.commit()
             
