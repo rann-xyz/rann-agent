@@ -693,6 +693,7 @@
         <li><a href="#features">Features</a></li>
         <li><a href="#capabilities">Capabilities</a></li>
         <li><a href="#code">Usage</a></li>
+        <li><a href="#settings">Settings</a></li>
         <li><a href="https://github.com/rann-xyz/rann-agent" target="_blank">GitHub</a></li>
       </ul>
       <div class="nav-cta">
@@ -898,6 +899,446 @@
       </div>
     </div>
   </section>
+
+  <!-- Settings -->
+  <section class="settings" id="settings">
+    <div class="settings-inner">
+      <div class="settings-header">
+        <h2>Settings</h2>
+        <p class="settings-subtitle">Configure your RANN Agent</p>
+      </div>
+      
+      <div class="settings-grid">
+        <!-- Model Selection -->
+        <div class="settings-card">
+          <h3>Model Configuration</h3>
+          <div class="setting-group">
+            <label for="provider">Provider</label>
+            <select id="provider" onchange="updateModels()">
+              <option value="xkiro">xkiro (Free)</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="openai">OpenAI</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <label for="model">Model</label>
+            <select id="model">
+              <option value="minimax/minimax-m2.7-highspeed:free">minimax/m2.7-highspeed (Free)</option>
+              <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+              <option value="claude-opus-4-20250514">Claude Opus 4</option>
+              <option value="gpt-4o">GPT-4o</option>
+              <option value="gpt-4o-mini">GPT-4o Mini</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+        </div>
+
+        <!-- Agent Behavior -->
+        <div class="settings-card">
+          <h3>Agent Behavior</h3>
+          <div class="setting-group">
+            <label for="max-iterations">Max Iterations</label>
+            <input type="number" id="max-iterations" value="50" min="1" max="200">
+          </div>
+          <div class="setting-group">
+            <label for="max-tokens">Max Tokens</label>
+            <input type="number" id="max-tokens" value="50000" min="1000" max="200000">
+          </div>
+          <div class="setting-group">
+            <label for="temperature">Temperature</label>
+            <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7">
+            <span id="temp-value">0.7</span>
+          </div>
+        </div>
+
+        <!-- Tools -->
+        <div class="settings-card">
+          <h3>Enabled Tools</h3>
+          <div class="tools-list">
+            <label class="tool-item">
+              <input type="checkbox" id="tool-terminal" checked disabled>
+              <span>Terminal</span>
+            </label>
+            <label class="tool-item">
+              <input type="checkbox" id="tool-read_file" checked>
+              <span>Read File</span>
+            </label>
+            <label class="tool-item">
+              <input type="checkbox" id="tool-write_file" checked>
+              <span>Write File</span>
+            </label>
+            <label class="tool-item">
+              <input type="checkbox" id="tool-search_files" checked>
+              <span>Search Files</span>
+            </label>
+            <label class="tool-item">
+              <input type="checkbox" id="tool-web_search" checked>
+              <span>Web Search</span>
+            </label>
+            <label class="tool-item">
+              <input type="checkbox" id="tool-code_exec" checked>
+              <span>Code Execution</span>
+            </label>
+            <label class="tool-item">
+              <input type="checkbox" id="tool-git" checked>
+              <span>Git</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Current Config Display -->
+        <div class="settings-card settings-card-dark">
+          <h3>Current Configuration</h3>
+          <div class="config-display" id="config-display">
+            <div class="config-item">
+              <span class="config-label">Provider:</span>
+              <span class="config-value" id="cfg-provider">xkiro</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">Model:</span>
+              <span class="config-value" id="cfg-model">minimax/m2.7-highspeed:free</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">Max Iterations:</span>
+              <span class="config-value" id="cfg-iterations">50</span>
+            </div>
+            <div class="config-item">
+              <span class="config-label">Max Tokens:</span>
+              <span class="config-value" id="cfg-tokens">50000</span>
+            </div>
+          </div>
+          <button class="btn btn-secondary" onclick="loadConfig()">Load from Config</button>
+        </div>
+      </div>
+
+      <!-- Chat Interface -->
+      <div class="chat-section">
+        <h3>Interactive Chat</h3>
+        <div class="chat-container">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-message assistant">
+              <div class="chat-avatar">RA</div>
+              <div class="chat-bubble">
+                Hello! I'm RANN Agent. How can I help you today?
+              </div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <div class="chat-input-wrapper">
+              <input type="text" id="chat-input" placeholder="Ask me anything..." onkeypress="handleChatKeypress(event)">
+              <button class="chat-send" onclick="sendChat()">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <style>
+    .settings {
+      background: var(--parchment);
+      padding: 80px 24px;
+    }
+    .settings-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .settings-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .settings-header h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 500;
+      color: var(--near-black);
+      margin-bottom: 12px;
+    }
+    .settings-subtitle {
+      font-size: 18px;
+      color: var(--olive);
+    }
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+    .settings-card {
+      background: var(--ivory);
+      border: 1px solid var(--border-cream);
+      border-radius: 12px;
+      padding: 28px;
+    }
+    .settings-card h3 {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--near-black);
+      margin-bottom: 20px;
+    }
+    .settings-card-dark {
+      background: var(--near-black);
+      border-color: var(--dark-surface);
+    }
+    .settings-card-dark h3 {
+      color: var(--ivory);
+    }
+    .setting-group {
+      margin-bottom: 16px;
+    }
+    .setting-group label {
+      display: block;
+      font-size: 14px;
+      color: var(--charcoal);
+      margin-bottom: 6px;
+    }
+    .settings-card-dark .setting-group label {
+      color: var(--warm-silver);
+    }
+    .setting-group select,
+    .setting-group input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-warm);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: var(--font-sans);
+      background: var(--white);
+      color: var(--near-black);
+    }
+    .setting-group input[type="range"] {
+      width: calc(100% - 50px);
+      margin-right: 10px;
+    }
+    #temp-value {
+      display: inline-block;
+      min-width: 30px;
+      font-size: 14px;
+      color: var(--terracotta);
+    }
+    .tools-list {
+      display: grid;
+      gap: 10px;
+    }
+    .tool-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--charcoal);
+      cursor: pointer;
+    }
+    .tool-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--terracotta);
+    }
+    .config-display {
+      background: var(--dark-surface);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .config-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .config-item:last-child {
+      border-bottom: none;
+    }
+    .config-label {
+      color: var(--warm-silver);
+      font-size: 13px;
+    }
+    .config-value {
+      color: var(--ivory);
+      font-size: 13px;
+      font-family: var(--font-mono);
+    }
+    .chat-section {
+      background: var(--near-black);
+      border-radius: 16px;
+      padding: 28px;
+    }
+    .chat-section h3 {
+      color: var(--ivory);
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+    .chat-container {
+      background: var(--dark-surface);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .chat-container .chat-messages {
+      min-height: 250px;
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .chat-container .chat-message.user .chat-bubble {
+      background: var(--terracotta);
+      color: var(--ivory);
+    }
+    .chat-container .chat-input-area {
+      background: var(--near-black);
+    }
+    .chat-container .chat-input-wrapper {
+      background: var(--near-black);
+      border-color: var(--dark-surface);
+    }
+    .chat-container .chat-input {
+      color: var(--ivory);
+    }
+    .chat-container .chat-input::placeholder {
+      color: var(--stone);
+    }
+  </style>
+
+  <script>
+    // Temperature slider
+    document.getElementById('temperature').addEventListener('input', function(e) {
+      document.getElementById('temp-value').textContent = e.target.value;
+    });
+
+    // Load config from rann config
+    function loadConfig() {
+      // Simulated config load (in real app, would call rann config get)
+      const configs = {
+        provider: 'xkiro',
+        model: 'minimax/minimax-m2.7-highspeed:free',
+        iterations: '50',
+        tokens: '50000'
+      };
+      
+      document.getElementById('provider').value = configs.provider;
+      document.getElementById('cfg-provider').textContent = configs.provider;
+      
+      document.getElementById('max-iterations').value = configs.iterations;
+      document.getElementById('cfg-iterations').textContent = configs.iterations;
+      
+      document.getElementById('max-tokens').value = configs.tokens;
+      document.getElementById('cfg-tokens').textContent = configs.tokens;
+    }
+
+    // Update models based on provider
+    function updateModels() {
+      const provider = document.getElementById('provider').value;
+      const modelSelect = document.getElementById('model');
+      
+      const models = {
+        xkiro: [
+          { value: 'minimax/minimax-m2.7-highspeed:free', label: 'minimax/m2.7-highspeed (Free)' }
+        ],
+        anthropic: [
+          { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
+          { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
+          { value: 'claude-haiku-4-20250514', label: 'Claude Haiku 4' }
+        ],
+        openai: [
+          { value: 'gpt-4o', label: 'GPT-4o' },
+          { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+          { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' }
+        ],
+        custom: [
+          { value: 'custom/model', label: 'Custom Model' }
+        ]
+      };
+      
+      modelSelect.innerHTML = models[provider].map(m => 
+        `<option value="${m.value}">${m.label}</option>`
+      ).join('');
+    }
+
+    // Save settings
+    function saveSettings() {
+      const settings = {
+        provider: document.getElementById('provider').value,
+        model: document.getElementById('model').value,
+        maxIterations: document.getElementById('max-iterations').value,
+        maxTokens: document.getElementById('max-tokens').value,
+        temperature: document.getElementById('temperature').value,
+        tools: {
+          read_file: document.getElementById('tool-read_file').checked,
+          write_file: document.getElementById('tool-write_file').checked,
+          search_files: document.getElementById('tool-search_files').checked,
+          web_search: document.getElementById('tool-web_search').checked,
+          code_exec: document.getElementById('tool-code_exec').checked,
+          git: document.getElementById('tool-git').checked
+        }
+      };
+      
+      // Save to localStorage
+      localStorage.setItem('rann_settings', JSON.stringify(settings));
+      
+      // Update display
+      document.getElementById('cfg-provider').textContent = settings.provider;
+      document.getElementById('cfg-model').textContent = settings.model;
+      document.getElementById('cfg-iterations').textContent = settings.maxIterations;
+      document.getElementById('cfg-tokens').textContent = settings.maxTokens;
+      
+      alert('Settings saved! Run `rann config set agent.llm.provider ' + settings.provider + '` and `rann config set agent.llm.model ' + settings.model + '` to apply.');
+    }
+
+    // Chat functionality
+    function addChatMessage(role, content) {
+      const messagesDiv = document.getElementById('chat-messages');
+      const avatar = role === 'user' ? 'You' : 'RA';
+      const avatarClass = role === 'user' ? 'user' : 'assistant';
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'chat-message ' + avatarClass;
+      messageDiv.innerHTML = `
+        <div class="chat-avatar">${avatar}</div>
+        <div class="chat-bubble">${content}</div>
+      `;
+      messagesDiv.appendChild(messageDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function sendChat() {
+      const input = document.getElementById('chat-input');
+      const message = input.value.trim();
+      if (!message) return;
+      
+      addChatMessage('user', message);
+      input.value = '';
+      
+      // Simulate agent response
+      setTimeout(() => {
+        const responses = [
+          "I'm RANN Agent, an autonomous AI engineering platform. I can help you with coding tasks, file operations, Git management, and more. What would you like to work on?",
+          "I've analyzed your request. Let me help you with that task. You can use commands like `rann run \"task description\"` to execute tasks.",
+          "That's an interesting task! I can help you with that. Just tell me what you need and I'll take care of it.",
+          "I'm ready to assist! My capabilities include code generation, debugging, file management, and web research."
+        ];
+        const response = responses[Math.floor(Math.random() * responses.length)];
+        addChatMessage('assistant', response);
+      }, 1000);
+    }
+
+    function handleChatKeypress(e) {
+      if (e.key === 'Enter') {
+        sendChat();
+      }
+    }
+
+    // Load saved settings on page load
+    window.addEventListener('load', function() {
+      const saved = localStorage.getItem('rann_settings');
+      if (saved) {
+        const settings = JSON.parse(saved);
+        document.getElementById('provider').value = settings.provider || 'xkiro';
+        document.getElementById('max-iterations').value = settings.maxIterations || '50';
+        document.getElementById('max-tokens').value = settings.maxTokens || '50000';
+        document.getElementById('temperature').value = settings.temperature || '0.7';
+        document.getElementById('temp-value').textContent = settings.temperature || '0.7';
+      }
+    });
+  </script>
 
   <!-- Footer -->
   <footer>
