@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RANN Agent - Autonomous AI Engineering Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -26,11 +27,7 @@
       --font-mono: 'JetBrains Mono', ui-monospace, monospace;
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: var(--font-sans);
@@ -40,7 +37,7 @@
       min-height: 100vh;
     }
 
-    /* ============ NAVIGATION ============ */
+    /* Navigation */
     nav {
       position: sticky;
       top: 0;
@@ -54,55 +51,50 @@
       max-width: 1200px;
       margin: 0 auto;
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
       height: 64px;
     }
 
     .nav-logo {
       display: flex;
       align-items: center;
-      gap: 12px;
-      text-decoration: none;
-      color: var(--near-black);
+      gap: 10px;
     }
 
     .nav-logo-icon {
       width: 36px;
       height: 36px;
-      background: var(--near-black);
-      border-radius: 10px;
+      background: var(--terracotta);
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--sand);
       font-weight: 600;
+      color: var(--ivory);
       font-size: 14px;
     }
 
     .nav-logo-text {
-      font-size: 20px;
       font-weight: 500;
-      letter-spacing: -0.5px;
+      font-size: 18px;
+      color: var(--near-black);
     }
 
     .nav-links {
       display: flex;
-      gap: 32px;
       list-style: none;
+      gap: 32px;
     }
 
     .nav-links a {
       color: var(--olive);
       text-decoration: none;
-      font-size: 15px;
-      font-weight: 400;
+      font-size: 14px;
       transition: color 0.2s;
     }
 
-    .nav-links a:hover {
-      color: var(--near-black);
-    }
+    .nav-links a:hover { color: var(--near-black); }
 
     .nav-cta {
       display: flex;
@@ -110,170 +102,320 @@
     }
 
     .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
       padding: 10px 20px;
-      border-radius: 10px;
+      border-radius: 8px;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
+      text-decoration: none;
       transition: all 0.2s;
       border: none;
-      text-decoration: none;
-    }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--charcoal);
-    }
-
-    .btn-ghost:hover {
-      background: var(--sand);
+      font-family: var(--font-sans);
     }
 
     .btn-secondary {
-      background: var(--sand);
-      color: var(--charcoal);
-    }
-
-    .btn-secondary:hover {
-      background: var(--border-warm);
-    }
-
-    .btn-primary {
-      background: var(--terracotta);
-      color: var(--ivory);
-    }
-
-    .btn-primary:hover {
-      background: var(--coral);
-    }
-
-    .btn-dark {
-      background: var(--near-black);
-      color: var(--warm-silver);
-      border: 1px solid var(--dark-surface);
-    }
-
-    .btn-dark:hover {
-      background: var(--dark-surface);
-    }
-
-    /* ============ HERO SECTION ============ */
-    .hero {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 80px 24px 120px;
-      text-align: center;
-    }
-
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      background: var(--sand);
-      border-radius: 20px;
-      font-size: 13px;
-      color: var(--charcoal);
-      margin-bottom: 32px;
-    }
-
-    .hero-badge-dot {
-      width: 6px;
-      height: 6px;
-      background: var(--terracotta);
-      border-radius: 50%;
-    }
-
-    .hero h1 {
-      font-size: clamp(36px, 6vw, 64px);
-      font-weight: 500;
-      line-height: 1.1;
-      letter-spacing: -1px;
-      margin-bottom: 24px;
+      background: transparent;
       color: var(--near-black);
     }
 
-    .hero h1 span {
+    .btn-secondary:hover { background: var(--sand); }
+
+    .btn-primary {
+      background: var(--near-black);
+      color: var(--ivory);
+    }
+
+    .btn-primary:hover { background: var(--charcoal); }
+
+    /* Hero */
+    .hero {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 100px 24px;
+      text-align: center;
+    }
+
+    .hero-eyebrow {
+      font-size: 14px;
       color: var(--terracotta);
+      font-weight: 500;
+      margin-bottom: 16px;
+      letter-spacing: 0.5px;
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 56px);
+      font-weight: 500;
+      line-height: 1.15;
+      color: var(--near-black);
+      margin-bottom: 24px;
     }
 
     .hero-subtitle {
-      font-size: 20px;
+      font-size: 18px;
       color: var(--olive);
       max-width: 600px;
       margin: 0 auto 40px;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    /* Features */
+    .features {
+      background: var(--near-black);
+      padding: 80px 24px;
+    }
+
+    .features-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 13px;
+      color: var(--warm-silver);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 500;
+      color: var(--ivory);
+      margin-bottom: 48px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--dark-surface);
+      border-radius: 12px;
+      padding: 28px;
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--terracotta);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+
+    .feature-card h3 {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--ivory);
+      margin-bottom: 10px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: var(--warm-silver);
       line-height: 1.6;
     }
 
-    .hero-actions {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      flex-wrap: wrap;
+    /* Code Block */
+    .code-section {
+      padding: 80px 24px;
     }
 
-    .hero-actions .btn {
-      padding: 14px 28px;
-      font-size: 16px;
-    }
-
-    /* ============ CHAT PREVIEW ============ */
-    .chat-preview {
+    .code-inner {
       max-width: 900px;
-      margin: 0 auto 120px;
-      padding: 0 24px;
+      margin: 0 auto;
     }
 
-    .chat-window {
+    .code-block {
+      background: var(--near-black);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 32px;
+      overflow-x: auto;
+    }
+
+    .code-block pre {
+      color: var(--ivory);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .code-block .prompt { color: var(--terracotta); }
+    .code-block .comment { color: var(--stone); }
+    .code-block .command { color: var(--green); }
+
+    /* Stats */
+    .stats {
+      background: var(--ivory);
+      padding: 60px 24px;
+      border-top: 1px solid var(--border-cream);
+      border-bottom: 1px solid var(--border-cream);
+    }
+
+    .stats-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 600;
+      color: var(--near-black);
+      font-family: var(--font-mono);
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--olive);
+      margin-top: 4px;
+    }
+
+    /* Settings */
+    .settings {
+      padding: 80px 24px;
+      background: var(--parchment);
+    }
+
+    .settings-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .settings-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .settings-header h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 500;
+      color: var(--near-black);
+      margin-bottom: 12px;
+    }
+
+    .settings-header p {
+      font-size: 18px;
+      color: var(--olive);
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .settings-card {
       background: var(--ivory);
       border: 1px solid var(--border-cream);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: rgba(0,0,0,0.05) 0 4px 24px;
+      border-radius: 12px;
+      padding: 24px;
     }
 
-    .chat-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border-cream);
-      background: var(--white);
-    }
-
-    .chat-header-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: var(--terracotta);
-    }
-
-    .chat-header-title {
-      font-size: 14px;
+    .settings-card h3 {
+      font-size: 16px;
       font-weight: 500;
-      color: var(--charcoal);
+      color: var(--near-black);
+      margin-bottom: 16px;
+    }
+
+    .setting-group {
+      margin-bottom: 14px;
+    }
+
+    .setting-group label {
+      display: block;
+      font-size: 13px;
+      color: var(--olive);
+      margin-bottom: 6px;
+    }
+
+    .setting-group select,
+    .setting-group input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-warm);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: var(--font-sans);
+      background: var(--white);
+      color: var(--near-black);
+    }
+
+    .settings-card-dark {
+      background: var(--near-black);
+      border-color: var(--dark-surface);
+    }
+
+    .settings-card-dark h3 {
+      color: var(--ivory);
+    }
+
+    .config-display {
+      background: var(--dark-surface);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .config-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 13px;
+    }
+
+    .config-item:last-child { border-bottom: none; }
+    .config-label { color: var(--warm-silver); }
+    .config-value { color: var(--ivory); font-family: var(--font-mono); }
+
+    /* Chat */
+    .chat-section {
+      background: var(--near-black);
+      border-radius: 16px;
+      padding: 28px;
+      margin-top: 24px;
+    }
+
+    .chat-section h3 {
+      color: var(--ivory);
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    .chat-container {
+      background: var(--dark-surface);
+      border-radius: 12px;
+      overflow: hidden;
     }
 
     .chat-messages {
-      padding: 24px;
-      min-height: 300px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+      min-height: 200px;
+      max-height: 350px;
+      overflow-y: auto;
+      padding: 20px;
     }
 
     .chat-message {
       display: flex;
       gap: 12px;
-      max-width: 85%;
-    }
-
-    .chat-message.user {
-      align-self: flex-end;
-      flex-direction: row-reverse;
+      margin-bottom: 16px;
     }
 
     .chat-avatar {
@@ -289,317 +431,74 @@
     }
 
     .chat-message.assistant .chat-avatar {
-      background: var(--near-black);
-      color: var(--sand);
+      background: var(--terracotta);
+      color: var(--ivory);
     }
 
     .chat-message.user .chat-avatar {
       background: var(--sand);
-      color: var(--charcoal);
+      color: var(--near-black);
     }
 
     .chat-bubble {
       padding: 12px 16px;
       border-radius: 12px;
-      font-size: 15px;
+      font-size: 14px;
       line-height: 1.5;
     }
 
     .chat-message.assistant .chat-bubble {
-      background: var(--white);
-      border: 1px solid var(--border-cream);
-      color: var(--near-black);
+      background: var(--near-black);
+      color: var(--ivory);
     }
 
     .chat-message.user .chat-bubble {
-      background: var(--near-black);
-      color: var(--warm-silver);
+      background: var(--terracotta);
+      color: var(--ivory);
     }
 
     .chat-input-area {
-      padding: 16px 20px;
-      border-top: 1px solid var(--border-cream);
-      background: var(--white);
+      padding: 16px;
+      border-top: 1px solid var(--dark-surface);
     }
 
     .chat-input-wrapper {
       display: flex;
-      align-items: center;
       gap: 12px;
-      background: var(--parchment);
-      border: 1px solid var(--border-warm);
-      border-radius: 12px;
-      padding: 12px 16px;
     }
 
     .chat-input {
       flex: 1;
-      border: none;
-      background: transparent;
-      font-size: 15px;
+      padding: 12px 16px;
+      border: 1px solid var(--dark-surface);
+      border-radius: 8px;
+      font-size: 14px;
       font-family: var(--font-sans);
-      color: var(--near-black);
-      outline: none;
+      background: var(--near-black);
+      color: var(--ivory);
     }
 
-    .chat-input::placeholder {
-      color: var(--stone);
-    }
+    .chat-input::placeholder { color: var(--stone); }
 
     .chat-send {
-      width: 32px;
-      height: 32px;
+      padding: 12px 20px;
       background: var(--terracotta);
+      color: var(--ivory);
       border: none;
       border-radius: 8px;
-      color: var(--ivory);
+      font-size: 14px;
+      font-weight: 500;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
+      font-family: var(--font-sans);
     }
 
-    .chat-send:hover {
-      background: var(--coral);
-    }
+    .chat-send:hover { background: var(--coral); }
 
-    /* ============ FEATURES SECTION ============ */
-    .features {
-      background: var(--near-black);
-      padding: 100px 24px;
-    }
-
-    .features-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    .section-label {
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      color: var(--stone);
-      margin-bottom: 16px;
-    }
-
-    .features h2 {
-      font-size: clamp(28px, 4vw, 44px);
-      font-weight: 500;
-      color: var(--ivory);
-      margin-bottom: 60px;
-      line-height: 1.2;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
-    }
-
-    .feature-card {
-      background: var(--dark-surface);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 28px;
-      transition: border-color 0.2s;
-    }
-
-    .feature-card:hover {
-      border-color: rgba(255,255,255,0.15);
-    }
-
-    .feature-icon {
-      width: 40px;
-      height: 40px;
-      background: var(--terracotta);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
-      font-size: 18px;
-    }
-
-    .feature-card h3 {
-      font-size: 18px;
-      font-weight: 500;
-      color: var(--ivory);
-      margin-bottom: 12px;
-    }
-
-    .feature-card p {
-      font-size: 14px;
-      color: var(--warm-silver);
-      line-height: 1.6;
-    }
-
-    /* ============ CAPABILITIES SECTION ============ */
-    .capabilities {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 100px 24px;
-    }
-
-    .capabilities-header {
-      text-align: center;
-      margin-bottom: 60px;
-    }
-
-    .capabilities h2 {
-      font-size: clamp(28px, 4vw, 44px);
-      font-weight: 500;
-      color: var(--near-black);
-      margin-bottom: 16px;
-    }
-
-    .capabilities-subtitle {
-      font-size: 18px;
-      color: var(--olive);
-    }
-
-    .capabilities-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 1px;
-      background: var(--border-warm);
-      border: 1px solid var(--border-warm);
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    .capability-item {
-      background: var(--ivory);
-      padding: 28px 32px;
-      display: flex;
-      align-items: flex-start;
-      gap: 20px;
-    }
-
-    .capability-check {
-      width: 24px;
-      height: 24px;
-      background: var(--terracotta);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--ivory);
-      font-size: 14px;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .capability-text h4 {
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--near-black);
-      margin-bottom: 6px;
-    }
-
-    .capability-text p {
-      font-size: 14px;
-      color: var(--olive);
-    }
-
-    /* ============ CODE EXAMPLE ============ */
-    .code-section {
-      background: var(--near-black);
-      padding: 80px 24px;
-    }
-
-    .code-inner {
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    .code-section h2 {
-      font-size: clamp(24px, 3vw, 36px);
-      font-weight: 500;
-      color: var(--ivory);
-      text-align: center;
-      margin-bottom: 40px;
-    }
-
-    .code-block {
-      background: var(--dark-surface);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    .code-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .code-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
-
-    .code-dot.red { background: #ff5f57; }
-    .code-dot.yellow { background: #ffbd2e; }
-    .code-dot.green { background: #28c840; }
-
-    .code-content {
-      padding: 24px;
-      font-family: var(--font-mono);
-      font-size: 14px;
-      line-height: 1.7;
-      color: var(--warm-silver);
-      overflow-x: auto;
-    }
-
-    .code-content .keyword { color: #c96442; }
-    .code-content .string { color: #98c379; }
-    .code-content .comment { color: #5c6370; }
-    .code-content .function { color: #61afef; }
-
-    /* ============ STATS SECTION ============ */
-    .stats {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 80px 24px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 32px;
-    }
-
-    .stat-item {
-      text-align: center;
-      padding: 32px;
-      background: var(--ivory);
-      border: 1px solid var(--border-cream);
-      border-radius: 12px;
-    }
-
-    .stat-number {
-      font-size: 48px;
-      font-weight: 500;
-      color: var(--terracotta);
-      line-height: 1;
-      margin-bottom: 8px;
-    }
-
-    .stat-label {
-      font-size: 15px;
-      color: var(--olive);
-    }
-
-    /* ============ FOOTER ============ */
+    /* Footer */
     footer {
       background: var(--near-black);
-      padding: 60px 24px;
-      border-top: 1px solid var(--dark-surface);
+      padding: 40px 24px;
+      margin-top: 40px;
     }
 
     .footer-inner {
@@ -609,424 +508,266 @@
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 24px;
+      gap: 20px;
     }
 
     .footer-logo {
       display: flex;
       align-items: center;
-      gap: 12px;
-      color: var(--ivory);
+      gap: 10px;
     }
 
     .footer-logo-icon {
       width: 32px;
       height: 32px;
       background: var(--terracotta);
-      border-radius: 8px;
+      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--ivory);
       font-weight: 600;
+      color: var(--ivory);
       font-size: 12px;
     }
 
     .footer-logo-text {
-      font-size: 18px;
+      color: var(--ivory);
       font-weight: 500;
     }
 
     .footer-links {
       display: flex;
-      gap: 32px;
       list-style: none;
+      gap: 24px;
     }
 
     .footer-links a {
       color: var(--warm-silver);
       text-decoration: none;
       font-size: 14px;
-      transition: color 0.2s;
     }
 
-    .footer-links a:hover {
-      color: var(--ivory);
-    }
+    .footer-links a:hover { color: var(--ivory); }
 
     .footer-copy {
-      font-size: 13px;
       color: var(--stone);
+      font-size: 13px;
+      width: 100%;
+      text-align: center;
+      margin-top: 20px;
     }
 
-    /* ============ RESPONSIVE ============ */
+    /* Responsive */
     @media (max-width: 768px) {
       .nav-links { display: none; }
-      .nav-cta .btn-ghost { display: none; }
-      
-      .hero { padding: 60px 24px 80px; }
-      .hero h1 { font-size: 36px; }
-      .hero-subtitle { font-size: 17px; }
-      
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      
+      .stats-inner { grid-template-columns: repeat(2, 1fr); }
+      .hero-cta { flex-direction: column; }
       .footer-inner { flex-direction: column; text-align: center; }
-      .footer-links { flex-wrap: wrap; justify-content: center; }
-    }
-
-    @media (max-width: 480px) {
-      .hero-actions { flex-direction: column; }
-      .hero-actions .btn { width: 100%; justify-content: center; }
-      .stats-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <!-- Navigation -->
   <nav>
     <div class="nav-inner">
-      <a href="#" class="nav-logo">
+      <div class="nav-logo">
         <div class="nav-logo-icon">RA</div>
         <span class="nav-logo-text">RANN Agent</span>
-      </a>
+      </div>
       <ul class="nav-links">
         <li><a href="#features">Features</a></li>
-        <li><a href="#capabilities">Capabilities</a></li>
         <li><a href="#code">Usage</a></li>
         <li><a href="#settings">Settings</a></li>
         <li><a href="https://github.com/rann-xyz/rann-agent" target="_blank">GitHub</a></li>
       </ul>
       <div class="nav-cta">
-        <a href="#" class="btn btn-ghost">Docs</a>
-        <a href="#" class="btn btn-primary">Get Started</a>
+        <a href="#settings" class="btn btn-secondary">Configure</a>
+        <a href="https://github.com/rann-xyz/rann-agent" class="btn btn-primary" target="_blank">Get Started</a>
       </div>
     </div>
   </nav>
 
-  <!-- Hero -->
   <section class="hero">
-    <div class="hero-badge">
-      <span class="hero-badge-dot"></span>
-      Autonomous AI Engineering Platform
-    </div>
-    <h1>THE MODEL GENERATES<br><span>DECISIONS.</span> RANN CONTROLS<br>EXECUTION.</h1>
-    <p class="hero-subtitle">
-      Autonomous AI agent with 16-state machine, real terminal execution, evidence ledger, and structured memory. 
-      Build, test, and deploy with confidence.
-    </p>
-    <div class="hero-actions">
-      <a href="#" class="btn btn-primary">Try It Now →</a>
-      <a href="#" class="btn btn-secondary">View on GitHub</a>
+    <div class="hero-eyebrow">AUTONOMOUS AI ENGINEERING</div>
+    <h1>THE MODEL GENERATES DECISIONS.<br>RANN CONTROLS EXECUTION.</h1>
+    <p class="hero-subtitle">An autonomous AI agent that plans, executes, and verifies tasks with safety controls, memory, and continuous learning.</p>
+    <div class="hero-cta">
+      <a href="https://github.com/rann-xyz/rann-agent" class="btn btn-primary" target="_blank">Install RANN</a>
+      <a href="#settings" class="btn btn-secondary">Configure Model</a>
     </div>
   </section>
 
-  <!-- Chat Preview -->
-  <section class="chat-preview">
-    <div class="chat-window">
-      <div class="chat-header">
-        <div class="chat-header-dot"></div>
-        <span class="chat-header-title">RANN Agent - Interactive Chat</span>
-      </div>
-      <div class="chat-messages">
-        <div class="chat-message assistant">
-          <div class="chat-avatar">RA</div>
-          <div class="chat-bubble">
-            Hello! I'm RANN Agent. I can help you with coding tasks, file management, Git operations, and more. What would you like to do today?
-          </div>
-        </div>
-        <div class="chat-message user">
-          <div class="chat-avatar">You</div>
-          <div class="chat-bubble">
-            Create a Python file that calculates fibonacci numbers
-          </div>
-        </div>
-        <div class="chat-message assistant">
-          <div class="chat-avatar">RA</div>
-          <div class="chat-bubble">
-            I've created <code>fibonacci.py</code> with a function to calculate fibonacci numbers using dynamic programming. The file includes both recursive and iterative implementations with examples.
-          </div>
-        </div>
-      </div>
-      <div class="chat-input-area">
-        <div class="chat-input-wrapper">
-          <input type="text" class="chat-input" placeholder="Ask RANN Agent to help with your task...">
-          <button class="chat-send">→</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Features -->
   <section class="features" id="features">
     <div class="features-inner">
-      <p class="section-label">Features</p>
-      <h2>Built for serious engineering work</h2>
+      <div class="section-label">CAPABILITIES</div>
+      <h2 class="section-title">Built for Complex Tasks</h2>
       <div class="features-grid">
         <div class="feature-card">
-          <div class="feature-icon">⚡</div>
+          <div class="feature-icon">&#128161;</div>
           <h3>16-State Machine</h3>
-          <p>Explicit state transitions with QUEUED → ANALYZING → CONTEXT_READY → PLANNING → EXECUTING → VERIFYING → COMPLETED lifecycle.</p>
+          <p>Advanced state management with QUEUED, ANALYZING, PLANNING, EXECUTING, VERIFYING, and more for robust task handling.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">🔒</div>
-          <h3>Smart Safety</h3>
-          <p>Command policy enforcement, approval gates, and sandboxed execution. Dangerous operations require explicit approval.</p>
+          <div class="feature-icon">&#128737;</div>
+          <h3>Safety First</h3>
+          <p>Smart command approval, dangerous pattern detection, budget limits, and audit logging for secure operation.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">💾</div>
-          <h3>Memory Architecture</h3>
-          <p>Episodic, semantic, and project memory stores. Agent learns and remembers project conventions over time.</p>
+          <div class="feature-icon">&#128203;</div>
+          <h3>Persistent Memory</h3>
+          <p>Semantic, episodic, and working memory stores that persist across sessions for context awareness.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">🧪</div>
-          <h3>Evidence Ledger</h3>
-          <p>Every action is traced and verified. Evidence-based proof that tasks completed correctly.</p>
+          <div class="feature-icon">&#127918;</div>
+          <h3>Self-Improvement</h3>
+          <p>Learning engine that learns from successes and failures, with self-correction capabilities.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">🔧</div>
-          <h3>Tool Registry</h3>
-          <p>Extensible tool system with terminal, file, git, search, and custom tools. New tools can be added easily.</p>
+          <div class="feature-icon">&#128270;</div>
+          <h3>Web Research</h3>
+          <p>Real-time web search integration for up-to-date information and source verification.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">📊</div>
-          <h3>Budget Control</h3>
-          <p>Token, time, cost, and turn budgets. Prevents runaway agent loops and manages resources effectively.</p>
+          <div class="feature-icon">&#128221;</div>
+          <h3>Self-Coding</h3>
+          <p>Agent can modify its own code within safe boundaries with backup and rollback support.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Capabilities -->
-  <section class="capabilities" id="capabilities">
-    <div class="capabilities-header">
-      <h2>What RANN Agent can do</h2>
-      <p class="capabilities-subtitle">From code generation to full project management</p>
-    </div>
-    <div class="capabilities-list">
-      <div class="capability-item">
-        <div class="capability-check">✓</div>
-        <div class="capability-text">
-          <h4>Code Generation & Editing</h4>
-          <p>Write, edit, and refactor code in any language</p>
-        </div>
-      </div>
-      <div class="capability-item">
-        <div class="capability-check">✓</div>
-        <div class="capability-text">
-          <h4>File Operations</h4>
-          <p>Create, read, modify, and organize files</p>
-        </div>
-      </div>
-      <div class="capability-item">
-        <div class="capability-check">✓</div>
-        <div class="capability-text">
-          <h4>Git Operations</h4>
-          <p>Commit, branch, merge, and manage repositories</p>
-        </div>
-      </div>
-      <div class="capability-item">
-        <div class="capability-check">✓</div>
-        <div class="capability-text">
-          <h4>Terminal Execution</h4>
-          <p>Run commands and scripts safely</p>
-        </div>
-      </div>
-      <div class="capability-item">
-        <div class="capability-check">✓</div>
-        <div class="capability-text">
-          <h4>Project Context</h4>
-          <p>Learn and apply project conventions</p>
-        </div>
-      </div>
-      <div class="capability-item">
-        <div class="capability-check">✓</div>
-        <div class="capability-text">
-          <h4>Memory & Learning</h4>
-          <p>Remember solutions and avoid repeating mistakes</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Code Example -->
   <section class="code-section" id="code">
     <div class="code-inner">
-      <h2>Simple to use</h2>
+      <div class="section-label">GET STARTED</div>
+      <h2 class="section-title">Simple to Use</h2>
       <div class="code-block">
-        <div class="code-header">
-          <span class="code-dot red"></span>
-          <span class="code-dot yellow"></span>
-          <span class="code-dot green"></span>
-        </div>
-        <div class="code-content">
-<span class="comment"># Install</span>
-<span class="function">pip</span> install -e .
+        <pre><span class="prompt">$</span> <span class="command">pip install rann-agent</span>
 
-<span class="comment"># Run a task</span>
-<span class="keyword">rann</span> run <span class="string">"create a hello world Python file"</span>
-
-<span class="comment"># Interactive shell</span>
-<span class="keyword">rann</span> shell
-
-<span class="comment"># Check system</span>
-<span class="keyword">rann</span> doctor
-
-<span class="comment"># Change model</span>
-<span class="keyword">rann</span> config set agent.llm.model claude-sonnet-4-20250514
-        </div>
+<span class="prompt">$</span> <span class="command">rann doctor</span>                    <span class="comment"># Check system health</span>
+<span class="prompt">$</span> <span class="command">rann config get</span>                 <span class="comment"># View current config</span>
+<span class="prompt">$</span> <span class="command">rann run "create a README.md"</span>  <span class="comment"># Execute task</span>
+<span class="prompt">$</span> <span class="command">rann shell</span>                     <span class="comment"># Interactive chat</span>
+<span class="prompt">$</span> <span class="command">rann serve</span>                     <span class="comment"># Start web interface</span></pre>
       </div>
     </div>
   </section>
 
-  <!-- Stats -->
   <section class="stats">
-    <div class="stats-grid">
-      <div class="stat-item">
+    <div class="stats-inner">
+      <div>
         <div class="stat-number">169</div>
         <div class="stat-label">Tests Passing</div>
       </div>
-      <div class="stat-item">
+      <div>
         <div class="stat-number">121</div>
-        <div class="stat-label">Modules</div>
+        <div class="stat-label">Python Modules</div>
       </div>
-      <div class="stat-item">
+      <div>
         <div class="stat-number">16</div>
-        <div class="stat-label">States</div>
+        <div class="stat-label">Agent States</div>
       </div>
-      <div class="stat-item">
-        <div class="stat-number">35%</div>
-        <div class="stat-label">Coverage</div>
+      <div>
+        <div class="stat-number">34%</div>
+        <div class="stat-label">Code Coverage</div>
       </div>
     </div>
   </section>
 
-  <!-- Settings -->
   <section class="settings" id="settings">
     <div class="settings-inner">
       <div class="settings-header">
         <h2>Settings</h2>
-        <p class="settings-subtitle">Configure your RANN Agent</p>
+        <p>Configure your RANN Agent</p>
       </div>
       
       <div class="settings-grid">
-        <!-- Model Selection -->
         <div class="settings-card">
           <h3>Model Configuration</h3>
           <div class="setting-group">
-            <label for="provider">Provider</label>
+            <label>Provider</label>
             <select id="provider" onchange="updateModels()">
               <option value="xkiro">xkiro (Free)</option>
               <option value="anthropic">Anthropic</option>
               <option value="openai">OpenAI</option>
-              <option value="custom">Custom</option>
             </select>
           </div>
           <div class="setting-group">
-            <label for="model">Model</label>
+            <label>Model</label>
             <select id="model">
               <option value="minimax/minimax-m2.7-highspeed:free">minimax/m2.7-highspeed (Free)</option>
               <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
-              <option value="claude-opus-4-20250514">Claude Opus 4</option>
               <option value="gpt-4o">GPT-4o</option>
-              <option value="gpt-4o-mini">GPT-4o Mini</option>
             </select>
           </div>
-          <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
         </div>
 
-        <!-- Agent Behavior -->
         <div class="settings-card">
           <h3>Agent Behavior</h3>
           <div class="setting-group">
-            <label for="max-iterations">Max Iterations</label>
+            <label>Max Iterations</label>
             <input type="number" id="max-iterations" value="50" min="1" max="200">
           </div>
           <div class="setting-group">
-            <label for="max-tokens">Max Tokens</label>
+            <label>Max Tokens</label>
             <input type="number" id="max-tokens" value="50000" min="1000" max="200000">
           </div>
-          <div class="setting-group">
-            <label for="temperature">Temperature</label>
-            <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7">
-            <span id="temp-value">0.7</span>
-          </div>
         </div>
 
-        <!-- Tools -->
-        <div class="settings-card">
-          <h3>Enabled Tools</h3>
-          <div class="tools-list">
-            <label class="tool-item">
-              <input type="checkbox" id="tool-terminal" checked disabled>
-              <span>Terminal</span>
-            </label>
-            <label class="tool-item">
-              <input type="checkbox" id="tool-read_file" checked>
-              <span>Read File</span>
-            </label>
-            <label class="tool-item">
-              <input type="checkbox" id="tool-write_file" checked>
-              <span>Write File</span>
-            </label>
-            <label class="tool-item">
-              <input type="checkbox" id="tool-search_files" checked>
-              <span>Search Files</span>
-            </label>
-            <label class="tool-item">
-              <input type="checkbox" id="tool-web_search" checked>
-              <span>Web Search</span>
-            </label>
-            <label class="tool-item">
-              <input type="checkbox" id="tool-code_exec" checked>
-              <span>Code Execution</span>
-            </label>
-            <label class="tool-item">
-              <input type="checkbox" id="tool-git" checked>
-              <span>Git</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Current Config Display -->
         <div class="settings-card settings-card-dark">
           <h3>Current Configuration</h3>
-          <div class="config-display" id="config-display">
+          <div class="config-display">
             <div class="config-item">
-              <span class="config-label">Provider:</span>
+              <span class="config-label">Provider</span>
               <span class="config-value" id="cfg-provider">xkiro</span>
             </div>
             <div class="config-item">
-              <span class="config-label">Model:</span>
-              <span class="config-value" id="cfg-model">minimax/m2.7-highspeed:free</span>
+              <span class="config-label">Model</span>
+              <span class="config-value" id="cfg-model">minimax/m2.7</span>
             </div>
             <div class="config-item">
-              <span class="config-label">Max Iterations:</span>
+              <span class="config-label">Max Iterations</span>
               <span class="config-value" id="cfg-iterations">50</span>
             </div>
             <div class="config-item">
-              <span class="config-label">Max Tokens:</span>
+              <span class="config-label">Max Tokens</span>
               <span class="config-value" id="cfg-tokens">50000</span>
             </div>
           </div>
-          <button class="btn btn-secondary" onclick="loadConfig()">Load from Config</button>
+        </div>
+
+        <div class="settings-card">
+          <h3>Enabled Tools</h3>
+          <div style="display: grid; gap: 8px; font-size: 14px;">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" checked disabled> Terminal
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" checked> Read File
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" checked> Write File
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" checked> Web Search
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" checked> Git
+            </label>
+          </div>
         </div>
       </div>
 
-      <!-- Chat Interface -->
       <div class="chat-section">
         <h3>Interactive Chat</h3>
         <div class="chat-container">
           <div class="chat-messages" id="chat-messages">
             <div class="chat-message assistant">
               <div class="chat-avatar">RA</div>
-              <div class="chat-bubble">
-                Hello! I'm RANN Agent. How can I help you today?
-              </div>
+              <div class="chat-bubble">Hello! I am RANN Agent. How can I help you today?</div>
             </div>
           </div>
           <div class="chat-input-area">
             <div class="chat-input-wrapper">
-              <input type="text" id="chat-input" placeholder="Ask me anything..." onkeypress="handleChatKeypress(event)">
+              <input type="text" class="chat-input" id="chat-input" placeholder="Ask me anything..." onkeypress="if(event.key==='Enter')sendChat()">
               <button class="chat-send" onclick="sendChat()">Send</button>
             </div>
           </div>
@@ -1035,312 +776,6 @@
     </div>
   </section>
 
-  <style>
-    .settings {
-      background: var(--parchment);
-      padding: 80px 24px;
-    }
-    .settings-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .settings-header {
-      text-align: center;
-      margin-bottom: 48px;
-    }
-    .settings-header h2 {
-      font-size: clamp(28px, 4vw, 40px);
-      font-weight: 500;
-      color: var(--near-black);
-      margin-bottom: 12px;
-    }
-    .settings-subtitle {
-      font-size: 18px;
-      color: var(--olive);
-    }
-    .settings-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
-      margin-bottom: 48px;
-    }
-    .settings-card {
-      background: var(--ivory);
-      border: 1px solid var(--border-cream);
-      border-radius: 12px;
-      padding: 28px;
-    }
-    .settings-card h3 {
-      font-size: 18px;
-      font-weight: 500;
-      color: var(--near-black);
-      margin-bottom: 20px;
-    }
-    .settings-card-dark {
-      background: var(--near-black);
-      border-color: var(--dark-surface);
-    }
-    .settings-card-dark h3 {
-      color: var(--ivory);
-    }
-    .setting-group {
-      margin-bottom: 16px;
-    }
-    .setting-group label {
-      display: block;
-      font-size: 14px;
-      color: var(--charcoal);
-      margin-bottom: 6px;
-    }
-    .settings-card-dark .setting-group label {
-      color: var(--warm-silver);
-    }
-    .setting-group select,
-    .setting-group input[type="number"] {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border-warm);
-      border-radius: 8px;
-      font-size: 14px;
-      font-family: var(--font-sans);
-      background: var(--white);
-      color: var(--near-black);
-    }
-    .setting-group input[type="range"] {
-      width: calc(100% - 50px);
-      margin-right: 10px;
-    }
-    #temp-value {
-      display: inline-block;
-      min-width: 30px;
-      font-size: 14px;
-      color: var(--terracotta);
-    }
-    .tools-list {
-      display: grid;
-      gap: 10px;
-    }
-    .tool-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 14px;
-      color: var(--charcoal);
-      cursor: pointer;
-    }
-    .tool-item input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      accent-color: var(--terracotta);
-    }
-    .config-display {
-      background: var(--dark-surface);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    .config-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .config-item:last-child {
-      border-bottom: none;
-    }
-    .config-label {
-      color: var(--warm-silver);
-      font-size: 13px;
-    }
-    .config-value {
-      color: var(--ivory);
-      font-size: 13px;
-      font-family: var(--font-mono);
-    }
-    .chat-section {
-      background: var(--near-black);
-      border-radius: 16px;
-      padding: 28px;
-    }
-    .chat-section h3 {
-      color: var(--ivory);
-      font-size: 18px;
-      font-weight: 500;
-      margin-bottom: 20px;
-    }
-    .chat-container {
-      background: var(--dark-surface);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    .chat-container .chat-messages {
-      min-height: 250px;
-      max-height: 400px;
-      overflow-y: auto;
-      padding: 20px;
-    }
-    .chat-container .chat-message.user .chat-bubble {
-      background: var(--terracotta);
-      color: var(--ivory);
-    }
-    .chat-container .chat-input-area {
-      background: var(--near-black);
-    }
-    .chat-container .chat-input-wrapper {
-      background: var(--near-black);
-      border-color: var(--dark-surface);
-    }
-    .chat-container .chat-input {
-      color: var(--ivory);
-    }
-    .chat-container .chat-input::placeholder {
-      color: var(--stone);
-    }
-  </style>
-
-  <script>
-    // Temperature slider
-    document.getElementById('temperature').addEventListener('input', function(e) {
-      document.getElementById('temp-value').textContent = e.target.value;
-    });
-
-    // Load config from rann config
-    function loadConfig() {
-      // Simulated config load (in real app, would call rann config get)
-      const configs = {
-        provider: 'xkiro',
-        model: 'minimax/minimax-m2.7-highspeed:free',
-        iterations: '50',
-        tokens: '50000'
-      };
-      
-      document.getElementById('provider').value = configs.provider;
-      document.getElementById('cfg-provider').textContent = configs.provider;
-      
-      document.getElementById('max-iterations').value = configs.iterations;
-      document.getElementById('cfg-iterations').textContent = configs.iterations;
-      
-      document.getElementById('max-tokens').value = configs.tokens;
-      document.getElementById('cfg-tokens').textContent = configs.tokens;
-    }
-
-    // Update models based on provider
-    function updateModels() {
-      const provider = document.getElementById('provider').value;
-      const modelSelect = document.getElementById('model');
-      
-      const models = {
-        xkiro: [
-          { value: 'minimax/minimax-m2.7-highspeed:free', label: 'minimax/m2.7-highspeed (Free)' }
-        ],
-        anthropic: [
-          { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-          { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
-          { value: 'claude-haiku-4-20250514', label: 'Claude Haiku 4' }
-        ],
-        openai: [
-          { value: 'gpt-4o', label: 'GPT-4o' },
-          { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
-          { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' }
-        ],
-        custom: [
-          { value: 'custom/model', label: 'Custom Model' }
-        ]
-      };
-      
-      modelSelect.innerHTML = models[provider].map(m => 
-        `<option value="${m.value}">${m.label}</option>`
-      ).join('');
-    }
-
-    // Save settings
-    function saveSettings() {
-      const settings = {
-        provider: document.getElementById('provider').value,
-        model: document.getElementById('model').value,
-        maxIterations: document.getElementById('max-iterations').value,
-        maxTokens: document.getElementById('max-tokens').value,
-        temperature: document.getElementById('temperature').value,
-        tools: {
-          read_file: document.getElementById('tool-read_file').checked,
-          write_file: document.getElementById('tool-write_file').checked,
-          search_files: document.getElementById('tool-search_files').checked,
-          web_search: document.getElementById('tool-web_search').checked,
-          code_exec: document.getElementById('tool-code_exec').checked,
-          git: document.getElementById('tool-git').checked
-        }
-      };
-      
-      // Save to localStorage
-      localStorage.setItem('rann_settings', JSON.stringify(settings));
-      
-      // Update display
-      document.getElementById('cfg-provider').textContent = settings.provider;
-      document.getElementById('cfg-model').textContent = settings.model;
-      document.getElementById('cfg-iterations').textContent = settings.maxIterations;
-      document.getElementById('cfg-tokens').textContent = settings.maxTokens;
-      
-      alert('Settings saved! Run `rann config set agent.llm.provider ' + settings.provider + '` and `rann config set agent.llm.model ' + settings.model + '` to apply.');
-    }
-
-    // Chat functionality
-    function addChatMessage(role, content) {
-      const messagesDiv = document.getElementById('chat-messages');
-      const avatar = role === 'user' ? 'You' : 'RA';
-      const avatarClass = role === 'user' ? 'user' : 'assistant';
-      
-      const messageDiv = document.createElement('div');
-      messageDiv.className = 'chat-message ' + avatarClass;
-      messageDiv.innerHTML = `
-        <div class="chat-avatar">${avatar}</div>
-        <div class="chat-bubble">${content}</div>
-      `;
-      messagesDiv.appendChild(messageDiv);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-
-    function sendChat() {
-      const input = document.getElementById('chat-input');
-      const message = input.value.trim();
-      if (!message) return;
-      
-      addChatMessage('user', message);
-      input.value = '';
-      
-      // Simulate agent response
-      setTimeout(() => {
-        const responses = [
-          "I'm RANN Agent, an autonomous AI engineering platform. I can help you with coding tasks, file operations, Git management, and more. What would you like to work on?",
-          "I've analyzed your request. Let me help you with that task. You can use commands like `rann run \"task description\"` to execute tasks.",
-          "That's an interesting task! I can help you with that. Just tell me what you need and I'll take care of it.",
-          "I'm ready to assist! My capabilities include code generation, debugging, file management, and web research."
-        ];
-        const response = responses[Math.floor(Math.random() * responses.length)];
-        addChatMessage('assistant', response);
-      }, 1000);
-    }
-
-    function handleChatKeypress(e) {
-      if (e.key === 'Enter') {
-        sendChat();
-      }
-    }
-
-    // Load saved settings on page load
-    window.addEventListener('load', function() {
-      const saved = localStorage.getItem('rann_settings');
-      if (saved) {
-        const settings = JSON.parse(saved);
-        document.getElementById('provider').value = settings.provider || 'xkiro';
-        document.getElementById('max-iterations').value = settings.maxIterations || '50';
-        document.getElementById('max-tokens').value = settings.maxTokens || '50000';
-        document.getElementById('temperature').value = settings.temperature || '0.7';
-        document.getElementById('temp-value').textContent = settings.temperature || '0.7';
-      }
-    });
-  </script>
-
-  <!-- Footer -->
   <footer>
     <div class="footer-inner">
       <div class="footer-logo">
@@ -1348,13 +783,77 @@
         <span class="footer-logo-text">RANN Agent</span>
       </div>
       <ul class="footer-links">
-        <li><a href="#">Documentation</a></li>
-        <li><a href="https://github.com/rann-xyz/rann-agent">GitHub</a></li>
-        <li><a href="#">Discord</a></li>
-        <li><a href="#">Twitter</a></li>
+        <li><a href="https://github.com/rann-xyz/rann-agent" target="_blank">GitHub</a></li>
+        <li><a href="#settings">Settings</a></li>
       </ul>
-      <p class="footer-copy">MIT License · Built with Hermes Agent</p>
+      <p class="footer-copy">MIT License - Built with Hermes Agent</p>
     </div>
   </footer>
+
+  <script>
+    function updateModels() {
+      var provider = document.getElementById('provider').value;
+      var modelSelect = document.getElementById('model');
+      var models = {
+        xkiro: [
+          { value: 'minimax/minimax-m2.7-highspeed:free', label: 'minimax/m2.7-highspeed (Free)' }
+        ],
+        anthropic: [
+          { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
+          { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' }
+        ],
+        openai: [
+          { value: 'gpt-4o', label: 'GPT-4o' },
+          { value: 'gpt-4o-mini', label: 'GPT-4o Mini' }
+        ]
+      };
+      modelSelect.innerHTML = models[provider].map(function(m) {
+        return '<option value="' + m.value + '">' + m.label + '</option>';
+      }).join('');
+    }
+
+    function addChatMessage(role, content) {
+      var messagesDiv = document.getElementById('chat-messages');
+      var avatar = role === 'user' ? 'You' : 'RA';
+      var messageDiv = document.createElement('div');
+      messageDiv.className = 'chat-message ' + (role === 'user' ? 'user' : 'assistant');
+      messageDiv.innerHTML = 
+        '<div class="chat-avatar">' + avatar + '</div>' +
+        '<div class="chat-bubble">' + content + '</div>';
+      messagesDiv.appendChild(messageDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function sendChat() {
+      var input = document.getElementById('chat-input');
+      var message = input.value.trim();
+      if (!message) return;
+      
+      addChatMessage('user', message);
+      input.value = '';
+      
+      setTimeout(function() {
+        var responses = [
+          "I am RANN Agent, an autonomous AI engineering platform. I can help you with coding tasks, file operations, Git management, and more.",
+          "I have analyzed your request. Use `rann run` command to execute tasks with me.",
+          "My capabilities include code generation, debugging, file management, web research, and continuous learning."
+        ];
+        var response = responses[Math.floor(Math.random() * responses.length)];
+        addChatMessage('assistant', response);
+      }, 800);
+    }
+
+    // Load saved settings
+    window.onload = function() {
+      var saved = localStorage.getItem('rann_settings');
+      if (saved) {
+        var settings = JSON.parse(saved);
+        document.getElementById('provider').value = settings.provider || 'xkiro';
+        document.getElementById('max-iterations').value = settings.maxIterations || '50';
+        document.getElementById('max-tokens').value = settings.maxTokens || '50000';
+        updateModels();
+      }
+    };
+  </script>
 </body>
 </html>
