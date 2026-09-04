@@ -13,6 +13,7 @@ import structlog
 from rann_agent.core.state import AgentState, InvalidStateTransitionError
 from rann_agent.core.events import EventEmitter, EventType, EventStatus, emit_model_requested, emit_model_responded
 from rann_agent.core.budget import Budget, BudgetEngine
+from rann_agent.intelligence.enhanced_brain import ThinkingEngine, ResponseFormatter, ContextManager
 from rann_agent.core.lifecycle import AgentLifecycle
 from rann_agent.core.verification import VerificationEngine, VerificationLevel, VerificationResult
 from rann_agent.core.exceptions import (
@@ -66,6 +67,11 @@ class RuntimeAgent:
         self.tools = ToolRegistry(self.config)
         self.memory = MemoryManager(self.config) if memory else None
         self.coordinator = Coordinator(self.config, self) if self.config.agent.orchestration.enabled else None
+        
+        # Enhanced brain: thinking, context, response formatting
+        self.thinking_engine = ThinkingEngine(llm_provider=self.llm)
+        self.context_manager = ContextManager()
+        self.response_formatter = ResponseFormatter()
         
         # Phase 1: State machine (use lifecycle's)
         self._state = AgentState.QUEUED
@@ -159,6 +165,25 @@ class RuntimeAgent:
                 lifecycle.events.emit(lifecycle.events.create_event(
                     EventType.CONTEXT_BUILT,
                     message_count=len(self.context.messages)
+                ))
+                
+                # THINKING PHASE - Think before executing
+                thinking_result = await self.thinking_engine.think(
+                    task=goal,
+                    enable_web_search=True
+                )
+                
+                # Add thinking trace to context
+                thinking_summary = f"""Task Analysis:
+- Type: {thinking_result['execution_plan']['task_type']}
+- Estimated steps: {len(thinking_result['execution_plan']['steps'])}
+- Thinking phases completed: {len(thinking_result['thinking_trace'])}
+"""
+                self.context.add_system_message(thinking_summary)
+                
+                lifecycle.events.emit(lifecycle.events.create_event(
+                    EventType.MEMORY_RETRIEVED,
+                    memory_length=len(thinking_summary)
                 ))
                 
                 # Load memory

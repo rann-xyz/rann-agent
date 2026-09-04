@@ -57,7 +57,7 @@ class AgentConfig(BaseModel):
 
 
 class ToolsConfig(BaseModel):
-    enabled: List[str] = ["terminal", "files", "web", "code_exec", "git"]
+    enabled: List[str] = ["terminal", "read_file", "write_file", "search_files", "web_search", "web_extract", "code_exec", "git"]
     terminal: Dict[str, Any] = {
         "default_timeout": 300,
         "max_timeout": 3600,

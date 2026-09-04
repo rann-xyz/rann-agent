@@ -151,8 +151,9 @@ class TestToolsConfig:
         """Test tools default configuration"""
         config = Config()
         assert "terminal" in config.tools.enabled
-        assert "files" in config.tools.enabled
-        assert "web" in config.tools.enabled
+        assert "read_file" in config.tools.enabled
+        assert "write_file" in config.tools.enabled
+        assert "web_search" in config.tools.enabled
     
     def test_terminal_tool_config(self):
         """Test terminal tool configuration"""
