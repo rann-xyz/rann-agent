@@ -475,6 +475,28 @@ def learn():
         click.echo(f"Error: {e}")
 
 
+# Register extended commands
+from rann_agent.cli.commands import (
+    register_shell,
+    register_task_commands,
+    register_memory_commands,
+    register_session_commands,
+    register_project_commands,
+    register_serve,
+    register_context_commands,
+    register_stats,
+)
+
+register_shell(cli)
+register_task_commands(task)
+register_memory_commands(memory)
+register_session_commands(cli)
+register_project_commands(cli)
+register_serve(cli)
+register_context_commands(cli)
+register_stats(cli)
+
+
 if __name__ == "__main__":
     # Import EventType here to avoid circular import issues
     from rann_agent.core.event_bus import EventType
