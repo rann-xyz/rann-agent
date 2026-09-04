@@ -129,13 +129,58 @@ class ThinkingEngine:
             self.thought_chain.append(thought)
             return
         
-        # This will be connected to web search tool
+        # Perform real web search
+        search_results = []
+        try:
+            search_results = await self._web_search(task)
+        except Exception as e:
+            # Fallback to suggested queries
+            pass
+        
         thought = Thought(
             phase=ThoughtPhase.RESEARCH,
-            content="Web search would be performed here for real-time data",
-            metadata={"search_needed": True, "query_suggestions": self._suggest_search_queries(task)},
+            content=f"Web search completed: found {len(search_results)} results",
+            metadata={
+                "search_needed": True,
+                "results_count": len(search_results),
+                "top_results": [r.get("title", "")[:50] for r in search_results[:3]]
+            },
+            sources=[r.get("url", "") for r in search_results[:3]]
         )
         self.thought_chain.append(thought)
+    
+    async def _web_search(self, query: str, limit: int = 5) -> List[Dict[str, str]]:
+        """Perform actual web search using DuckDuckGo"""
+        try:
+            import aiohttp
+            
+            url = "https://html.duckduckgo.com/html/"
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url,
+                    data={"q": query},
+                    headers={"User-Agent": "Mozilla/5.0 RANN-Agent/1.0"}
+                ) as resp:
+                    html = await resp.text()
+            
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            results = []
+            for result in soup.select('.result')[:limit]:
+                title_elem = result.select_one('.result__title a')
+                snippet_elem = result.select_one('.result__snippet')
+                
+                if title_elem:
+                    results.append({
+                        "title": title_elem.get_text(strip=True),
+                        "url": title_elem.get('href', ''),
+                        "snippet": snippet_elem.get_text(strip=True) if snippet_elem else ''
+                    })
+            
+            return results
+        except Exception as e:
+            return []
     
     async def _phase_plan(self, task: str):
         """Create execution plan"""

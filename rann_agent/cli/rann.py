@@ -457,20 +457,34 @@ def skills_list():
 
 @cli.command()
 def learn():
-    """Show learning status and lessons."""
+    """Show learning status, lessons, and solutions learned."""
     try:
-        from rann_agent.learning.engine import LearningEngine
-        engine = LearningEngine()
-        lessons = engine.get_lessons()
-
-        click.echo("📚 Learning Status\n")
-        click.echo(f"  Validated lessons: {len(lessons)}")
-
+        from rann_agent.core.runtime import RuntimeAgent
+        
+        # Create temporary agent to access learning engine
+        agent = RuntimeAgent()
+        
+        click.echo("📚 RANN Agent Learning Status\n")
+        
+        # Stats
+        stats = agent.learning_engine.get_solution_stats()
+        click.echo(f"  Solutions learned: {stats['successful']}")
+        click.echo(f"  Failed attempts recorded: {stats['failed']}")
+        click.echo(f"  Total lessons: {stats['total_lessons']}")
+        
+        # Recent lessons
+        lessons = agent.learning_engine.get_lessons(limit=5)
         if lessons:
             click.echo("\n  Recent lessons:")
-            for l in lessons[:5]:
-                content = l.content[:60] if hasattr(l, "content") else str(l)[:60]
-                click.echo(f"    - {content}...")
+            for l in lessons:
+                lt = l.get("type", "unknown")
+                lesson = l.get("lesson", l.get("error", ""))
+                icon = "✅" if lt == "success" else "❌"
+                click.echo(f"    {icon} {lesson[:60]}")
+        
+        # Self-correction status
+        click.echo(f"\n  Retry queue: {len([k for k, v in agent.self_correction.failed_attempts.items() if v >= 2])} tasks")
+        
     except Exception as e:
         click.echo(f"Error: {e}")
 

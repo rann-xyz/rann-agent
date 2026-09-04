@@ -14,6 +14,7 @@ from rann_agent.core.state import AgentState, InvalidStateTransitionError
 from rann_agent.core.events import EventEmitter, EventType, EventStatus, emit_model_requested, emit_model_responded
 from rann_agent.core.budget import Budget, BudgetEngine
 from rann_agent.intelligence.enhanced_brain import ThinkingEngine, ResponseFormatter, ContextManager
+from rann_agent.intelligence.self_improvement import SelfCorrection, LearningEngine, ConversationMemory
 from rann_agent.core.lifecycle import AgentLifecycle
 from rann_agent.core.verification import VerificationEngine, VerificationLevel, VerificationResult
 from rann_agent.core.exceptions import (
@@ -72,6 +73,11 @@ class RuntimeAgent:
         self.thinking_engine = ThinkingEngine(llm_provider=self.llm)
         self.context_manager = ContextManager()
         self.response_formatter = ResponseFormatter()
+        
+        # Self-improvement: learning and self-correction
+        self.self_correction = SelfCorrection()
+        self.learning_engine = LearningEngine()
+        self.conversation_memory = ConversationMemory()
         
         # Phase 1: State machine (use lifecycle's)
         self._state = AgentState.QUEUED
@@ -246,16 +252,47 @@ class RuntimeAgent:
                         status=EventStatus.SUCCESS
                     ))
                 
+                # LEARNING: Record successful task for future reference
+                self.learning_engine.learn_from_success(
+                    task=goal,
+                    task_type=self.thinking_engine.thought_chain[1].metadata.get("task_type", "general") if len(self.thinking_engine.thought_chain) > 1 else "general",
+                    solution=final_result.get("output", ""),
+                    verification="passed"
+                )
+                
+                # Record in conversation memory
+                self.conversation_memory.add_user_message(goal)
+                self.conversation_memory.add_assistant_message(
+                    final_result.get("output", ""),
+                    metadata={"run_id": self.run_id, "turns": lifecycle.budget_engine.tracker.turns}
+                )
+                
                 final_result["events"] = lifecycle.events.get_trace()
                 final_result["budget"] = lifecycle.budget_engine.get_status()
                 
                 return final_result
                 
         except BudgetExceededError as e:
+            # Learning from failure
+            self.self_correction.record_attempt(goal, success=False)
+            self.learning_engine.learn_from_failure(
+                task=goal,
+                task_type="budget_exceeded",
+                error="Budget exhausted",
+                recovery="Reduce task scope or increase budget"
+            )
             # Lifecycle already set state to FAILED
             return {"error": "Budget exhausted", "details": e.details, "state": self._state.value}
             
         except Exception as e:
+            # Learning from failure
+            self.self_correction.record_attempt(goal, success=False)
+            self.learning_engine.learn_from_failure(
+                task=goal,
+                task_type="error",
+                error=str(e),
+                recovery="Task failed - check logs for details"
+            )
             # Lifecycle already set state to FAILED
             logger.error("execute_failed", run_id=self.run_id, error=str(e))
             return {"error": str(e), "state": self._state.value}

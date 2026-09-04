@@ -46,10 +46,11 @@ def register_shell(cli):
         
         config = Config()
         budget = Budget(max_tokens=50000, max_turns=max_iterations)
-        history = []
+        
+        # Shared agent for conversation continuity
+        agent = RuntimeAgent(budget=budget, config=config)
         
         async def run_task(task: str) -> dict:
-            agent = RuntimeAgent(budget=budget, config=config)
             return await agent.execute(task)
         
         while True:
