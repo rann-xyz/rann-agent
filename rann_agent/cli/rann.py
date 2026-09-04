@@ -19,6 +19,8 @@ Usage:
 
 import sys
 import os
+import yaml
+from pathlib import Path
 
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -33,6 +35,7 @@ from rann_agent.core.runtime import RuntimeAgent
 from rann_agent.core.budget import Budget
 from rann_agent.core.task_contract import TaskContract, TaskCategory
 from rann_agent.core.event_bus import EventBus
+from rann_agent.core.config import Config
 from rann_agent.storage.database import Database
 
 
@@ -161,6 +164,109 @@ def status():
 
     except Exception as e:
         click.echo(f"Status unavailable: {e}")
+
+
+# Config subcommand group
+@cli.group("config")
+def config_cmd():
+    """Configuration management."""
+    pass
+
+
+@config_cmd.command("get")
+@click.argument("key", required=False)
+def config_get(key: str):
+    """Get config value(s). Example: rann config get agent.llm.model"""
+    try:
+        cfg = Config()
+        if not key:
+            # Show all relevant config
+            click.echo("Current configuration:")
+            click.echo(f"  provider:  {cfg.agent.llm.provider}")
+            click.echo(f"  model:     {cfg.agent.llm.model}")
+            click.echo(f"  max_tokens: {cfg.agent.llm.max_tokens}")
+            click.echo(f"  temperature: {cfg.agent.llm.temperature}")
+        else:
+            parts = key.split(".")
+            val = cfg
+            for part in parts:
+                val = getattr(val, part)
+            click.echo(f"{key} = {val}")
+    except AttributeError:
+        click.echo(f"Unknown config key: {key}")
+    except Exception as e:
+        click.echo(f"Error: {e}")
+
+
+@config_cmd.command("set")
+@click.argument("key")
+@click.argument("value")
+def config_set(key: str, value: str):
+    """Set config value. Example: rann config set agent.llm.model claude-sonnet-4-20250514
+    
+    Supported keys:
+      agent.llm.provider   - Provider: xkiro, custom, anthropic, openai, ollama
+      agent.llm.model      - Model name (e.g. minimax/minimax-m2.7-highspeed:free, claude-sonnet-4-20250514)
+      agent.llm.max_tokens - Max tokens per response
+      agent.llm.temperature - Temperature (0.0-2.0)
+    """
+    config_path = Path.home() / ".rann_agent" / "config.yaml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        # Load existing config or create new
+        if config_path.exists():
+            with open(config_path) as f:
+                data = yaml.safe_load(f) or {}
+        else:
+            data = {}
+        
+        # Ensure nested structure
+        data.setdefault("agent", {}).setdefault("llm", {})
+        
+        # Set value
+        if key == "agent.llm.provider":
+            data["agent"]["llm"]["provider"] = value
+        elif key == "agent.llm.model":
+            data["agent"]["llm"]["model"] = value
+        elif key == "agent.llm.max_tokens":
+            data["agent"]["llm"]["max_tokens"] = int(value)
+        elif key == "agent.llm.temperature":
+            data["agent"]["llm"]["temperature"] = float(value)
+        else:
+            click.echo(f"Unsupported config key: {key}")
+            click.echo("Supported: agent.llm.provider, agent.llm.model, agent.llm.max_tokens, agent.llm.temperature")
+            return
+        
+        # Save to yaml
+        with open(config_path, "w") as f:
+            yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+        
+        click.echo(f"✅ Set {key} = {value}")
+        click.echo(f"   Saved to {config_path}")
+        
+        # Verify
+        cfg = Config()
+        click.echo(f"   Current: {cfg.agent.llm.provider} / {cfg.agent.llm.model}")
+        
+    except Exception as e:
+        click.echo(f"Error: {e}")
+
+
+@config_cmd.command("list-providers")
+def config_list_providers():
+    """List available providers and example models."""
+    providers = [
+        ("xkiro",     "https://api.xkiro.com",  "minimax/minimax-m2.7-highspeed:free",          "Free tier, fast"),
+        ("custom",    "https://seekai.cc",       "claude-fable-5-1",                              "Custom endpoint"),
+        ("anthropic", "api.anthropic.com",       "claude-sonnet-4-20250514",                       "Anthropic (needs ANTHROPIC_API_KEY)"),
+        ("openai",    "api.openai.com",          "gpt-4o",                                        "OpenAI (needs OPENAI_API_KEY)"),
+        ("ollama",    "localhost:11434",         "llama3.1:8b",                                   "Local Ollama"),
+    ]
+    click.echo("Available providers:\n")
+    for name, url, model, note in providers:
+        click.echo(f"  {name:12} | {model:35} | {note}")
+        click.echo(f"             base: {url}\n")
 
 
 # Task subcommand group
