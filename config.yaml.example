@@ -93,6 +93,12 @@ tools:
     allow_background: true
     allow_pty: true
     shell: "/bin/bash"
+
+    # Multi-shell support
+    default_shell: bash              # bash | zsh | pwsh | cmd | fish | python3
+    allowed_shells: [bash, zsh, fish, python3]  # shells the agent is allowed to use
+    pty_enabled: false               # enable pseudo-terminal for interactive shells
+    workspace_root: null             # null = project root, set absolute path to restrict
     
     # Safety
     dangerous_commands_require_confirmation:
@@ -114,6 +120,22 @@ tools:
     timeout: 30
     user_agent: "Rann-Agent/1.0"
     respect_robots_txt: true
+
+    # Multi-provider search (duckduckgo free, others need API keys)
+    search:
+      default_provider: duckduckgo  # duckduckgo | brave | searxng | tavily | google_cse
+      brave_api_key: null           # https://api.search.brave.com — free tier available
+      searxng_url: null             # Self-hosted SearXNG instance URL
+      tavily_api_key: null          # https://tavily.com — free tier 1000 queries/month
+      google_cse_api_key: null      # https://console.cloud.google.com — Custom Search API
+      google_cse_search_engine_id: null
+
+    # Multi-provider extract (aiohttp free, others need pip install)
+    extract:
+      default_provider: aiohttp     # aiohttp | trafilatura | playwright
+      trafilatura_enabled: true     # pip install trafilatura — better article extraction
+      playwright_enabled: false     # pip install playwright — for JS-heavy pages
+      playwright_headless: true
   
   code_exec:
     sandbox: true
