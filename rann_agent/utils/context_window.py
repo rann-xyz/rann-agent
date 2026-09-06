@@ -4,7 +4,9 @@ Context Window Manager for RANN Agent.
 Manages conversation history to stay within LLM context limits.
 Strategies: truncate, summarize, or drop old messages.
 """
-from typing import List, Dict, Any, Optional, Literal
+
+from typing import Any, Literal
+
 import structlog
 
 logger = structlog.get_logger()
@@ -46,7 +48,7 @@ class ContextWindowManager:
         self,
         model: str = "claude-sonnet-4-20250514",
         strategy: Literal["truncate", "drop_oldest"] = "truncate",
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
     ):
         self.model = model
         self.max_context = max_tokens or CONTEXT_WINDOWS.get(model, DEFAULT_WINDOW)
@@ -56,7 +58,7 @@ class ContextWindowManager:
         self.tail_count = 10  # recent messages
         self.target_tokens = self.max_context - RESERVED_TOKENS
 
-    def estimate_tokens(self, messages: List[Dict[str, Any]]) -> int:
+    def estimate_tokens(self, messages: list[dict[str, Any]]) -> int:
         """
         Rough token estimate: ~4 chars per token for English/Indonesian mix.
         More accurate for code-heavy content.
@@ -65,7 +67,9 @@ class ContextWindowManager:
         for msg in messages:
             content = msg.get("content", "")
             # Rough: 4 chars/token, but code is ~3 chars/token
-            if any(ck in content for ck in ["```", "def ", "class ", "import ", "//", "#"]):
+            if any(
+                ck in content for ck in ["```", "def ", "class ", "import ", "//", "#"]
+            ):
                 total += len(content) // 3
             else:
                 total += len(content) // 4
@@ -73,9 +77,9 @@ class ContextWindowManager:
 
     def fit(
         self,
-        messages: List[Dict[str, Any]],
-        max_tokens: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
+        messages: list[dict[str, Any]],
+        max_tokens: int | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Trim messages to fit within context window.
         Returns the trimmed message list (always includes system prompt).
@@ -99,7 +103,9 @@ class ContextWindowManager:
         else:
             return self._drop_oldest(messages, target)
 
-    def _truncate(self, messages: List[Dict[str, Any]], target: int) -> List[Dict[str, Any]]:
+    def _truncate(
+        self, messages: list[dict[str, Any]], target: int
+    ) -> list[dict[str, Any]]:
         """
         Remove middle messages, keeping head (system) and tail (recent).
         Binary search to find optimal split point.
@@ -108,7 +114,7 @@ class ContextWindowManager:
             return messages[-self.tail_count :] if messages else messages
 
         result = list(messages[: self.head_count])  # keep system
-        result.extend(messages[-self.tail_count:])  # keep recent
+        result.extend(messages[-self.tail_count :])  # keep recent
 
         # Check if it fits
         if self.estimate_tokens(result) <= target:
@@ -117,7 +123,9 @@ class ContextWindowManager:
         # Fallback: simple drop
         return self._drop_oldest(messages, target)
 
-    def _drop_oldest(self, messages: List[Dict[str, Any]], target: int) -> List[Dict[str, Any]]:
+    def _drop_oldest(
+        self, messages: list[dict[str, Any]], target: int
+    ) -> list[dict[str, Any]]:
         """
         Drop oldest messages until it fits.
         Always keeps the system prompt.
@@ -133,10 +141,10 @@ class ContextWindowManager:
 
 
 def trim_context(
-    messages: List[Dict[str, Any]],
+    messages: list[dict[str, Any]],
     model: str,
     strategy: str = "truncate",
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Convenience function."""
     manager = ContextWindowManager(model=model, strategy=strategy)
     return manager.fit(messages)

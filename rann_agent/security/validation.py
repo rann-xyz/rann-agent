@@ -10,17 +10,12 @@ from __future__ import annotations
 import os
 import re
 import shlex
-from dataclasses import dataclass
-from pathlib import Path
-from typing import List, Optional, Tuple
 
 import structlog
 
 from rann_agent.core.exceptions import (
-    CommandInjectionError,
     PathTraversalError,
     SecurityError,
-    ToolValidationError,
 )
 
 logger = structlog.get_logger()
@@ -85,7 +80,7 @@ class PathValidator:
     def validate_path(
         self,
         path: str,
-        base_dir: Optional[str] = None,
+        base_dir: str | None = None,
         follow_symlinks: bool = False,
     ) -> bool:
         """
@@ -127,10 +122,18 @@ class PathValidator:
                 )
 
         # Check if path is a protected system path
-        normalized_for_check = os.path.normpath(os.path.abspath(path)) if os.path.isabs(path) else path
+        normalized_for_check = (
+            os.path.normpath(os.path.abspath(path)) if os.path.isabs(path) else path
+        )
         for protected in self.PROTECTED_PATHS:
-            if normalized_for_check == protected or normalized_for_check.startswith(protected + os.sep):
-                logger.warning("protected_path_access_attempt", path=original_path, protected=protected)
+            if normalized_for_check == protected or normalized_for_check.startswith(
+                protected + os.sep
+            ):
+                logger.warning(
+                    "protected_path_access_attempt",
+                    path=original_path,
+                    protected=protected,
+                )
                 raise SecurityError(
                     f"Access to protected path not allowed: {original_path}",
                     details={"path": original_path, "protected": protected},
@@ -145,7 +148,9 @@ class PathValidator:
                     # Resolve the full path, following symlinks
                     resolved_path = os.path.abspath(os.path.normpath(path))
                     if not os.path.isabs(resolved_path):
-                        resolved_path = os.path.abspath(os.path.join(base_dir, resolved_path))
+                        resolved_path = os.path.abspath(
+                            os.path.join(base_dir, resolved_path)
+                        )
                 else:
                     # Just join and normalize without following symlinks
                     if os.path.isabs(path):
@@ -157,7 +162,10 @@ class PathValidator:
                 return False
 
             # Check that resolved path is within base_dir
-            if not resolved_path.startswith(base_dir + os.sep) and resolved_path != base_dir:
+            if (
+                not resolved_path.startswith(base_dir + os.sep)
+                and resolved_path != base_dir
+            ):
                 logger.warning(
                     "path_escapes_base_directory",
                     path=original_path,
@@ -180,9 +188,9 @@ class PathValidator:
 
     def validate_paths(
         self,
-        paths: List[str],
-        base_dir: Optional[str] = None,
-    ) -> Tuple[List[str], List[str]]:
+        paths: list[str],
+        base_dir: str | None = None,
+    ) -> tuple[list[str], list[str]]:
         """
         Validate multiple paths, returning valid and invalid separately.
 
@@ -278,7 +286,7 @@ class CommandValidator:
         """
         self.allow_shell = allow_shell
 
-    def validate_command(self, cmd: str) -> Tuple[bool, str]:
+    def validate_command(self, cmd: str) -> tuple[bool, str]:
         """
         Validate a shell command for safety.
 
@@ -313,7 +321,7 @@ class CommandValidator:
         # Strict validation - no shell metacharacters
         return self._validate_command_strict(cmd)
 
-    def _validate_command_strict(self, cmd: str) -> Tuple[bool, str]:
+    def _validate_command_strict(self, cmd: str) -> tuple[bool, str]:
         """Strict validation - reject any shell special characters."""
         if not self.SAFE_PATTERN.match(cmd):
             # Find which dangerous characters are present
@@ -323,11 +331,14 @@ class CommandValidator:
                     dangerous_found.add(char)
 
             if dangerous_found:
-                return False, f"Command contains unsafe characters: {''.join(sorted(dangerous_found))}"
+                return (
+                    False,
+                    f"Command contains unsafe characters: {''.join(sorted(dangerous_found))}",
+                )
 
         return True, ""
 
-    def _validate_command_shell_allowed(self, cmd: str) -> Tuple[bool, str]:
+    def _validate_command_shell_allowed(self, cmd: str) -> tuple[bool, str]:
         """Validation when shell features are permitted (less strict)."""
         # Check for dangerous patterns even with shell allowed
         if self.DANGEROUS_CHARS.search(cmd):
@@ -335,7 +346,7 @@ class CommandValidator:
 
         return True, ""
 
-    def validate_args(self, args: List[str]) -> Tuple[bool, str]:
+    def validate_args(self, args: list[str]) -> tuple[bool, str]:
         """
         Validate a list of command arguments.
 
@@ -401,9 +412,9 @@ class InputValidator:
 
     def __init__(
         self,
-        max_string_length: Optional[int] = None,
-        max_list_length: Optional[int] = None,
-        max_depth: Optional[int] = None,
+        max_string_length: int | None = None,
+        max_list_length: int | None = None,
+        max_depth: int | None = None,
     ):
         """
         Initialize the input validator.
@@ -421,8 +432,8 @@ class InputValidator:
         self,
         value: str,
         allow_empty: bool = False,
-        pattern: Optional[re.Pattern] = None,
-    ) -> Tuple[bool, str]:
+        pattern: re.Pattern | None = None,
+    ) -> tuple[bool, str]:
         """
         Validate a string input.
 
@@ -446,7 +457,7 @@ class InputValidator:
             return False, f"String too long ({len(value)} > {self.max_string_length})"
 
         if pattern and not pattern.match(value):
-            return False, f"String does not match required pattern"
+            return False, "String does not match required pattern"
 
         # Check for dangerous HTML/JS patterns
         for dangerous_re, pattern_name in self.DANGEROUS_PATTERNS:
@@ -458,9 +469,9 @@ class InputValidator:
     def validate_number(
         self,
         value,
-        min_val: Optional[float] = None,
-        max_val: Optional[float] = None,
-    ) -> Tuple[bool, str]:
+        min_val: float | None = None,
+        max_val: float | None = None,
+    ) -> tuple[bool, str]:
         """
         Validate a numeric input.
 
@@ -486,9 +497,9 @@ class InputValidator:
     def validate_list(
         self,
         value: list,
-        max_length: Optional[int] = None,
-        element_validator: Optional[callable] = None,
-    ) -> Tuple[bool, str]:
+        max_length: int | None = None,
+        element_validator: callable | None = None,
+    ) -> tuple[bool, str]:
         """
         Validate a list input.
 
@@ -518,11 +529,11 @@ class InputValidator:
     def validate_dict(
         self,
         value: dict,
-        max_keys: Optional[int] = None,
-        key_validator: Optional[callable] = None,
-        value_validator: Optional[callable] = None,
+        max_keys: int | None = None,
+        key_validator: callable | None = None,
+        value_validator: callable | None = None,
         depth: int = 0,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Validate a dictionary input recursively.
 
@@ -569,7 +580,7 @@ class InputValidator:
 
         return True, ""
 
-    def validate(self, value, expected_type: type) -> Tuple[bool, str]:
+    def validate(self, value, expected_type: type) -> tuple[bool, str]:
         """
         Validate a value against an expected type.
 
@@ -590,5 +601,8 @@ class InputValidator:
             return self.validate_dict(value)
         else:
             if not isinstance(value, expected_type):
-                return False, f"Expected {expected_type.__name__}, got {type(value).__name__}"
+                return (
+                    False,
+                    f"Expected {expected_type.__name__}, got {type(value).__name__}",
+                )
             return True, ""

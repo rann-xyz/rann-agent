@@ -5,8 +5,8 @@ Provides trimming strategies to keep conversation history within model context l
 Strategy: keep system prompt (index 0), keep recent messages (tail_count=10),
 drop oldest from middle.
 """
-from typing import List, Dict, Any, Optional
-import bisect
+
+from typing import Any
 
 try:
     import tiktoken
@@ -16,7 +16,11 @@ except ImportError:
     tiktoken = None
     _HAS_TIKTOKEN = False
 
-from rann_agent.utils.context_window import CONTEXT_WINDOWS, DEFAULT_WINDOW, RESERVED_TOKENS
+from rann_agent.utils.context_window import (
+    CONTEXT_WINDOWS,
+    DEFAULT_WINDOW,
+    RESERVED_TOKENS,
+)
 
 # Test mode for deterministic behavior
 _TEST_MODE = False
@@ -45,7 +49,7 @@ def _get_tiktoken_encoder():
         return None
 
 
-def estimate_tokens(messages: List[Dict[str, Any]]) -> int:
+def estimate_tokens(messages: list[dict[str, Any]]) -> int:
     """
     Estimate token count for a list of messages.
 
@@ -81,10 +85,10 @@ def estimate_tokens(messages: List[Dict[str, Any]]) -> int:
 
 
 def trim_context(
-    messages: List[Dict[str, Any]],
+    messages: list[dict[str, Any]],
     model: str,
-    max_tokens: Optional[int] = None,
-) -> List[Dict[str, Any]]:
+    max_tokens: int | None = None,
+) -> list[dict[str, Any]]:
     """
     Trim messages to fit within model context window.
 
@@ -171,11 +175,11 @@ def trim_context(
     return result
 
 
-def get_context_limit(model: str, max_tokens: Optional[int] = None) -> int:
+def get_context_limit(model: str, max_tokens: int | None = None) -> int:
     """Get the effective context limit for a model."""
     return max_tokens or CONTEXT_WINDOWS.get(model, DEFAULT_WINDOW)
 
 
-def get_available_tokens(model: str, max_tokens: Optional[int] = None) -> int:
+def get_available_tokens(model: str, max_tokens: int | None = None) -> int:
     """Get available tokens after reserving space for system/response overhead."""
     return get_context_limit(model, max_tokens) - RESERVED_TOKENS

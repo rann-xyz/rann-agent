@@ -3,9 +3,10 @@ Cache backend abstraction layer.
 
 All cache backends (InMemory, Redis, etc.) must implement this interface.
 """
-from abc import ABC, abstractmethod
-from typing import Any, Optional
+
 import time
+from abc import ABC, abstractmethod
+from typing import Any
 
 
 class CacheBackend(ABC):
@@ -16,34 +17,28 @@ class CacheBackend(ABC):
     """
 
     @abstractmethod
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         """Get value by key. Returns None if not found or expired."""
-        pass
 
     @abstractmethod
-    async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    async def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         """Set key-value pair with optional TTL in seconds."""
-        pass
 
     @abstractmethod
     async def delete(self, key: str) -> bool:
         """Delete key. Returns True if key existed, False otherwise."""
-        pass
 
     @abstractmethod
     async def clear(self) -> None:
         """Clear all keys in this cache namespace."""
-        pass
 
     @abstractmethod
     async def exists(self, key: str) -> bool:
         """Check if key exists and is not expired."""
-        pass
 
     @abstractmethod
     async def get_stats(self) -> dict:
         """Return backend-specific statistics."""
-        pass
 
     @property
     @abstractmethod
@@ -52,7 +47,6 @@ class CacheBackend(ABC):
 
     async def close(self) -> None:
         """Clean up backend resources. Override in subclasses that hold connections."""
-        pass
 
 
 class TTLCacheMixin:
@@ -66,12 +60,12 @@ class TTLCacheMixin:
         """Check if a (value, expiry) entry has expired."""
         if entry is None:
             return True
-        value, expires_at = entry
+        _value, expires_at = entry
         if expires_at is None:
             return False
         return time.monotonic() > expires_at
 
-    def _make_entry(self, value: Any, ttl: Optional[int]) -> tuple:
+    def _make_entry(self, value: Any, ttl: int | None) -> tuple:
         """Create a (value, expiry_timestamp) entry."""
         if ttl is None:
             return (value, None)

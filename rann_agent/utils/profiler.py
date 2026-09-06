@@ -4,9 +4,10 @@ Hot Path Profiler for RANN Agent.
 Run: python -m cProfile -o rann.prof rann_agent/cli/rann.py run "hello"
 Then: python -c "import pstats; p = pstats.Stats('rann.prof'); p.sort_stats('cumulative').print_stats(20)"
 """
+
 import cProfile
-import pstats
 import io
+import pstats
 import sys
 from pathlib import Path
 
@@ -17,6 +18,7 @@ PROFILE_OUTPUT.mkdir(parents=True, exist_ok=True)
 def profile_agent():
     """Profile a simple agent run."""
     import asyncio
+
     sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
     from rann_agent.core.agent import Agent

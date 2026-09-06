@@ -4,8 +4,9 @@ As required by MASTER PROMPT Section 28.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
 from enum import Enum
+from typing import Any
+
 import structlog
 
 logger = structlog.get_logger()
@@ -34,7 +35,7 @@ class MemoryConflict:
     conflict_type: ConflictType
     evidence_a: str
     evidence_b: str
-    resolution: Optional[ConflictResolution] = None
+    resolution: ConflictResolution | None = None
     confidence: float = 0.5
     timestamp: str = ""
 
@@ -43,8 +44,8 @@ class MemoryConflict:
 class ResolutionResult:
     resolved: bool
     action: ConflictResolution
-    winner_id: Optional[str] = None
-    loser_id: Optional[str] = None
+    winner_id: str | None = None
+    loser_id: str | None = None
 
 
 class ConflictResolver:
@@ -58,13 +59,13 @@ class ConflictResolver:
     """
 
     def __init__(self) -> None:
-        self._conflicts: Dict[str, MemoryConflict] = {}
+        self._conflicts: dict[str, MemoryConflict] = {}
 
     def detect(
         self,
-        new_memory: Dict[str, Any],
-        existing_memories: List[Dict[str, Any]],
-    ) -> Optional[MemoryConflict]:
+        new_memory: dict[str, Any],
+        existing_memories: list[dict[str, Any]],
+    ) -> MemoryConflict | None:
         """
         Check if new_memory conflicts with any existing memory.
         Returns a MemoryConflict if detected.
@@ -162,8 +163,21 @@ class ConflictResolver:
     def _is_contradiction(self, text_a: str, text_b: str) -> bool:
         """Check if two texts are contradictory."""
         # Simple negation detection
-        negations_a = {"not", "no", "never", "doesn't", "doesn't", "isn't", "aren't", "wasn't", "weren't", "won't", "wouldn't", "can't", "couldn't", "shouldn't"}
-        negations_b = {"not", "no", "never", "doesn't", "isn't", "aren't", "wasn't", "weren't", "won't", "wouldn't", "can't", "couldn't", "shouldn't"}
+        negations_a = {
+            "not",
+            "no",
+            "never",
+            "doesn't",
+            "isn't",
+            "aren't",
+            "wasn't",
+            "weren't",
+            "won't",
+            "wouldn't",
+            "can't",
+            "couldn't",
+            "shouldn't",
+        }
 
         words_a = set(text_a.split())
         words_b = set(text_b.split())
@@ -181,7 +195,78 @@ class ConflictResolver:
         """Check if two texts are about the same topic."""
         words_a = set(text_a.split())
         words_b = set(text_b.split())
-        stopwords = {"the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "must", "shall", "can", "need", "to", "of", "in", "for", "on", "with", "at", "by", "from", "as", "into", "through", "during", "before", "after", "above", "below", "between", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "each", "few", "more", "most", "other", "some", "such", "only", "own", "same", "so", "than", "too", "very"}
+        stopwords = {
+            "the",
+            "a",
+            "an",
+            "is",
+            "are",
+            "was",
+            "were",
+            "be",
+            "been",
+            "being",
+            "have",
+            "has",
+            "had",
+            "do",
+            "does",
+            "did",
+            "will",
+            "would",
+            "could",
+            "should",
+            "may",
+            "might",
+            "must",
+            "shall",
+            "can",
+            "need",
+            "to",
+            "of",
+            "in",
+            "for",
+            "on",
+            "with",
+            "at",
+            "by",
+            "from",
+            "as",
+            "into",
+            "through",
+            "during",
+            "before",
+            "after",
+            "above",
+            "below",
+            "between",
+            "under",
+            "again",
+            "further",
+            "then",
+            "once",
+            "here",
+            "there",
+            "when",
+            "where",
+            "why",
+            "how",
+            "all",
+            "each",
+            "few",
+            "more",
+            "most",
+            "other",
+            "some",
+            "such",
+            "only",
+            "own",
+            "same",
+            "so",
+            "than",
+            "too",
+            "very",
+        }
 
         content_a = words_a - stopwords
         content_b = words_b - stopwords
@@ -195,6 +280,6 @@ class ConflictResolver:
 
         return jaccard > 0.5
 
-    def get_conflicts(self) -> List[MemoryConflict]:
+    def get_conflicts(self) -> list[MemoryConflict]:
         """Get all detected conflicts."""
         return list(self._conflicts.values())

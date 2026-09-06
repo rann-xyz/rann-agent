@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Pattern, Tuple
+from re import Pattern
 
 import structlog
 
@@ -59,7 +59,7 @@ class SecretDetector:
     """
 
     # Compiled regex patterns for secret detection
-    PATTERNS: List[Tuple[str, SecretType, Pattern]] = [
+    PATTERNS: list[tuple[str, SecretType, Pattern]] = [
         # AWS Access Key ID
         (
             "aws_access_key",
@@ -136,7 +136,10 @@ class SecretDetector:
         (
             "generic_password",
             SecretType.PASSWORD,
-            re.compile(r'(?:password|pwd|passwd|secret)\s*[=:]\s*["\']?([^"\'\s]{8,})["\']?', re.IGNORECASE),
+            re.compile(
+                r'(?:password|pwd|passwd|secret)\s*[=:]\s*["\']?([^"\'\s]{8,})["\']?',
+                re.IGNORECASE,
+            ),
         ),
         # Generic API key pattern (very generic - last resort)
         (
@@ -166,7 +169,9 @@ class SecretDetector:
         (
             "aws_mws_key",
             SecretType.API_KEY,
-            re.compile(r"\b(amzn\.mws\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b"),
+            re.compile(
+                r"\b(amzn\.mws\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b"
+            ),
         ),
         # Twilio API Key
         (
@@ -203,7 +208,7 @@ class SecretDetector:
         else:
             self._patterns = self.PATTERNS
 
-    def detect(self, text: str) -> List[SecretMatch]:
+    def detect(self, text: str) -> list[SecretMatch]:
         """
         Detect all secrets in the given text.
 
@@ -216,7 +221,7 @@ class SecretDetector:
         if not text:
             return []
 
-        matches: List[SecretMatch] = []
+        matches: list[SecretMatch] = []
         seen_positions: set = set()  # Avoid duplicate matches at same position
 
         for pattern_name, secret_type, pattern in self._patterns:
@@ -226,7 +231,10 @@ class SecretDetector:
                     continue
 
                 secret_value = match.group(0)
-                if secret_type == SecretType.PASSWORD and pattern_name == "url_password":
+                if (
+                    secret_type == SecretType.PASSWORD
+                    and pattern_name == "url_password"
+                ):
                     # For URL passwords, group 1 is the actual password
                     secret_value = match.group(1)
 
@@ -257,7 +265,7 @@ class SecretDetector:
         """Check if text contains any secrets (faster than detect for boolean check)."""
         return bool(self.detect(text))
 
-    def get_secret_types(self, text: str) -> List[SecretType]:
+    def get_secret_types(self, text: str) -> list[SecretType]:
         """Get list of secret types found in text."""
         matches = self.detect(text)
         return list({m.secret_type for m in matches})
@@ -278,7 +286,7 @@ class SecretScrubber:
 
     def __init__(
         self,
-        detector: Optional[SecretDetector] = None,
+        detector: SecretDetector | None = None,
         include_type: bool = True,
         show_prefix: bool = False,
     ):
@@ -315,7 +323,7 @@ class SecretScrubber:
         result = text
         for match in reversed(matches):
             redaction = self._format_redaction(match)
-            result = result[: match.start] + redaction + result[match.end:]
+            result = result[: match.start] + redaction + result[match.end :]
 
         logger.debug(
             "secrets_scrubbed",
@@ -356,7 +364,11 @@ class SecretScrubber:
         if matches:
             secret_types = list({m.secret_type for m in matches})
             raise SecretLeakError(
-                f"Secret detected in {context}" if context else "Secret detected in output",
+                (
+                    f"Secret detected in {context}"
+                    if context
+                    else "Secret detected in output"
+                ),
                 details={
                     "secret_types": [t.value for t in secret_types],
                     "count": len(matches),

@@ -3,11 +3,12 @@ Approval system for RANN Agent.
 As required by MASTER PROMPT Section 20.
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Any
-from enum import Enum
-from datetime import datetime
 import uuid
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from enum import Enum
+from typing import Optional
+
 import structlog
 
 logger = structlog.get_logger()
@@ -32,9 +33,9 @@ class ApprovalRequest:
     requested_by: str
     timestamp: str
     status: str  # pending, approved, rejected
-    reviewed_by: Optional[str] = None
-    reviewed_at: Optional[str] = None
-    rejection_reason: Optional[str] = None
+    reviewed_by: str | None = None
+    reviewed_at: str | None = None
+    rejection_reason: str | None = None
 
 
 class ApprovalSystem:
@@ -42,7 +43,7 @@ class ApprovalSystem:
 
     def __init__(self, storage: Optional["Database"] = None) -> None:
         self.storage = storage
-        self._pending: Dict[str, ApprovalRequest] = {}
+        self._pending: dict[str, ApprovalRequest] = {}
 
     def request(
         self,
@@ -52,7 +53,7 @@ class ApprovalSystem:
     ) -> str:
         """Submit an approval request."""
         request_id = str(uuid.uuid4())[:8]
-        now = datetime.now().isoformat()
+        now = datetime.now(UTC).isoformat()
 
         req = ApprovalRequest(
             request_id=request_id,
@@ -96,7 +97,7 @@ class ApprovalSystem:
         req = self._pending[request_id]
         req.status = "approved"
         req.reviewed_by = reviewed_by
-        req.reviewed_at = datetime.now().isoformat()
+        req.reviewed_at = datetime.now(UTC).isoformat()
 
         if self.storage:
             self.storage.update_approval_status(request_id, "approved", reviewed_by)
@@ -112,7 +113,7 @@ class ApprovalSystem:
         req = self._pending[request_id]
         req.status = "rejected"
         req.reviewed_by = reviewed_by
-        req.reviewed_at = datetime.now().isoformat()
+        req.reviewed_at = datetime.now(UTC).isoformat()
         req.rejection_reason = reason
 
         if self.storage:
@@ -120,7 +121,9 @@ class ApprovalSystem:
                 request_id, "rejected", reviewed_by, reason
             )
 
-        logger.info("approval_rejected", request_id=request_id, by=reviewed_by, reason=reason)
+        logger.info(
+            "approval_rejected", request_id=request_id, by=reviewed_by, reason=reason
+        )
         return True
 
     def requires_approval(self, action: str) -> bool:
@@ -138,7 +141,7 @@ class ApprovalSystem:
         }
         return action.lower() in approval_required
 
-    def get_pending(self) -> List[ApprovalRequest]:
+    def get_pending(self) -> list[ApprovalRequest]:
         """Get all pending approval requests."""
         pending = list(self._pending.values())
         if self.storage:

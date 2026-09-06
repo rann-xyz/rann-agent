@@ -4,8 +4,8 @@ As required by MASTER PROMPT Section 44.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Tuple
 from enum import Enum
+from typing import Any
 
 
 class TaskStatusSchema(Enum):
@@ -43,23 +43,23 @@ class TaskStatusSchema:
     progress: float  # 0.0 to 1.0
     current_step: int
     total_steps: int
-    budget_used: Dict[str, Any]
+    budget_used: dict[str, Any]
     last_activity: str
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
 class PlanSchema:
     objective: str
-    files_to_inspect: List[str]
-    files_to_change: List[str]
-    actions: List[Dict[str, Any]]
-    expected_results: List[str]
+    files_to_inspect: list[str]
+    files_to_change: list[str]
+    actions: list[dict[str, Any]]
+    expected_results: list[str]
     verification: str
     risk: str
     rollback_plan: str
     quality_passed: bool
-    quality_issues: List[str] = field(default_factory=list)
+    quality_issues: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -70,7 +70,7 @@ class VerificationResultSchema:
     expected: str
     actual: str
     success: bool
-    evidence: Dict[str, Any]
+    evidence: dict[str, Any]
     timestamp: str
 
 
@@ -78,8 +78,8 @@ class VerificationResultSchema:
 class FailureSchema:
     failure_type: str
     root_cause: str
-    contributing_factors: List[str]
-    evidence: List[str]
+    contributing_factors: list[str]
+    evidence: list[str]
     recovery_plan: str
     recovery_attempted: bool
     recovery_succeeded: bool
@@ -90,7 +90,7 @@ class LessonSchema:
     lesson_id: str
     category: str
     content: str
-    evidence: List[str]
+    evidence: list[str]
     confidence: float
     validated: bool
     sample_size: int
@@ -101,13 +101,13 @@ class FinalStatusSchema:
     status: str  # PASS, PARTIAL, FAIL, BLOCKED
     task_id: str
     output: str
-    verification_results: List[VerificationResultSchema]
-    evidence_ids: List[str]
-    failures: List[FailureSchema]
-    lessons_learned: List[str]
+    verification_results: list[VerificationResultSchema]
+    evidence_ids: list[str]
+    failures: list[FailureSchema]
+    lessons_learned: list[str]
     total_iterations: int
     total_tool_calls: int
     total_cost: float
     total_latency_ms: float
     rollback_performed: bool
-    blocked_reason: Optional[str] = None
+    blocked_reason: str | None = None

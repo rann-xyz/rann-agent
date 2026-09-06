@@ -4,7 +4,7 @@ As required by MASTER PROMPT Section 51.
 """
 
 from enum import IntEnum
-from typing import Dict, Callable, Optional
+
 import structlog
 
 logger = structlog.get_logger()
@@ -12,10 +12,11 @@ logger = structlog.get_logger()
 
 class AutonomyLevel(IntEnum):
     """Autonomy levels for agent execution."""
+
     LEVEL_0_OBSERVE = 0  # Observe only
-    LEVEL_1_READ = 1     # Read/search only
+    LEVEL_1_READ = 1  # Read/search only
     LEVEL_2_MODIFY_TEST = 2  # Modify + test with checkpoints (DEFAULT)
-    LEVEL_3_CODING = 3   # Autonomous coding inside approved workspace
+    LEVEL_3_CODING = 3  # Autonomous coding inside approved workspace
     LEVEL_4_LOW_RISK_COMMIT = 4  # Low-risk commits after verification
     LEVEL_5_HIGH_AUTONOMY = 5  # High autonomy under strict governance
 
@@ -36,7 +37,7 @@ class AutonomyLevel(IntEnum):
 DEFAULT_AUTONOMY = AutonomyLevel.LEVEL_2_MODIFY_TEST
 
 # Action -> minimum required level
-ACTION_REQUIREMENTS: Dict[str, AutonomyLevel] = {
+ACTION_REQUIREMENTS: dict[str, AutonomyLevel] = {
     # Read actions - Level 0
     "observe": AutonomyLevel.LEVEL_0_OBSERVE,
     # Read/search - Level 1
@@ -74,10 +75,14 @@ class AutonomyGuard:
         self.current_level = level
         logger.info("autonomy_level_set", level=level.name, value=int(level))
 
-    def can_execute(self, action: str, required_level: Optional[AutonomyLevel] = None) -> bool:
+    def can_execute(
+        self, action: str, required_level: AutonomyLevel | None = None
+    ) -> bool:
         """Check if current autonomy level allows the action."""
         if required_level is None:
-            required_level = ACTION_REQUIREMENTS.get(action, AutonomyLevel.LEVEL_2_MODIFY_TEST)
+            required_level = ACTION_REQUIREMENTS.get(
+                action, AutonomyLevel.LEVEL_2_MODIFY_TEST
+            )
 
         allowed = int(self.current_level) >= int(required_level)
         if not allowed:

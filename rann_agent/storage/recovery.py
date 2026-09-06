@@ -4,7 +4,8 @@ As required by MASTER PROMPT Section 23.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import Optional
+
 import structlog
 
 logger = structlog.get_logger()
@@ -15,9 +16,9 @@ class IncompleteRun:
     run_id: str
     task_id: str
     last_state: str
-    checkpoint_path: Optional[str] = None
-    partial_side_effects: List[str] = field(default_factory=list)
-    last_tool_call: Optional[str] = None
+    checkpoint_path: str | None = None
+    partial_side_effects: list[str] = field(default_factory=list)
+    last_tool_call: str | None = None
     start_time: str = ""
 
 
@@ -26,8 +27,8 @@ class ReconciliationResult:
     run_id: str
     action: str  # resume, rollback, block
     reason: str
-    files_to_restore: List[str] = field(default_factory=list)
-    resume_from_step: Optional[int] = None
+    files_to_restore: list[str] = field(default_factory=list)
+    resume_from_step: int | None = None
 
 
 class CrashRecovery:
@@ -37,7 +38,7 @@ class CrashRecovery:
         self.storage = storage
         self.checkpoint_dir = None  # Set on startup
 
-    def on_startup(self) -> List[IncompleteRun]:
+    def on_startup(self) -> list[IncompleteRun]:
         """
         Called on agent startup to recover from previous crash.
         Returns list of incomplete runs that need attention.
@@ -57,7 +58,9 @@ class CrashRecovery:
             incomplete_run = IncompleteRun(
                 run_id=run["run_id"],
                 task_id=run["task_id"],
-                last_state=last_transition["to_state"] if last_transition else "UNKNOWN",
+                last_state=(
+                    last_transition["to_state"] if last_transition else "UNKNOWN"
+                ),
                 last_tool_call=None,
                 start_time=run["start_time"],
             )
@@ -145,14 +148,16 @@ class CrashRecovery:
         logger.info("rollback_executed", run_id=run_id)
 
         # Mark run as rolled back
-        from datetime import datetime
         import json
+        from datetime import UTC, datetime
 
-        result_data = json.dumps({
-            "status": "rolled_back",
-            "rolled_back_at": datetime.now().isoformat(),
-        })
-        self.storage.save_run(run_id, "", datetime.now().isoformat(), result_data)
+        result_data = json.dumps(
+            {
+                "status": "rolled_back",
+                "rolled_back_at": datetime.now(UTC).isoformat(),
+            }
+        )
+        self.storage.save_run(run_id, "", datetime.now(UTC).isoformat(), result_data)
 
         return True
 
@@ -175,7 +180,7 @@ class CrashRecovery:
         logger.info("resume_approved", run_id=run_id)
         return True
 
-    def _detect_modified_files(self, run_id: str) -> List[str]:
+    def _detect_modified_files(self, run_id: str) -> list[str]:
         """Detect which files were modified in a run."""
         # In a full implementation, this would track file changes
         # through the Evidence or Audit tables

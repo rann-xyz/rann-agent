@@ -4,10 +4,9 @@ In-memory cache backend.
 Default cache backend — no external dependencies, no setup required.
 Thread-safe using a dictionary with a lock. Entries expire based on TTL.
 """
-import asyncio
+
 import threading
-import time
-from typing import Any, Optional
+from typing import Any
 
 from rann_agent.cache.backend import CacheBackend, TTLCacheMixin
 
@@ -24,7 +23,7 @@ class InMemoryCache(CacheBackend, TTLCacheMixin):
     """
 
     def __init__(self, *, max_size: int = 10000):
-        self._store: dict[str, tuple[Any, Optional[float]]] = {}
+        self._store: dict[str, tuple[Any, float | None]] = {}
         self._lock = threading.RLock()
         self._max_size = max_size
         self._hits = 0
@@ -35,7 +34,7 @@ class InMemoryCache(CacheBackend, TTLCacheMixin):
     def backend_name(self) -> str:
         return "memory"
 
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         with self._lock:
             entry = self._store.get(key)
             value = self._get_value(entry)
@@ -48,7 +47,7 @@ class InMemoryCache(CacheBackend, TTLCacheMixin):
                     self._store.pop(key, None)
             return value
 
-    async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    async def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         with self._lock:
             # Evict if at capacity (oldest-first, not LRU — simple but effective)
             if len(self._store) >= self._max_size and key not in self._store:
@@ -56,7 +55,9 @@ class InMemoryCache(CacheBackend, TTLCacheMixin):
                 self._evict_stale(1)
                 if len(self._store) >= self._max_size:
                     # Still full — remove oldest entries
-                    oldest_keys = list(self._store.keys())[: max(1, self._max_size // 10)]
+                    oldest_keys = list(self._store.keys())[
+                        : max(1, self._max_size // 10)
+                    ]
                     for k in oldest_keys:
                         self._store.pop(k, None)
                         self._evictions += 1
@@ -103,9 +104,7 @@ class InMemoryCache(CacheBackend, TTLCacheMixin):
     def _evict_stale(self, count: int = 1) -> int:
         """Remove up to `count` expired entries. Returns actual count removed."""
         removed = 0
-        stale_keys = [
-            k for k, v in self._store.items() if self._is_expired(v)
-        ]
+        stale_keys = [k for k, v in self._store.items() if self._is_expired(v)]
         for k in stale_keys[:count]:
             self._store.pop(k, None)
             removed += 1

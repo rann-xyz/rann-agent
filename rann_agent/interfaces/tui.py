@@ -8,19 +8,14 @@ from __future__ import annotations
 import asyncio
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Optional
+from datetime import UTC, datetime
 
 import structlog
 from rich.console import Console
-from rich.layout import Layout
-from rich.live import Live
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 
 from rann_agent.core.agent import Agent
 from rann_agent.core.config import Config
-
 
 logger = structlog.get_logger()
 
@@ -30,7 +25,7 @@ class ChatMessage:
     role: str
     content: str
     timestamp: datetime = field(default_factory=datetime.now)
-    tool_name: Optional[str] = None
+    tool_name: str | None = None
 
 
 class ChatPanel:
@@ -50,7 +45,9 @@ class ChatPanel:
         self._trim()
 
     def add_tool(self, content: str, tool_name: str) -> None:
-        self.messages.append(ChatMessage(role="tool", content=content, tool_name=tool_name))
+        self.messages.append(
+            ChatMessage(role="tool", content=content, tool_name=tool_name)
+        )
         self._trim()
 
     def add_system(self, content: str) -> None:
@@ -59,17 +56,31 @@ class ChatPanel:
 
     def _trim(self) -> None:
         if len(self.messages) > self.max_messages:
-            self.messages = self.messages[-self.max_messages:]
+            self.messages = self.messages[-self.max_messages :]
 
     def clear(self) -> None:
         self.messages.clear()
 
     def render(self) -> Panel:
         if not self.messages:
-            return Panel("[dim italic]No messages yet.[/dim italic]", title="Chat", border_style="blue")
+            return Panel(
+                "[dim italic]No messages yet.[/dim italic]",
+                title="Chat",
+                border_style="blue",
+            )
 
-        role_colors = {"user": "cyan", "assistant": "green", "tool": "yellow", "system": "dim"}
-        role_labels = {"user": "👤 User", "assistant": "🤖 Agent", "tool": "🔧 Tool", "system": "⚙️ System"}
+        role_colors = {
+            "user": "cyan",
+            "assistant": "green",
+            "tool": "yellow",
+            "system": "dim",
+        }
+        role_labels = {
+            "user": "👤 User",
+            "assistant": "🤖 Agent",
+            "tool": "🔧 Tool",
+            "system": "⚙️ System",
+        }
 
         lines = []
         for msg in self.messages:
@@ -78,11 +89,17 @@ class ChatPanel:
             if msg.role == "tool" and msg.tool_name:
                 label = f"🔧 {msg.tool_name}"
             ts = msg.timestamp.strftime("%H:%M:%S")
-            content = msg.content[:500] + "..." if len(msg.content) > 500 else msg.content
+            content = (
+                msg.content[:500] + "..." if len(msg.content) > 500 else msg.content
+            )
             lines.append(f"[{color}]{label}[/{color}] [dim]{ts}[/dim]")
             lines.append(f"  {content}")
 
-        return Panel("\n".join(lines), title=f"Chat ({len(self.messages)} msgs)", border_style="blue")
+        return Panel(
+            "\n".join(lines),
+            title=f"Chat ({len(self.messages)} msgs)",
+            border_style="blue",
+        )
 
 
 class ProgressPanel:
@@ -93,12 +110,18 @@ class ProgressPanel:
         self.state = "IDLE"
         self.turn = 0
         self.max_turns = 50
-        self.active_tool: Optional[str] = None
+        self.active_tool: str | None = None
         self.input_tokens = 0
         self.output_tokens = 0
 
-    def update(self, state: str, turn: int = 0, tool: Optional[str] = None,
-               in_tok: int = 0, out_tok: int = 0) -> None:
+    def update(
+        self,
+        state: str,
+        turn: int = 0,
+        tool: str | None = None,
+        in_tok: int = 0,
+        out_tok: int = 0,
+    ) -> None:
         self.state = state.upper()
         if turn:
             self.turn = turn
@@ -112,9 +135,15 @@ class ProgressPanel:
 
     def render(self) -> Panel:
         state_colors = {
-            "IDLE": "dim", "INITIALIZING": "blue", "UNDERSTANDING": "cyan",
-            "PLANNING": "magenta", "EXECUTING": "green", "OBSERVING": "yellow",
-            "VERIFYING": "bright_blue", "COMPLETED": "bold green", "FAILED": "bold red",
+            "IDLE": "dim",
+            "INITIALIZING": "blue",
+            "UNDERSTANDING": "cyan",
+            "PLANNING": "magenta",
+            "EXECUTING": "green",
+            "OBSERVING": "yellow",
+            "VERIFYING": "bright_blue",
+            "COMPLETED": "bold green",
+            "FAILED": "bold red",
         }
         color = state_colors.get(self.state, "white")
         lines = [
@@ -125,10 +154,16 @@ class ProgressPanel:
             lines.append(f"[bold]Tool:[/bold] [yellow]{self.active_tool}[/yellow]")
         total = self.input_tokens + self.output_tokens
         if total:
-            lines.append(f"[bold]Tokens:[/bold] {total:,} ([green]in:{self.input_tokens:,}[/green] [blue]out:{self.output_tokens:,}[/blue])")
+            lines.append(
+                f"[bold]Tokens:[/bold] {total:,} ([green]in:{self.input_tokens:,}[/green] [blue]out:{self.output_tokens:,}[/blue])"
+            )
         if self.max_turns:
-            lines.append(f"[bold]Budget:[/bold] {(self.turn / self.max_turns) * 100:.1f}%")
-        return Panel("\n".join(lines), title="Progress", border_style="blue", padding=(1, 2))
+            lines.append(
+                f"[bold]Budget:[/bold] {(self.turn / self.max_turns) * 100:.1f}%"
+            )
+        return Panel(
+            "\n".join(lines), title="Progress", border_style="blue", padding=(1, 2)
+        )
 
 
 class StatusBar:
@@ -136,7 +171,7 @@ class StatusBar:
 
     def __init__(self, console: Console):
         self.console = console
-        self.session_id: Optional[str] = None
+        self.session_id: str | None = None
         self.provider = "anthropic"
         self.model = "claude-sonnet-4"
         self.running = False
@@ -148,8 +183,12 @@ class StatusBar:
         self.running = running
 
     def render(self) -> Panel:
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        status = "[bold yellow]● RUNNING[/bold yellow]" if self.running else "[dim]○ IDLE[/dim]"
+        now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+        status = (
+            "[bold yellow]● RUNNING[/bold yellow]"
+            if self.running
+            else "[dim]○ IDLE[/dim]"
+        )
         parts = [
             f"[bold]⏱[/bold] {now}",
             f"[bold]📋[/bold] {self.session_id or 'No session'}",
@@ -163,7 +202,12 @@ class StatusBar:
 class TUI:
     """Main Terminal User Interface - composes ChatPanel, ProgressPanel, StatusBar."""
 
-    def __init__(self, config: Optional[Config] = None, provider: Optional[str] = None, model: Optional[str] = None):
+    def __init__(
+        self,
+        config: Config | None = None,
+        provider: str | None = None,
+        model: str | None = None,
+    ):
         self.config = config or Config.load()
         self.provider = provider or self.config.agent.llm.provider
         self.model = model or self.config.agent.llm.model
@@ -171,7 +215,7 @@ class TUI:
         self.chat = ChatPanel(self.console)
         self.progress = ProgressPanel(self.console)
         self.status = StatusBar(self.console)
-        self.agent: Optional[Agent] = None
+        self.agent: Agent | None = None
         self._running = False
         self._cancel = asyncio.Event()
         logger.info("tui_init", provider=self.provider, model=self.model)
@@ -180,14 +224,18 @@ class TUI:
         """Build complete render group."""
         header = Panel(
             f"[bold cyan]🤖 RANN Agent[/bold cyan] [dim]v1.0.0[/dim]  |  {self.provider}/{self.model}",
-            border_style="cyan", padding=(0, 2), height=3,
+            border_style="cyan",
+            padding=(0, 2),
+            height=3,
         )
         return header, self.chat.render(), self.progress.render(), self.status.render()
 
-    async def _execute(self, goal: str, context: Optional[str] = None) -> None:
+    async def _execute(self, goal: str, context: str | None = None) -> None:
         """Execute task with streaming UI."""
         if not self.agent:
-            self.agent = Agent(config=self.config, provider=self.provider, model=self.model)
+            self.agent = Agent(
+                config=self.config, provider=self.provider, model=self.model
+            )
 
         self.status.set_running(True)
         self.progress.reset()
@@ -215,9 +263,11 @@ class TUI:
         finally:
             self.status.set_running(False)
             if self.agent.session_id:
-                self.status.set_session(self.agent.session_id, self.provider, self.model)
+                self.status.set_session(
+                    self.agent.session_id, self.provider, self.model
+                )
 
-    async def _read_line(self) -> Optional[str]:
+    async def _read_line(self) -> str | None:
         """Async line read from stdin."""
         loop = asyncio.get_event_loop()
         try:
@@ -228,10 +278,12 @@ class TUI:
     async def run(self) -> None:
         """Interactive TUI loop: display -> read -> execute -> repeat."""
         self._running = True
-        self.console.print(Panel.fit(
-            "[bold cyan]🤖 RANN Agent TUI[/bold cyan]\nType task, Enter to execute. /quit to exit.",
-            border_style="cyan",
-        ))
+        self.console.print(
+            Panel.fit(
+                "[bold cyan]🤖 RANN Agent TUI[/bold cyan]\nType task, Enter to execute. /quit to exit.",
+                border_style="cyan",
+            )
+        )
 
         while self._running:
             try:
@@ -274,6 +326,7 @@ class TUI:
 def main() -> None:
     """CLI entry point."""
     import argparse
+
     parser = argparse.ArgumentParser(description="RANN Agent TUI")
     parser.add_argument("goal", nargs="?", help="Task to execute")
     parser.add_argument("--provider", "-p", help="LLM provider")

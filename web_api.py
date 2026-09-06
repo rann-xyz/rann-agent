@@ -6,12 +6,10 @@ Uses Python's built-in http.server - no Flask needed.
 Stores API keys securely in ~/.rann_agent/keys.json
 """
 
-import os
 import json
-import base64
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 # Storage
 KEYS_DIR = Path.home() / ".rann_agent"
@@ -204,15 +202,15 @@ class APIHandler(BaseHTTPRequestHandler):
             })
 
         elif path == '/api/system/check':
-            import sys
             import shutil
+            import sys
             checks = [
                 {'name': 'Python', 'status': 'ok' if sys.version_info >= (3, 8) else 'error',
                  'message': f'Python {sys.version_info.major}.{sys.version_info.minor}'},
                 {'name': 'urllib', 'status': 'ok', 'message': 'Available'},
                 {'name': 'Memory', 'status': 'ok', 'message': 'Ready'},
             ]
-            total, used, free = shutil.disk_usage('/')
+            _total, _used, free = shutil.disk_usage('/')
             free_gb = free // (2**30)
             checks.append({'name': 'Disk Space', 'status': 'ok' if free_gb > 1 else 'warning',
                           'message': f'{free_gb}GB free'})
@@ -297,8 +295,8 @@ class APIHandler(BaseHTTPRequestHandler):
             self.send_json({'error': str(e)}, 500)
 
     def chat_gemini(self, api_key, base_url, model, message, history):
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         url = f'{base_url}/models/{model}:generateContent?key={api_key}'
 
@@ -331,8 +329,8 @@ class APIHandler(BaseHTTPRequestHandler):
             self.send_json({'error': str(e)}, 500)
 
     def chat_openai(self, api_key, base_url, model, message, history):
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         url = f'{base_url}/chat/completions'
 
@@ -369,8 +367,8 @@ class APIHandler(BaseHTTPRequestHandler):
             self.send_json({'error': str(e)}, 500)
 
     def chat_anthropic(self, api_key, base_url, model, message, history):
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         url = f'{base_url}/v1/messages'
 

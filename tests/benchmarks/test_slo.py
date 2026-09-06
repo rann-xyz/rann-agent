@@ -4,10 +4,12 @@ RANN Agent SLO Benchmarks
 Performance benchmarks that define our contractual SLOs.
 These run in CI and must pass before merging.
 """
-import pytest
+
+import sys
 import time
 from pathlib import Path
-import sys
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -37,6 +39,7 @@ class TestSLOBenchmarks:
     @pytest.fixture
     def config(self):
         from rann_agent.core.config import Config
+
         return Config()
 
     def test_slo_tool_registry_init(self, config):
@@ -45,12 +48,14 @@ class TestSLOBenchmarks:
         times = []
         for _ in range(5):
             start = time.perf_counter()
-            registry = ToolRegistry(config=config)
+            ToolRegistry(config=config)
             times.append(time.perf_counter() - start)
 
         avg_ms = (sum(times) / len(times)) * 1000
         slo_ms = SLOs["tool_registry_init_ms"]
-        assert avg_ms < slo_ms, f"SLO FAIL: ToolRegistry init {avg_ms:.1f}ms > {slo_ms}ms"
+        assert (
+            avg_ms < slo_ms
+        ), f"SLO FAIL: ToolRegistry init {avg_ms:.1f}ms > {slo_ms}ms"
 
     def test_slo_state_transitions(self, config):
         from rann_agent.core.state import VALID_TRANSITIONS, AgentState
@@ -73,8 +78,7 @@ class TestSLOBenchmarks:
         from rann_agent.utils.context_window import ContextWindowManager
 
         messages = [{"role": "system", "content": "You are RANN."}] + [
-            {"role": "user", "content": f"Msg {i} " + "x" * 200}
-            for i in range(500)
+            {"role": "user", "content": f"Msg {i} " + "x" * 200} for i in range(500)
         ]
 
         manager = ContextWindowManager(model="claude-sonnet-4-20250514")

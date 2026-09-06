@@ -8,10 +8,9 @@ skills with full metadata, categorization, search, and persistence.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field, asdict
-from datetime import datetime
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 import structlog
 
@@ -29,12 +28,12 @@ class SkillMetadata:
     author: str = "unknown"
     tags: list[str] = field(default_factory=list)
     enabled: bool = True
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    created_at: str | None = None
+    updated_at: str | None = None
 
     def __post_init__(self) -> None:
         if self.created_at is None:
-            self.created_at = datetime.utcnow().isoformat()
+            self.created_at = datetime.now(UTC).isoformat()
         if self.updated_at is None:
             self.updated_at = self.created_at
 
@@ -56,7 +55,7 @@ class SkillRegistry:
     in-memory registration, search by tags/category, and enable/disable.
     """
 
-    def __init__(self, skills_dir: Optional[Path] = None) -> None:
+    def __init__(self, skills_dir: Path | None = None) -> None:
         self._skills: dict[str, SkillMetadata] = {}
         self._skills_dir = skills_dir
         self._logger = logger.bind(component="skill_registry")
@@ -92,7 +91,9 @@ class SkillRegistry:
                 # Don't overwrite programmatically registered skills
                 if sid not in self._skills:
                     self._skills[sid] = meta
-            self._logger.info("registry_loaded", path=str(path), count=len(self._skills))
+            self._logger.info(
+                "registry_loaded", path=str(path), count=len(self._skills)
+            )
         except (json.JSONDecodeError, TypeError) as exc:
             self._logger.error("registry_load_failed", path=str(path), error=str(exc))
 
@@ -102,7 +103,7 @@ class SkillRegistry:
 
     def register(self, skill_id: str, metadata: SkillMetadata) -> None:
         """Register or update a skill's metadata."""
-        metadata.updated_at = datetime.utcnow().isoformat()
+        metadata.updated_at = datetime.now(UTC).isoformat()
         is_new = skill_id not in self._skills
         self._skills[skill_id] = metadata
         self.save()
@@ -122,7 +123,7 @@ class SkillRegistry:
     # Accessors
     # -------------------------------------------------------------------------
 
-    def get(self, skill_id: str) -> Optional[SkillMetadata]:
+    def get(self, skill_id: str) -> SkillMetadata | None:
         """Retrieve metadata for a specific skill."""
         return self._skills.get(skill_id)
 
@@ -167,7 +168,9 @@ class SkillRegistry:
     def search_by_tag(self, tag: str) -> list[SkillMetadata]:
         """Return skills that have the given tag."""
         lower = tag.lower()
-        return [m for m in self._skills.values() if any(lower in t.lower() for t in m.tags)]
+        return [
+            m for m in self._skills.values() if any(lower in t.lower() for t in m.tags)
+        ]
 
     # -------------------------------------------------------------------------
     # Enable / Disable
@@ -179,7 +182,7 @@ class SkillRegistry:
         if meta is None:
             return False
         meta.enabled = True
-        meta.updated_at = datetime.utcnow().isoformat()
+        meta.updated_at = datetime.now(UTC).isoformat()
         self.save()
         self._logger.info("skill_enabled", skill_id=skill_id)
         return True
@@ -190,7 +193,7 @@ class SkillRegistry:
         if meta is None:
             return False
         meta.enabled = False
-        meta.updated_at = datetime.utcnow().isoformat()
+        meta.updated_at = datetime.now(UTC).isoformat()
         self.save()
         self._logger.info("skill_disabled", skill_id=skill_id)
         return True

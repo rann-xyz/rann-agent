@@ -3,12 +3,14 @@ Concurrency control for RANN Agent.
 As required by MASTER PROMPT Section 25.
 """
 
+import contextlib
 import fcntl
 import os
-import contextlib
-from pathlib import Path
-from typing import Optional, Callable, Any
+from collections.abc import Callable
 from enum import Enum
+from pathlib import Path
+from typing import Any
+
 import structlog
 
 logger = structlog.get_logger()
@@ -27,8 +29,8 @@ class FileLock:
     def __init__(self, path: str, timeout: float = 30.0):
         self.path = Path(path)
         self.timeout = timeout
-        self._fd: Optional[int] = None
-        self._lock_file: Optional[int] = None
+        self._fd: int | None = None
+        self._lock_file: int | None = None
 
     def acquire(self, blocking: bool = True) -> bool:
         """Acquire the lock. Returns True if acquired."""
@@ -46,7 +48,7 @@ class FileLock:
                     return True
                 except BlockingIOError:
                     return False
-        except Exception as e:
+        except Exception:
             if self._fd is not None:
                 os.close(self._fd)
                 self._fd = None
@@ -85,7 +87,9 @@ class WorkspaceLock:
         """Context manager to hold workspace lock."""
         lock = FileLock(str(self._lock_path()), timeout=timeout)
         if not lock.acquire():
-            raise RuntimeError(f"Could not acquire workspace lock: {self.workspace_root}")
+            raise RuntimeError(
+                f"Could not acquire workspace lock: {self.workspace_root}"
+            )
         try:
             yield
         finally:
@@ -127,6 +131,7 @@ class LockManager:
 
 class _FileLockContext:
     """Context manager adapter for FileLock."""
+
     def __init__(self, lock: FileLock):
         self._lock = lock
 
@@ -139,7 +144,9 @@ class _FileLockContext:
         self._lock.release()
 
 
-def with_lock(lock_type: str = "workspace", path: str = None, workspace: str = None):
+def with_lock(
+    lock_type: str = "workspace", path: str | None = None, workspace: str | None = None
+):
     """Decorator to hold a lock during a function call.
 
     Usage:
@@ -147,6 +154,7 @@ def with_lock(lock_type: str = "workspace", path: str = None, workspace: str = N
         def my_function():
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         def wrapper(*args, **kwargs) -> Any:
             if lock_type == "workspace":
@@ -163,5 +171,7 @@ def with_lock(lock_type: str = "workspace", path: str = None, workspace: str = N
                     return func(*args, **kwargs)
             else:
                 raise ValueError(f"Unknown lock type: {lock_type}")
+
         return wrapper
+
     return decorator

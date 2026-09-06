@@ -3,10 +3,11 @@ Learning engine for RANN Agent.
 As required by MASTER PROMPT Section 30.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-from datetime import datetime
 import json
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import Optional
+
 import structlog
 
 logger = structlog.get_logger()
@@ -20,12 +21,12 @@ class LearningEpisode:
     project_id: str
     task_category: str
     context_summary: str
-    retrieved_memory_ids: List[str] = field(default_factory=list)
+    retrieved_memory_ids: list[str] = field(default_factory=list)
     selected_strategy: str = ""
-    actions: List[str] = field(default_factory=list)
+    actions: list[str] = field(default_factory=list)
     tool_calls: int = 0
     observations: str = ""
-    failures: List[str] = field(default_factory=list)
+    failures: list[str] = field(default_factory=list)
     recovery_attempts: int = 0
     final_result: str = ""
     verification_result: str = ""
@@ -33,8 +34,8 @@ class LearningEpisode:
     reward: float = 0.0
     cost: float = 0.0
     latency_ms: float = 0.0
-    lessons: List[str] = field(default_factory=list)
-    skill_candidates: List[str] = field(default_factory=list)
+    lessons: list[str] = field(default_factory=list)
+    skill_candidates: list[str] = field(default_factory=list)
     provenance: str = "rann_agent"
     confidence: float = 0.5
     created_at: str = ""
@@ -45,12 +46,12 @@ class Lesson:
     lesson_id: str
     category: str
     content: str
-    evidence: List[str] = field(default_factory=list)
+    evidence: list[str] = field(default_factory=list)
     confidence: float = 0.0
     validated: bool = False
     sample_size: int = 0
     created_at: str = ""
-    last_used: Optional[str] = None
+    last_used: str | None = None
 
 
 class LearningEngine:
@@ -61,7 +62,7 @@ class LearningEngine:
 
     def record_episode(self, episode: LearningEpisode) -> None:
         """Record a completed learning episode."""
-        episode.created_at = datetime.now().isoformat()
+        episode.created_at = datetime.now(UTC).isoformat()
 
         # Extract lessons from the episode
         lessons = self.extract_lessons(episode)
@@ -101,7 +102,7 @@ class LearningEngine:
             lessons_extracted=len(lessons),
         )
 
-    def extract_lessons(self, episode: LearningEpisode) -> List[Lesson]:
+    def extract_lessons(self, episode: LearningEpisode) -> list[Lesson]:
         """Extract lessons from a learning episode."""
         lessons = []
 
@@ -115,7 +116,7 @@ class LearningEngine:
                 confidence=0.3,
                 validated=False,
                 sample_size=1,
-                created_at=datetime.now().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
             )
             lessons.append(lesson)
 
@@ -129,7 +130,7 @@ class LearningEngine:
                 confidence=0.5,
                 validated=False,
                 sample_size=1,
-                created_at=datetime.now().isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
             )
             lessons.append(lesson)
 
@@ -150,7 +151,7 @@ class LearningEngine:
 
         return lessons
 
-    def get_lessons(self, category: Optional[str] = None) -> List[Lesson]:
+    def get_lessons(self, category: str | None = None) -> list[Lesson]:
         """Retrieve validated lessons, optionally filtered by category."""
         if not self.storage:
             return []

@@ -2,6 +2,6 @@
 Gateway package.
 """
 
-from .messaging_gateway import MessagingGateway, Platform, Message
+from .messaging_gateway import Message, MessagingGateway, Platform
 
-__all__ = ['MessagingGateway', 'Platform', 'Message']
+__all__ = ["Message", "MessagingGateway", "Platform"]

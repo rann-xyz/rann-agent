@@ -4,7 +4,8 @@ Web scraping and search tools with pluggable providers.
 
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional
+from typing import Any
+
 import structlog
 
 from rann_agent.tools.registry import Tool, ToolResult
@@ -16,6 +17,7 @@ logger = structlog.get_logger()
 # Search Providers
 # ---------------------------------------------------------------------------
 
+
 class SearchProvider(ABC):
     """Abstract base for web search providers."""
 
@@ -26,7 +28,7 @@ class SearchProvider(ABC):
         ...
 
     @abstractmethod
-    async def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    async def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         """
         Perform a web search.
 
@@ -41,18 +43,17 @@ class DuckDuckGoProvider(SearchProvider):
 
     name = "duckduckgo"
 
-    async def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    async def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         import aiohttp
         from bs4 import BeautifulSoup
 
         url = "https://html.duckduckgo.com/html/"
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                url,
-                data={"q": query},
-                headers={"User-Agent": "Rann-Agent/1.0"},
-            ) as resp:
-                html = await resp.text()
+        async with aiohttp.ClientSession() as session, session.post(
+            url,
+            data={"q": query},
+            headers={"User-Agent": "Rann-Agent/1.0"},
+        ) as resp:
+            html = await resp.text()
 
         soup = BeautifulSoup(html, "html.parser")
         results = []
@@ -60,11 +61,15 @@ class DuckDuckGoProvider(SearchProvider):
             title_elem = result.select_one(".result__title")
             snippet_elem = result.select_one(".result__snippet")
             if title_elem:
-                results.append({
-                    "title": title_elem.get_text(strip=True),
-                    "url": title_elem.get("href", ""),
-                    "snippet": snippet_elem.get_text(strip=True) if snippet_elem else "",
-                })
+                results.append(
+                    {
+                        "title": title_elem.get_text(strip=True),
+                        "url": title_elem.get("href", ""),
+                        "snippet": (
+                            snippet_elem.get_text(strip=True) if snippet_elem else ""
+                        ),
+                    }
+                )
         return results
 
 
@@ -73,7 +78,7 @@ class BraveProvider(SearchProvider):
 
     name = "brave"
 
-    async def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    async def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         import aiohttp
 
         api_key = os.environ.get("BRAVE_API_KEY")
@@ -95,11 +100,13 @@ class BraveProvider(SearchProvider):
         results = []
         web_results = data.get("web", {}).get("results", [])
         for item in web_results[:limit]:
-            results.append({
-                "title": item.get("title", ""),
-                "url": item.get("url", ""),
-                "snippet": item.get("description", ""),
-            })
+            results.append(
+                {
+                    "title": item.get("title", ""),
+                    "url": item.get("url", ""),
+                    "snippet": item.get("description", ""),
+                }
+            )
         return results
 
 
@@ -108,7 +115,7 @@ class SearXNGProvider(SearchProvider):
 
     name = "searxng"
 
-    async def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    async def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         import aiohttp
 
         base_url = os.environ.get("SEARXNG_URL", "").rstrip("/")
@@ -124,11 +131,13 @@ class SearXNGProvider(SearchProvider):
 
         results = []
         for item in data.get("results", [])[:limit]:
-            results.append({
-                "title": item.get("title", ""),
-                "url": item.get("url", ""),
-                "snippet": item.get("content", ""),
-            })
+            results.append(
+                {
+                    "title": item.get("title", ""),
+                    "url": item.get("url", ""),
+                    "snippet": item.get("content", ""),
+                }
+            )
         return results
 
 
@@ -137,7 +146,7 @@ class TavilyProvider(SearchProvider):
 
     name = "tavily"
 
-    async def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    async def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         import aiohttp
 
         api_key = os.environ.get("TAVILY_API_KEY")
@@ -153,11 +162,13 @@ class TavilyProvider(SearchProvider):
 
         results = []
         for item in data.get("results", [])[:limit]:
-            results.append({
-                "title": item.get("title", ""),
-                "url": item.get("url", ""),
-                "snippet": item.get("content", ""),
-            })
+            results.append(
+                {
+                    "title": item.get("title", ""),
+                    "url": item.get("url", ""),
+                    "snippet": item.get("content", ""),
+                }
+            )
         return results
 
 
@@ -166,7 +177,7 @@ class GoogleCSEProvider(SearchProvider):
 
     name = "google_cse"
 
-    async def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    async def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
         import aiohttp
 
         api_key = os.environ.get("GOOGLE_CSE_API_KEY")
@@ -190,15 +201,17 @@ class GoogleCSEProvider(SearchProvider):
 
         results = []
         for item in data.get("items", [])[:limit]:
-            results.append({
-                "title": item.get("title", ""),
-                "url": item.get("link", ""),
-                "snippet": item.get("snippet", ""),
-            })
+            results.append(
+                {
+                    "title": item.get("title", ""),
+                    "url": item.get("link", ""),
+                    "snippet": item.get("snippet", ""),
+                }
+            )
         return results
 
 
-_SEARCH_PROVIDERS: Dict[str, type[SearchProvider]] = {
+_SEARCH_PROVIDERS: dict[str, type[SearchProvider]] = {
     "duckduckgo": DuckDuckGoProvider,
     "brave": BraveProvider,
     "searxng": SearXNGProvider,
@@ -221,6 +234,7 @@ def get_search_provider(name: str) -> SearchProvider:
 # Extract Providers
 # ---------------------------------------------------------------------------
 
+
 class ExtractProvider(ABC):
     """Abstract base for web content extraction providers."""
 
@@ -231,7 +245,9 @@ class ExtractProvider(ABC):
         ...
 
     @abstractmethod
-    async def extract(self, urls: List[str], char_limit: int = 15000) -> List[Dict[str, Any]]:
+    async def extract(
+        self, urls: list[str], char_limit: int = 15000
+    ) -> list[dict[str, Any]]:
         """
         Extract content from URLs.
 
@@ -247,7 +263,9 @@ class AioHTTPProvider(ExtractProvider):
 
     name = "aiohttp"
 
-    async def extract(self, urls: List[str], char_limit: int = 15000) -> List[Dict[str, Any]]:
+    async def extract(
+        self, urls: list[str], char_limit: int = 15000
+    ) -> list[dict[str, Any]]:
         import aiohttp
         from bs4 import BeautifulSoup
         from markdownify import markdownify as md
@@ -273,18 +291,22 @@ class AioHTTPProvider(ExtractProvider):
                     if len(text) > char_limit:
                         text = text[:char_limit] + "\n\n[Content truncated...]"
 
-                    results.append({
-                        "url": url,
-                        "title": soup.title.string if soup.title else url,
-                        "content": text,
-                        "success": True,
-                    })
+                    results.append(
+                        {
+                            "url": url,
+                            "title": soup.title.string if soup.title else url,
+                            "content": text,
+                            "success": True,
+                        }
+                    )
                 except Exception as e:
-                    results.append({
-                        "url": url,
-                        "error": str(e),
-                        "success": False,
-                    })
+                    results.append(
+                        {
+                            "url": url,
+                            "error": str(e),
+                            "success": False,
+                        }
+                    )
         return results
 
 
@@ -296,7 +318,9 @@ class TrafilaturaProvider(ExtractProvider):
     def __init__(self):
         self._aiohttp = AioHTTPProvider()
 
-    async def extract(self, urls: List[str], char_limit: int = 15000) -> List[Dict[str, Any]]:
+    async def extract(
+        self, urls: list[str], char_limit: int = 15000
+    ) -> list[dict[str, Any]]:
         try:
             import trafilatura
         except ImportError:
@@ -318,12 +342,14 @@ class TrafilaturaProvider(ExtractProvider):
                     text = text[:char_limit] + "\n\n[Content truncated...]"
 
                 # Trafilatura doesn't easily expose title; use the url as fallback
-                results.append({
-                    "url": url,
-                    "title": url,
-                    "content": text,
-                    "success": True,
-                })
+                results.append(
+                    {
+                        "url": url,
+                        "title": url,
+                        "content": text,
+                        "success": True,
+                    }
+                )
             except Exception as e:
                 logger.warning("trafilatura_extract_error", url=url, error=str(e))
                 # Fall back to aiohttp for this URL
@@ -340,7 +366,9 @@ class PlaywrightProvider(ExtractProvider):
     def __init__(self):
         self._aiohttp = AioHTTPProvider()
 
-    async def extract(self, urls: List[str], char_limit: int = 15000) -> List[Dict[str, Any]]:
+    async def extract(
+        self, urls: list[str], char_limit: int = 15000
+    ) -> list[dict[str, Any]]:
         try:
             from playwright.async_api import async_playwright
         except ImportError:
@@ -369,12 +397,14 @@ class PlaywrightProvider(ExtractProvider):
                 if len(text) > char_limit:
                     text = text[:char_limit] + "\n\n[Content truncated...]"
 
-                results.append({
-                    "url": url,
-                    "title": title or url,
-                    "content": text,
-                    "success": True,
-                })
+                results.append(
+                    {
+                        "url": url,
+                        "title": title or url,
+                        "content": text,
+                        "success": True,
+                    }
+                )
             except Exception as e:
                 logger.warning("playwright_extract_error", url=url, error=str(e))
                 fallback = await self._aiohttp.extract([url], char_limit)
@@ -382,7 +412,7 @@ class PlaywrightProvider(ExtractProvider):
         return results
 
 
-_EXTRACT_PROVIDERS: Dict[str, type[ExtractProvider]] = {
+_EXTRACT_PROVIDERS: dict[str, type[ExtractProvider]] = {
     "aiohttp": AioHTTPProvider,
     "trafilatura": TrafilaturaProvider,
     "playwright": PlaywrightProvider,
@@ -402,6 +432,7 @@ def get_extract_provider(name: str) -> ExtractProvider:
 # ---------------------------------------------------------------------------
 # Tools
 # ---------------------------------------------------------------------------
+
 
 class WebSearchTool(Tool):
     """Web search tool with pluggable provider support."""
@@ -424,8 +455,8 @@ class WebSearchTool(Tool):
         self._default_provider = default_provider
 
     async def execute(
-        self, query: str, limit: int = 5, provider: Optional[str] = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, query: str, limit: int = 5, provider: str | None = None, **kwargs
+    ) -> dict[str, Any]:
         """Execute web search, delegating to the selected provider."""
         provider_name = provider or self._default_provider
         try:
@@ -439,7 +470,11 @@ class WebSearchTool(Tool):
                 tool=self.name,
                 success=True,
                 output=output,
-                metadata={"count": len(results), "query": query, "provider": provider_name},
+                metadata={
+                    "count": len(results),
+                    "query": query,
+                    "provider": provider_name,
+                },
             ).to_dict()
 
         except Exception as e:
@@ -473,11 +508,11 @@ class WebExtractTool(Tool):
 
     async def execute(
         self,
-        urls: List[str],
+        urls: list[str],
         char_limit: int = 15000,
-        provider: Optional[str] = None,
+        provider: str | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute content extraction, delegating to the selected provider."""
         provider_name = provider or self._default_provider
         try:

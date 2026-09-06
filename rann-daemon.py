@@ -2,12 +2,12 @@
 """
 RANN Web API Daemon - Auto-restart if crashed, survive session close
 """
+import atexit
+import os
+import signal
 import subprocess
 import sys
 import time
-import signal
-import os
-import atexit
 
 APP_DIR = "/home/userland/rann-agent"
 PYTHON = "/home/userland/rann-agent/venv/bin/python3"
@@ -53,7 +53,7 @@ while True:
     try:
         proc = subprocess.Popen(
             [PYTHON, "-c", 
-             f"import urllib.request; urllib.request.urlopen('http://127.0.0.1:5555/api/status', timeout=5)",
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5555/api/status', timeout=5)",
              "-c", "import sys; sys.exit(0)"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )

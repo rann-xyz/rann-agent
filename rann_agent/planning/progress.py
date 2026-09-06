@@ -4,7 +4,8 @@ As required by MASTER PROMPT Section 17.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any
+from typing import Any
+
 import structlog
 
 logger = structlog.get_logger()
@@ -25,18 +26,18 @@ class StallReport:
     stall_type: str  # repeated_command, zero_progress, oscillation, repeated_error
     iterations_affected: int
     recommendation: str  # retry, replan, escalate, stop
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 class ProgressEngine:
     """Tracks iteration progress and detects stalls."""
 
     def __init__(self, max_history: int = 100) -> None:
-        self.iterations: List[Iteration] = []
+        self.iterations: list[Iteration] = []
         self.max_history = max_history
-        self._action_counts: Dict[str, int] = {}
-        self._error_counts: Dict[str, int] = {}
-        self._file_edits: Dict[str, int] = {}
+        self._action_counts: dict[str, int] = {}
+        self._error_counts: dict[str, int] = {}
+        self._file_edits: dict[str, int] = {}
 
     def record(
         self,
@@ -70,7 +71,7 @@ class ProgressEngine:
 
         # Trim history
         if len(self.iterations) > self.max_history:
-            self.iterations = self.iterations[-self.max_history:]
+            self.iterations = self.iterations[-self.max_history :]
 
         logger.debug(
             "progress_recorded",
@@ -86,7 +87,7 @@ class ProgressEngine:
         deltas = [i.progress_delta for i in self.iterations]
         return sum(deltas) / len(deltas)
 
-    def detect_stall(self) -> Optional[StallReport]:
+    def detect_stall(self) -> StallReport | None:
         """Detect if progress has stalled."""
         if len(self.iterations) < 3:
             return None
@@ -117,7 +118,9 @@ class ProgressEngine:
         # Check for oscillation (alternating positive/negative)
         if len(recent) >= 4:
             signs = [1 if d > 0 else -1 if d < 0 else 0 for d in recent_deltas]
-            if signs[0] != 0 and all(signs[i] == -signs[i - 1] for i in range(1, len(signs))):
+            if signs[0] != 0 and all(
+                signs[i] == -signs[i - 1] for i in range(1, len(signs))
+            ):
                 return StallReport(
                     stall_type="oscillation",
                     iterations_affected=len(recent),

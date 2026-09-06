@@ -5,10 +5,11 @@ Defines the binding contract between user and agent for a task execution.
 Implements V3 Section 4 specification.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-from enum import Enum
 import uuid
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any
+
 import structlog
 
 logger = structlog.get_logger()
@@ -16,6 +17,7 @@ logger = structlog.get_logger()
 
 class TaskCategory(Enum):
     """Task category classification"""
+
     CODE_GENERATION = "code_generation"
     CODE_REVIEW = "code_review"
     REFACTORING = "refactoring"
@@ -32,14 +34,16 @@ class TaskCategory(Enum):
 
 class RiskLevel(Enum):
     """Risk level for task execution"""
-    LOW = "low"           # Read operations, non-destructive
-    MEDIUM = "medium"     # Local modifications, builds
-    HIGH = "high"         # Network operations, deployments
+
+    LOW = "low"  # Read operations, non-destructive
+    MEDIUM = "medium"  # Local modifications, builds
+    HIGH = "high"  # Network operations, deployments
     CRITICAL = "critical"  # Destructive operations, system changes
 
 
 class AutonomyLevel(Enum):
     """Agent autonomy level for task execution"""
+
     LEVEL_0 = 0  # Full human control - every action approved
     LEVEL_1 = 1  # Human approves planning phase
     LEVEL_2 = 2  # Human approves before high-risk actions
@@ -71,15 +75,16 @@ class TaskContract:
         timeout_seconds: Maximum execution time
         budget_tokens: Maximum token budget
     """
+
     task_id: str
     user_request: str
     objective: str
     task_category: TaskCategory
     workspace: str
-    constraints: List[str] = field(default_factory=list)
-    acceptance_criteria: List[str] = field(default_factory=list)
-    prohibited_actions: List[str] = field(default_factory=list)
-    required_tools: List[str] = field(default_factory=list)
+    constraints: list[str] = field(default_factory=list)
+    acceptance_criteria: list[str] = field(default_factory=list)
+    prohibited_actions: list[str] = field(default_factory=list)
+    required_tools: list[str] = field(default_factory=list)
     verification_strategy: str = "default"
     risk_level: RiskLevel = RiskLevel.LOW
     autonomy_level: AutonomyLevel = AutonomyLevel.LEVEL_2
@@ -92,7 +97,7 @@ class TaskContract:
         """Validate the contract after initialization"""
         if not self.task_id:
             self.task_id = str(uuid.uuid4())
-        
+
         if self.max_iterations <= 0:
             raise ValueError("max_iterations must be positive")
         if self.max_tool_calls <= 0:
@@ -106,8 +111,7 @@ class TaskContract:
         """Check if an action is prohibited"""
         action_lower = action.lower()
         return any(
-            prohibited.lower() in action_lower
-            for prohibited in self.prohibited_actions
+            prohibited.lower() in action_lower for prohibited in self.prohibited_actions
         )
 
     def get_risk_description(self) -> str:
@@ -131,7 +135,7 @@ class TaskContract:
         }
         return descriptions.get(self.autonomy_level, "Unknown autonomy level")
 
-    def to_summary(self) -> Dict[str, Any]:
+    def to_summary(self) -> dict[str, Any]:
         """Get a summary dict for logging/debugging"""
         return {
             "task_id": self.task_id,
@@ -150,7 +154,7 @@ class TaskContract:
             "num_required_tools": len(self.required_tools),
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary"""
         return {
             "task_id": self.task_id,
@@ -172,7 +176,7 @@ class TaskContract:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TaskContract":
+    def from_dict(cls, data: dict[str, Any]) -> "TaskContract":
         """Deserialize from dictionary"""
         return cls(
             task_id=data["task_id"],
@@ -199,10 +203,10 @@ def create_task_contract(
     objective: str,
     task_category: TaskCategory,
     workspace: str,
-    constraints: Optional[List[str]] = None,
-    acceptance_criteria: Optional[List[str]] = None,
-    prohibited_actions: Optional[List[str]] = None,
-    required_tools: Optional[List[str]] = None,
+    constraints: list[str] | None = None,
+    acceptance_criteria: list[str] | None = None,
+    prohibited_actions: list[str] | None = None,
+    required_tools: list[str] | None = None,
     verification_strategy: str = "default",
     risk_level: RiskLevel = RiskLevel.LOW,
     autonomy_level: AutonomyLevel = AutonomyLevel.LEVEL_2,
@@ -233,9 +237,6 @@ def create_task_contract(
         budget_tokens=budget_tokens,
     )
 
-    logger.info(
-        "task_contract_created",
-        **contract.to_summary()
-    )
+    logger.info("task_contract_created", **contract.to_summary())
 
     return contract

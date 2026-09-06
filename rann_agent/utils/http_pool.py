@@ -4,9 +4,10 @@ HTTP Connection Pool for RANN Agent.
 Provides a shared httpx client with connection pooling.
 Configured for high-throughput API calls.
 """
-import httpx
+
 import threading
-from typing import Optional
+
+import httpx
 import structlog
 
 logger = structlog.get_logger()
@@ -26,7 +27,7 @@ TIMEOUT = httpx.Timeout(
 )
 
 # Shared client (lazy-initialized)
-_client: Optional[httpx.AsyncClient] = None
+_client: httpx.AsyncClient | None = None
 _client_lock = threading.Lock()
 
 
@@ -70,7 +71,7 @@ class HTTPPoolMixin:
     """
 
     def __init__(self):
-        self._http: Optional[httpx.AsyncClient] = None
+        self._http: httpx.AsyncClient | None = None
 
     @property
     def http(self) -> httpx.AsyncClient:

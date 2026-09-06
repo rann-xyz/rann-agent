@@ -5,6 +5,7 @@ As required by MASTER PROMPT Section 19.
 
 from enum import Enum
 from typing import Any, Optional
+
 import structlog
 
 logger = structlog.get_logger()
@@ -57,7 +58,10 @@ class OperationTracker:
         self._seen.add(operation_id)
         if self.storage:
             import json
-            result_json = json.dumps({"result": str(result)}) if result is not None else None
+
+            result_json = (
+                json.dumps({"result": str(result)}) if result is not None else None
+            )
             self.storage.record_operation(operation_id, result_json)
         logger.debug("operation_recorded", operation_id=operation_id)
 

@@ -8,12 +8,12 @@ agent's global scope.
 
 from __future__ import annotations
 
-import signal
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Callable, Optional
+from typing import Any
 
 import structlog
 
@@ -23,27 +23,24 @@ logger = structlog.get_logger()
 class ExecutionTimeoutError(Exception):
     """Raised when a skill exceeds its allocated execution time."""
 
-    pass
-
 
 class SkillLoadError(Exception):
     """Raised when a skill cannot be loaded or compiled."""
-
-    pass
 
 
 @dataclass
 class LoaderResult:
     """Result of a load_skill call."""
 
-    module: Optional[ModuleType]
-    error: Optional[str]
+    module: ModuleType | None
+    error: str | None
     loaded: bool
 
 
 # -----------------------------------------------------------------------------
 # Timeout support
 # -----------------------------------------------------------------------------
+
 
 class _TimeoutThread:
     """
@@ -53,7 +50,7 @@ class _TimeoutThread:
 
     def __init__(self, seconds: float) -> None:
         self.seconds = seconds
-        self._timer: Optional[threading.Timer] = None
+        self._timer: threading.Timer | None = None
         self._stopped = False
 
     def start(self) -> None:
@@ -78,6 +75,7 @@ class _TimeoutThread:
 # Skill loader
 # -----------------------------------------------------------------------------
 
+
 class SkillLoader:
     """
     Loads and executes skill code in an isolated namespace.
@@ -100,7 +98,7 @@ class SkillLoader:
     # Public API
     # -------------------------------------------------------------------------
 
-    def load_skill(self, skill_id: str, source: Optional[str] = None) -> LoaderResult:
+    def load_skill(self, skill_id: str, source: str | None = None) -> LoaderResult:
         """
         Load a skill by ``skill_id``.
 
@@ -117,7 +115,9 @@ class SkillLoader:
         if source is None:
             source = self._resolve_skill_file(skill_id)
             if source is None:
-                return LoaderResult(module=None, error=f"Skill file not found: {skill_id}", loaded=False)
+                return LoaderResult(
+                    module=None, error=f"Skill file not found: {skill_id}", loaded=False
+                )
 
         if len(source) > self.max_source_size:
             return LoaderResult(
@@ -145,13 +145,19 @@ class SkillLoader:
         timeout = _TimeoutThread(self.timeout)
         timeout.start()
         try:
-            exec(compiled, ns)  # noqa: S307
+            exec(compiled, ns)
         except ExecutionTimeoutError:
-            self._logger.warning("skill_timeout", skill_id=skill_id, timeout=self.timeout)
-            return LoaderResult(module=None, error=f"Execution timeout ({self.timeout}s)", loaded=False)
+            self._logger.warning(
+                "skill_timeout", skill_id=skill_id, timeout=self.timeout
+            )
+            return LoaderResult(
+                module=None, error=f"Execution timeout ({self.timeout}s)", loaded=False
+            )
         except Exception as exc:  # noqa: BLE001
             self._logger.error("skill_exec_error", skill_id=skill_id, error=str(exc))
-            return LoaderResult(module=None, error=f"{type(exc).__name__}: {exc}", loaded=False)
+            return LoaderResult(
+                module=None, error=f"{type(exc).__name__}: {exc}", loaded=False
+            )
         finally:
             timeout.stop()
 
@@ -169,8 +175,8 @@ class SkillLoader:
         skill_id: str,
         function_name: str,
         args: tuple = (),
-        kwargs: Optional[dict] = None,
-        source: Optional[str] = None,
+        kwargs: dict | None = None,
+        source: str | None = None,
     ) -> LoaderResult:
         """
         Load (if needed) and execute a named function inside the skill module.
@@ -191,7 +197,7 @@ class SkillLoader:
                 return result
             skill_module = result.module
 
-        func: Optional[Callable[..., Any]] = getattr(skill_module, function_name, None)
+        func: Callable[..., Any] | None = getattr(skill_module, function_name, None)
         if func is None:
             return LoaderResult(
                 module=None,
@@ -202,14 +208,25 @@ class SkillLoader:
         timeout = _TimeoutThread(self.timeout)
         timeout.start()
         try:
-            result_val = func(*args, **kwargs)
+            func(*args, **kwargs)
             return LoaderResult(module=skill_module, error=None, loaded=True)
         except ExecutionTimeoutError:
-            self._logger.warning("skill_timeout", skill_id=skill_id, function=function_name)
-            return LoaderResult(module=None, error=f"Execution timeout ({self.timeout}s)", loaded=False)
+            self._logger.warning(
+                "skill_timeout", skill_id=skill_id, function=function_name
+            )
+            return LoaderResult(
+                module=None, error=f"Execution timeout ({self.timeout}s)", loaded=False
+            )
         except Exception as exc:  # noqa: BLE001
-            self._logger.error("skill_execution_error", skill_id=skill_id, function=function_name, error=str(exc))
-            return LoaderResult(module=None, error=f"{type(exc).__name__}: {exc}", loaded=False)
+            self._logger.error(
+                "skill_execution_error",
+                skill_id=skill_id,
+                function=function_name,
+                error=str(exc),
+            )
+            return LoaderResult(
+                module=None, error=f"{type(exc).__name__}: {exc}", loaded=False
+            )
         finally:
             timeout.stop()
 
@@ -217,7 +234,7 @@ class SkillLoader:
     # Helpers
     # -------------------------------------------------------------------------
 
-    def _resolve_skill_file(self, skill_id: str) -> Optional[str]:
+    def _resolve_skill_file(self, skill_id: str) -> str | None:
         candidates = [
             Path.cwd() / "skills" / f"{skill_id}.py",
             Path("~/.rann-agent/skills").expanduser() / f"{skill_id}.py",
@@ -227,7 +244,13 @@ class SkillLoader:
                 try:
                     return path.read_text(encoding="utf-8")
                 except OSError as exc:
-                    self._logger.warning("skill_file_read_error", path=str(path), error=str(exc))
+                    self._logger.warning(
+                        "skill_file_read_error", path=str(path), error=str(exc)
+                    )
                     return None
-        self._logger.debug("skill_file_not_found", skill_id=skill_id, candidates=[str(c) for c in candidates])
+        self._logger.debug(
+            "skill_file_not_found",
+            skill_id=skill_id,
+            candidates=[str(c) for c in candidates],
+        )
         return None

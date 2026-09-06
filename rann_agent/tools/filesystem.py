@@ -3,13 +3,13 @@ Safe filesystem operations for RANN Agent.
 As required by MASTER PROMPT Section 8.
 """
 
-import os
-import shutil
 import hashlib
-import tempfile
+import os
 import re
+import shutil
+import tempfile
 from pathlib import Path
-from typing import Optional, Tuple, List
+
 import structlog
 
 logger = structlog.get_logger()
@@ -69,7 +69,7 @@ class FilesystemEngine:
 
     # ---- Read Operations ----
 
-    def safe_read(self, path: str, encoding: str = "utf-8") -> Tuple[str, str]:
+    def safe_read(self, path: str, encoding: str = "utf-8") -> tuple[str, str]:
         """
         Read file content safely.
         Returns (content, hash).
@@ -108,7 +108,7 @@ class FilesystemEngine:
         content: str,
         encoding: str = "utf-8",
         create_backup: bool = True,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Write file content safely with atomic write and backup.
         Returns (success, new_hash).
@@ -121,14 +121,13 @@ class FilesystemEngine:
             os.makedirs(parent, exist_ok=True)
 
         # Backup existing file
-        file_hash = ""
         if create_backup and os.path.exists(canonical):
             backup_dir = _ensure_backup_dir(self.workspace_root)
             rel_path = os.path.relpath(canonical, self.workspace_root)
             backup_path = os.path.join(backup_dir, rel_path)
             os.makedirs(os.path.dirname(backup_path), exist_ok=True)
             shutil.copy2(canonical, backup_path)
-            file_hash = _hash_file(canonical)
+            _hash_file(canonical)
             logger.debug("file_backed_up", original=canonical, backup=backup_path)
 
         # Atomic write: write to temp, then rename
@@ -154,9 +153,9 @@ class FilesystemEngine:
         path: str,
         old_string: str,
         new_string: str,
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Patch a file by replacing old_string with new_string."""
-        content, old_hash = self.safe_read(path)
+        content, _old_hash = self.safe_read(path)
         if old_string not in content:
             raise ValueError(f"String not found in file: {old_string[:50]}...")
 
@@ -195,10 +194,17 @@ class FilesystemEngine:
 
         if not force:
             # Don't delete important files without force
-            important_patterns = [r"\.git", r"\.env", r"config\.yaml", r"requirements\.txt"]
+            important_patterns = [
+                r"\.git",
+                r"\.env",
+                r"config\.yaml",
+                r"requirements\.txt",
+            ]
             for pat in important_patterns:
-                if re.search(pat, canonical, re.I):
-                    raise ValueError(f"Refusing to delete important file without force: {canonical}")
+                if re.search(pat, canonical, re.IGNORECASE):
+                    raise ValueError(
+                        f"Refusing to delete important file without force: {canonical}"
+                    )
 
         # Backup before delete
         backup_dir = _ensure_backup_dir(self.workspace_root)
@@ -216,7 +222,7 @@ class FilesystemEngine:
         logger.info("file_deleted", path=canonical, backed_up=True)
         return True
 
-    def safe_list(self, path: str, pattern: str = "*") -> List[str]:
+    def safe_list(self, path: str, pattern: str = "*") -> list[str]:
         """List files in directory matching pattern."""
         canonical = _canonicalize(path, self.workspace_root)
 
@@ -226,7 +232,7 @@ class FilesystemEngine:
         matches = list(Path(canonical).glob(pattern))
         return [str(m) for m in matches]
 
-    def safe_search(self, path: str, pattern: str) -> List[str]:
+    def safe_search(self, path: str, pattern: str) -> list[str]:
         """Search for pattern in files."""
         import subprocess
 

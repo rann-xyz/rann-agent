@@ -4,14 +4,15 @@ Unit tests for connection pooling and client reuse.
 These tests mock the underlying HTTP/SDK clients to focus on verifying
 the pooling/reuse logic without making real network calls.
 """
-import pytest
-import asyncio
-import threading
-from unittest.mock import patch, MagicMock
 
-from rann_agent.interfaces.api_client import APIClient
+import threading
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 from rann_agent.core import llm_provider as llm_module
-from rann_agent.utils.http_pool import get_pool_limits, POOL_LIMITS
+from rann_agent.interfaces.api_client import APIClient
+from rann_agent.utils.http_pool import POOL_LIMITS, get_pool_limits
 
 
 class TestHTTPPooling:
@@ -141,7 +142,6 @@ class TestLLMClientCaching:
                 return llm_module.AnthropicProvider("shared-key", "model-0")
 
         threads = [threading.Thread(target=make_provider, args=(i,)) for i in range(10)]
-        providers = []
         for t in threads:
             t.start()
         for t in threads:

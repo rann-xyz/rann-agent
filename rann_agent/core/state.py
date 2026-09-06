@@ -5,13 +5,13 @@ Implements V3 Section 5 state machine with persistent state support.
 Supports resume after restart through disk persistence.
 """
 
-from enum import Enum
-from typing import Set, Dict, Optional, List
-from dataclasses import dataclass, field, asdict
-from datetime import datetime
 import json
-import structlog
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from enum import Enum
 from pathlib import Path
+
+import structlog
 
 logger = structlog.get_logger()
 
@@ -21,6 +21,7 @@ STATE_DIR = Path.home() / ".rann_agent" / "state"
 
 class AgentState(Enum):
     """All possible agent states as per V3 Section 5"""
+
     # Active states
     QUEUED = "queued"
     ANALYZING = "analyzing"
@@ -42,7 +43,7 @@ class AgentState(Enum):
 
 
 # Terminal states that cannot transition further
-TERMINAL_STATES: Set[AgentState] = {
+TERMINAL_STATES: set[AgentState] = {
     AgentState.COMPLETED,
     AgentState.FAILED,
     AgentState.CANCELLED,
@@ -52,16 +53,53 @@ TERMINAL_STATES: Set[AgentState] = {
 }
 
 # Valid state transitions per V3 Section 5
-VALID_TRANSITIONS: Dict[AgentState, Set[AgentState]] = {
+VALID_TRANSITIONS: dict[AgentState, set[AgentState]] = {
     AgentState.QUEUED: {AgentState.ANALYZING},
-    AgentState.ANALYZING: {AgentState.CONTEXT_READY, AgentState.BLOCKED, AgentState.FAILED, AgentState.COMPLETED},
-    AgentState.CONTEXT_READY: {AgentState.PLANNING, AgentState.BLOCKED, AgentState.FAILED},
-    AgentState.PLANNING: {AgentState.WAITING_POLICY, AgentState.EXECUTING, AgentState.FAILED},
-    AgentState.WAITING_POLICY: {AgentState.EXECUTING, AgentState.BLOCKED, AgentState.FAILED},
-    AgentState.EXECUTING: {AgentState.VERIFYING, AgentState.RECOVERING, AgentState.FAILED, AgentState.TIMED_OUT},
-    AgentState.VERIFYING: {AgentState.ACCEPTANCE_CHECK, AgentState.RECOVERING, AgentState.EXECUTING, AgentState.FAILED},
-    AgentState.RECOVERING: {AgentState.EXECUTING, AgentState.ANALYZING, AgentState.FAILED, AgentState.ROLLED_BACK},
-    AgentState.ACCEPTANCE_CHECK: {AgentState.COMPLETED, AgentState.LEARNING, AgentState.EXECUTING, AgentState.FAILED},
+    AgentState.ANALYZING: {
+        AgentState.CONTEXT_READY,
+        AgentState.BLOCKED,
+        AgentState.FAILED,
+        AgentState.COMPLETED,
+    },
+    AgentState.CONTEXT_READY: {
+        AgentState.PLANNING,
+        AgentState.BLOCKED,
+        AgentState.FAILED,
+    },
+    AgentState.PLANNING: {
+        AgentState.WAITING_POLICY,
+        AgentState.EXECUTING,
+        AgentState.FAILED,
+    },
+    AgentState.WAITING_POLICY: {
+        AgentState.EXECUTING,
+        AgentState.BLOCKED,
+        AgentState.FAILED,
+    },
+    AgentState.EXECUTING: {
+        AgentState.VERIFYING,
+        AgentState.RECOVERING,
+        AgentState.FAILED,
+        AgentState.TIMED_OUT,
+    },
+    AgentState.VERIFYING: {
+        AgentState.ACCEPTANCE_CHECK,
+        AgentState.RECOVERING,
+        AgentState.EXECUTING,
+        AgentState.FAILED,
+    },
+    AgentState.RECOVERING: {
+        AgentState.EXECUTING,
+        AgentState.ANALYZING,
+        AgentState.FAILED,
+        AgentState.ROLLED_BACK,
+    },
+    AgentState.ACCEPTANCE_CHECK: {
+        AgentState.COMPLETED,
+        AgentState.LEARNING,
+        AgentState.EXECUTING,
+        AgentState.FAILED,
+    },
     AgentState.LEARNING: {AgentState.PLANNING, AgentState.COMPLETED, AgentState.FAILED},
     # Terminal states - no valid transitions out
     AgentState.COMPLETED: set(),
@@ -75,6 +113,7 @@ VALID_TRANSITIONS: Dict[AgentState, Set[AgentState]] = {
 
 class StateTransitionError(Exception):
     """Raised when an invalid state transition is attempted"""
+
     def __init__(self, current: AgentState, target: AgentState):
         self.current = current
         self.target = target
@@ -93,13 +132,14 @@ InvalidStateTransitionError = StateTransitionError
 @dataclass
 class StateTransitionRecord:
     """Record of a state transition"""
+
     from_state: AgentState
     to_state: AgentState
     timestamp: datetime
-    reason: Optional[str] = None
-    metadata: Dict = field(default_factory=dict)
+    reason: str | None = None
+    metadata: dict = field(default_factory=dict)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "from_state": self.from_state.value,
             "to_state": self.to_state.value,
@@ -109,7 +149,7 @@ class StateTransitionRecord:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "StateTransitionRecord":
+    def from_dict(cls, data: dict) -> "StateTransitionRecord":
         return cls(
             from_state=AgentState(data["from_state"]),
             to_state=AgentState(data["to_state"]),
@@ -122,13 +162,14 @@ class StateTransitionRecord:
 @dataclass
 class PersistedState:
     """State persisted to disk for resume capability"""
+
     run_id: str
     state: AgentState
     state_since: datetime
-    history: List[Dict]
-    metadata: Dict = field(default_factory=dict)
+    history: list[dict]
+    metadata: dict = field(default_factory=dict)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "run_id": self.run_id,
             "state": self.state.value,
@@ -138,7 +179,7 @@ class PersistedState:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "PersistedState":
+    def from_dict(cls, data: dict) -> "PersistedState":
         return cls(
             run_id=data["run_id"],
             state=AgentState(data["state"]),
@@ -159,17 +200,15 @@ class AgentStateMachine:
     def __init__(self, run_id: str, initial_state: AgentState = AgentState.QUEUED):
         self.run_id = run_id
         self._state = initial_state
-        self._history: List[StateTransitionRecord] = []
-        self._state_since = datetime.now()
+        self._history: list[StateTransitionRecord] = []
+        self._state_since = datetime.now(UTC)
         self._state_file = STATE_DIR / f"{run_id}.json"
-        
+
         # Ensure state directory exists
         STATE_DIR.mkdir(parents=True, exist_ok=True)
-        
+
         logger.info(
-            "state_machine_init",
-            run_id=run_id,
-            initial_state=self._state.value
+            "state_machine_init", run_id=run_id, initial_state=self._state.value
         )
 
     @property
@@ -184,20 +223,17 @@ class AgentStateMachine:
     @property
     def is_running(self) -> bool:
         """True if actively processing (non-terminal and not queued)"""
-        return (
-            self._state not in TERMINAL_STATES
-            and self._state != AgentState.QUEUED
-        )
+        return self._state not in TERMINAL_STATES and self._state != AgentState.QUEUED
 
     @property
-    def history(self) -> List[StateTransitionRecord]:
+    def history(self) -> list[StateTransitionRecord]:
         """Full transition history"""
         return self._history.copy()
 
     @property
     def duration_seconds(self) -> float:
         """Time spent in current state"""
-        return (datetime.now() - self._state_since).total_seconds()
+        return (datetime.now(UTC) - self._state_since).total_seconds()
 
     def can_transition_to(self, target: AgentState) -> bool:
         """Check if transition to target state is valid"""
@@ -208,10 +244,7 @@ class AgentStateMachine:
         return self.can_transition_to(target)
 
     def transition(
-        self,
-        target: AgentState,
-        reason: Optional[str] = None,
-        **metadata
+        self, target: AgentState, reason: str | None = None, **metadata
     ) -> StateTransitionRecord:
         """
         Transition to new state.
@@ -228,7 +261,7 @@ class AgentStateMachine:
         record = StateTransitionRecord(
             from_state=self._state,
             to_state=target,
-            timestamp=datetime.now(),
+            timestamp=datetime.now(UTC),
             reason=reason,
             metadata=metadata,
         )
@@ -236,7 +269,7 @@ class AgentStateMachine:
         old_state = self._state
         self._state = target
         self._history.append(record)
-        self._state_since = datetime.now()
+        self._state_since = datetime.now(UTC)
 
         # Persist state to disk
         self._persist()
@@ -247,16 +280,13 @@ class AgentStateMachine:
             from_state=old_state.value,
             to_state=target.value,
             reason=reason,
-            **metadata
+            **metadata,
         )
 
         return record
 
     def must_transition(
-        self,
-        target: AgentState,
-        reason: Optional[str] = None,
-        **metadata
+        self, target: AgentState, reason: str | None = None, **metadata
     ) -> StateTransitionRecord:
         """
         Transition with assertion - raises if invalid.
@@ -270,7 +300,7 @@ class AgentStateMachine:
                 run_id=self.run_id,
                 current=e.current.value,
                 attempted=e.target.value,
-                reason=reason
+                reason=reason,
             )
             raise
 
@@ -284,7 +314,9 @@ class AgentStateMachine:
                 history=[r.to_dict() for r in self._history],
             )
             self._state_file.write_text(json.dumps(persisted.to_dict(), indent=2))
-            logger.debug("state_persisted", run_id=self.run_id, path=str(self._state_file))
+            logger.debug(
+                "state_persisted", run_id=self.run_id, path=str(self._state_file)
+            )
         except Exception as e:
             logger.warning("state_persist_failed", run_id=self.run_id, error=str(e))
 
@@ -312,16 +344,12 @@ class AgentStateMachine:
                 "state_loaded",
                 run_id=self.run_id,
                 state=self._state.value,
-                transition_count=len(self._history)
+                transition_count=len(self._history),
             )
             return True
 
         except Exception as e:
-            logger.error(
-                "state_load_failed",
-                run_id=self.run_id,
-                error=str(e)
-            )
+            logger.error("state_load_failed", run_id=self.run_id, error=str(e))
             return False
 
     def clear_persistence(self) -> None:
@@ -333,7 +361,7 @@ class AgentStateMachine:
         except Exception as e:
             logger.warning("state_clear_failed", run_id=self.run_id, error=str(e))
 
-    def get_state_summary(self) -> Dict:
+    def get_state_summary(self) -> dict:
         """Get summary of current state for debugging"""
         last = self._history[-1] if self._history else None
         return {
@@ -343,14 +371,18 @@ class AgentStateMachine:
             "is_running": self.is_running,
             "duration_seconds": self.duration_seconds,
             "transition_count": len(self._history),
-            "last_transition": {
-                "from": last.from_state.value if last else None,
-                "to": last.to_state.value if last else None,
-                "timestamp": last.timestamp.isoformat() if last else None,
-            } if last else None,
+            "last_transition": (
+                {
+                    "from": last.from_state.value if last else None,
+                    "to": last.to_state.value if last else None,
+                    "timestamp": last.timestamp.isoformat() if last else None,
+                }
+                if last
+                else None
+            ),
             "state_file": str(self._state_file),
         }
 
-    def get_valid_transitions(self) -> Set[AgentState]:
+    def get_valid_transitions(self) -> set[AgentState]:
         """Get set of valid transitions from current state"""
         return VALID_TRANSITIONS.get(self._state, set()).copy()

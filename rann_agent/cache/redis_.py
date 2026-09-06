@@ -4,12 +4,14 @@ Redis cache backend.
 Optional backend — activates only when REDIS_URL is set in the environment.
 Falls back gracefully if Redis is unavailable.
 """
+
 import json
 import os
-from rann_agent.cache.backend import CacheBackend
-from typing import Any, Optional
+from typing import Any
 
 import structlog
+
+from rann_agent.cache.backend import CacheBackend
 
 logger = structlog.get_logger()
 
@@ -30,16 +32,15 @@ class RedisCache(CacheBackend):
     Falls back to in-memory if Redis connection fails.
     """
 
-    def __init__(self, *, url: Optional[str] = None, default_ttl: int = 3600):
+    def __init__(self, *, url: str | None = None, default_ttl: int = 3600):
         if not REDIS_AVAILABLE:
             raise RuntimeError(
-                "redis package not installed. "
-                "Install with: pip install redis"
+                "redis package not installed. " "Install with: pip install redis"
             )
 
         self._url = url or os.environ.get("REDIS_URL", "redis://localhost:6379/0")
         self._default_ttl = default_ttl
-        self._client: Optional[redis.Redis] = None
+        self._client: redis.Redis | None = None
         self._connect_failed = False
         self._hits = 0
         self._misses = 0
@@ -48,7 +49,7 @@ class RedisCache(CacheBackend):
     def backend_name(self) -> str:
         return "redis"
 
-    async def _get_client(self) -> Optional[redis.Redis]:
+    async def _get_client(self) -> redis.Redis | None:
         """Lazily connect. Returns None if connection failed."""
         if self._connect_failed:
             return None
@@ -74,7 +75,7 @@ class RedisCache(CacheBackend):
                 return None
         return self._client
 
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         client = await self._get_client()
         if client is None:
             return None
@@ -89,7 +90,7 @@ class RedisCache(CacheBackend):
             logger.warning("redis_get_failed", key=key, error=str(e))
             return None
 
-    async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    async def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         client = await self._get_client()
         if client is None:
             return

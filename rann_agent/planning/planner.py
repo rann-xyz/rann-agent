@@ -4,7 +4,8 @@ As required by MASTER PROMPT Section 15.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any
+
 import structlog
 
 logger = structlog.get_logger()
@@ -14,7 +15,7 @@ logger = structlog.get_logger()
 class PlanAction:
     action_id: str
     tool: str
-    args: Dict[str, Any]
+    args: dict[str, Any]
     expected: str
     rollback: str
 
@@ -22,12 +23,12 @@ class PlanAction:
 @dataclass
 class Plan:
     objective: str
-    assumptions: List[str] = field(default_factory=list)
-    files_to_inspect: List[str] = field(default_factory=list)
-    files_to_change: List[str] = field(default_factory=list)
-    dependencies: List[str] = field(default_factory=list)
-    actions: List[PlanAction] = field(default_factory=list)
-    expected_results: List[str] = field(default_factory=list)
+    assumptions: list[str] = field(default_factory=list)
+    files_to_inspect: list[str] = field(default_factory=list)
+    files_to_change: list[str] = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list)
+    actions: list[PlanAction] = field(default_factory=list)
+    expected_results: list[str] = field(default_factory=list)
     verification: str = "default"
     rollback_plan: str = ""
     risk: str = "medium"  # low, medium, high
@@ -37,7 +38,7 @@ class Plan:
 class PlanQualityGate:
     """Validates a plan meets minimum quality standards."""
 
-    def check(self, plan: Plan) -> Tuple[bool, List[str]]:
+    def check(self, plan: Plan) -> tuple[bool, list[str]]:
         issues = []
 
         if not plan.objective:
@@ -68,10 +69,10 @@ class PlanQualityGate:
 class Planner:
     """Generates structured execution plans from task contracts."""
 
-    def plan(self, contract: "TaskContract", context: Dict[str, Any]) -> Plan:
+    def plan(self, contract: "TaskContract", context: dict[str, Any]) -> Plan:
         """
         Generate a plan from a task contract.
-        
+
         In a full implementation, this would use an LLM to analyze
         the task and generate appropriate actions.
         """
@@ -80,12 +81,16 @@ class Planner:
             files_to_inspect=[],
             files_to_change=[],
             verification=f"Verify: {contract.verification_strategy}",
-            risk=contract.risk_level.name.lower() if hasattr(contract, 'risk_level') else "medium",
+            risk=(
+                contract.risk_level.name.lower()
+                if hasattr(contract, "risk_level")
+                else "medium"
+            ),
             rollback_plan="Restore from checkpoint on failure",
         )
         logger.info("plan_generated", objective=plan.objective, risk=plan.risk)
         return plan
 
-    def validate(self, plan: Plan) -> Tuple[bool, List[str]]:
+    def validate(self, plan: Plan) -> tuple[bool, list[str]]:
         gate = PlanQualityGate()
         return gate.check(plan)

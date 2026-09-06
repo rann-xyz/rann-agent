@@ -1,27 +1,27 @@
 """
 Unit tests for the cache module.
 """
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 
 from rann_agent.cache import (
-    CacheManager,
-    get_cache,
-    reset_cache,
     InMemoryCache,
-    RedisCache,
-    cache_key,
+    embedding_cache_key,
+    get_cache,
     hash_data,
     llm_cache_key,
+    reset_cache,
     tool_cache_key,
-    embedding_cache_key,
 )
 
 
 class TestHashData:
     def test_stable_hash(self):
         """Same input always produces same hash."""
-        data = {"messages": [{"role": "user", "content": "hi"}], "model": "claude-sonnet-4"}
+        data = {
+            "messages": [{"role": "user", "content": "hi"}],
+            "model": "claude-sonnet-4",
+        }
         h1 = hash_data(data)
         h2 = hash_data(data)
         assert h1 == h2
@@ -113,6 +113,7 @@ class TestInMemoryCache:
         await cache.set("key1", "value1", ttl=1)
         assert await cache.get("key1") == "value1"
         import asyncio
+
         await asyncio.sleep(1.1)
         assert await cache.get("key1") is None
 
@@ -156,7 +157,10 @@ class TestCacheManager:
     async def test_llm_cache_roundtrip(self):
         cache = get_cache()
         messages = [{"role": "user", "content": "hi"}]
-        response = {"content": "hello!", "usage": {"input_tokens": 5, "output_tokens": 3}}
+        response = {
+            "content": "hello!",
+            "usage": {"input_tokens": 5, "output_tokens": 3},
+        }
         await cache.set_llm_response(messages, "claude-sonnet-4", response)
         result = await cache.get_llm_response(messages, "claude-sonnet-4")
         assert result == response
@@ -167,16 +171,28 @@ class TestCacheManager:
         messages = [{"role": "user", "content": "hi"}]
         await cache.set_llm_response(messages, "claude-sonnet-4", {"content": "sonnet"})
         await cache.set_llm_response(messages, "gpt-4o", {"content": "gpt"})
-        assert (await cache.get_llm_response(messages, "claude-sonnet-4"))["content"] == "sonnet"
+        assert (await cache.get_llm_response(messages, "claude-sonnet-4"))[
+            "content"
+        ] == "sonnet"
         assert (await cache.get_llm_response(messages, "gpt-4o"))["content"] == "gpt"
 
     @pytest.mark.asyncio
     async def test_tool_cache_only_success(self):
         cache = get_cache()
-        await cache.set_tool_result("read_file", {"path": "/tmp/a.txt"}, {"success": True, "content": "file content"})
-        await cache.set_tool_result("read_file", {"path": "/tmp/b.txt"}, {"success": False, "error": "not found"})
+        await cache.set_tool_result(
+            "read_file",
+            {"path": "/tmp/a.txt"},
+            {"success": True, "content": "file content"},
+        )
+        await cache.set_tool_result(
+            "read_file",
+            {"path": "/tmp/b.txt"},
+            {"success": False, "error": "not found"},
+        )
         # Success should be cached
-        assert await cache.get_tool_result("read_file", {"path": "/tmp/a.txt"}) is not None
+        assert (
+            await cache.get_tool_result("read_file", {"path": "/tmp/a.txt"}) is not None
+        )
         # Failure should NOT be cached
         assert await cache.get_tool_result("read_file", {"path": "/tmp/b.txt"}) is None
 
@@ -191,11 +207,16 @@ class TestCacheManager:
     @pytest.mark.asyncio
     async def test_cache_disabled_via_env(self):
         import os
+
         os.environ["RANN_CACHE_ENABLED"] = "false"
         reset_cache()
         cache = get_cache()
-        await cache.set_llm_response([{"role": "user", "content": "x"}], "claude-sonnet-4", {"content": "y"})
-        result = await cache.get_llm_response([{"role": "user", "content": "x"}], "claude-sonnet-4")
+        await cache.set_llm_response(
+            [{"role": "user", "content": "x"}], "claude-sonnet-4", {"content": "y"}
+        )
+        result = await cache.get_llm_response(
+            [{"role": "user", "content": "x"}], "claude-sonnet-4"
+        )
         assert result is None
         os.environ["RANN_CACHE_ENABLED"] = "true"
         reset_cache()

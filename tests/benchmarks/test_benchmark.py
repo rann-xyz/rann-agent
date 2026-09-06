@@ -5,15 +5,17 @@ Run: pytest tests/benchmarks/test_benchmark.py -v --benchmark-disable-gc
 Save baseline: pytest tests/benchmarks/test_benchmark.py --benchmark-save
 Compare vs baseline: pytest tests/benchmarks/test_benchmark.py --benchmark-compare=0001
 """
-import pytest
+
 import asyncio
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from rann_agent.cache import InMemoryCache, llm_cache_key, tool_cache_key
-from rann_agent.memory.context_trim import trim_context, estimate_tokens
+from rann_agent.cache import InMemoryCache, llm_cache_key
+from rann_agent.memory.context_trim import trim_context
 
 
 class TestCacheBenchmark:
@@ -108,7 +110,7 @@ class TestStateBenchmark:
 
     def test_state_machine_100_transitions(self, benchmark):
         """100 state transitions should be < 5ms p99."""
-        from rann_agent.core.state import AgentState, VALID_TRANSITIONS
+        from rann_agent.core.state import VALID_TRANSITIONS, AgentState
 
         state = [AgentState.ANALYZING]
 

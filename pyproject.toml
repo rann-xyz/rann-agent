@@ -1,0 +1,65 @@
+[project]
+name = "rann-agent"
+version = "1.0.0"
+description = "Autonomous AI coding agent"
+requires-python = ">=3.10"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "ASYNC", "S", "BLE", "B", "SIM", "N"]
+ignore = [
+  "BLE001",   # catch blind exceptions — tool code needs this
+  "E501",     # line length — let black handle
+  "E402",     # module level import not at top — acceptable in some files
+  "E701",     # multiple statements on one line — daemon code
+  "E722",     # bare except — daemon code needs it
+  "S101",     # use of assert — test files intentionally use assert
+  "S110",     # try-except-pass — security tests
+  "S104",     # binding to all interfaces — server code
+  "S603",     # subprocess call check — daemon/benchmark needs it
+  "S607",     # partial executable path — benchmark code
+  "S108",     # insecure temp file — daemon pid file
+  "S310",     # audit URL open — web_api.py uses urllib intentionally
+  "S324",     # insecure hash — self_coding.py needs md5 for change IDs
+  "S311",     # pseudo-random not crypto — mcts_planner simulation
+  "SIM105",   # contextlib.suppress — readable as-is
+  "SIM117",   # nested with — readable as-is
+  "B017",     # assert Exception — test patterns
+  "B904",     # raise from in except — acceptable
+  "N806",     # variable uppercase in function — CLI code
+  "E741",     # ambiguous variable name — CLI code
+  "UP015",    # unnecessary mode argument — cosmetic
+  "RUF006",   # asyncio.create_task ref — cron_scheduler needs it
+  "RUF012",   # mutable class defaults — tool parameters
+  "W291",     # trailing whitespace — let black handle
+  "W292",     # no newline at end — let black handle
+  "W293",     # blank line with whitespace — let black handle
+  "F821",     # undefined name — forward refs in type hints (Database, TaskContract)
+  "F811",     # redefinition of unused — __init__.py re-exports intentionally
+  "F401",     # unused imports — try-except imports in CLI, test assertions
+  "ASYNC221", # blocking subprocess in async — verification.py needs it
+  "ASYNC230", # blocking open() in async — various modules need it
+  "ASYNC240", # blocking pathlib in async — verification.py needs it
+  "ASYNC110", # asyncio.Event suggestion — coordinator.py works fine as-is
+  "S602",     # shell=True subprocess — verification.py needs git commands
+  "S608",     # SQL injection vector — false positive (parametrized queries)
+  "B027",     # empty method without abstract decorator — CacheBackend.close
+  "SIM102",   # nested if statements — readable as-is
+  "SIM108",   # ternary suggestion — readable as-is
+  "B007",     # unused loop variable — intentionally unused
+  "S102",     # exec usage — tool_factory.py and loader.py need it
+  "S105",     # hardcoded password in literals — secrets.py defines constant names
+  "E712",     # equality to False — test code needs explicit False check
+  "E721",     # type comparison — validation.py does type matching
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true

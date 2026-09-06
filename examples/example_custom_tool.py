@@ -6,7 +6,7 @@ Shows how to register a custom tool with the tool registry.
 """
 
 import asyncio
-from rann_agent.tools.registry import ToolRegistry
+
 from rann_agent.tools.discovery import ToolDiscovery
 
 
@@ -17,16 +17,16 @@ def get_weather(city: str, units: str = "celsius") -> dict:
         "city": city,
         "temperature": 22 if units == "celsius" else 72,
         "units": units,
-        "condition": "sunny"
+        "condition": "sunny",
     }
 
 
 async def main():
     print("RANN Agent - Custom Tool Example\n")
-    
+
     # Create discovery and register custom tool
     discovery = ToolDiscovery()
-    
+
     discovery.register(
         name="weather",
         func=get_weather,
@@ -34,16 +34,16 @@ async def main():
         risk_level="safe",
         parameters={
             "city": {"type": "string", "required": True},
-            "units": {"type": "string", "default": "celsius"}
-        }
+            "units": {"type": "string", "default": "celsius"},
+        },
     )
-    
+
     # Verify it's registered
     tool = discovery.get("weather")
     print(f"Tool registered: {tool['name']}")
     print(f"Description: {tool['description']}")
     print(f"Risk level: {tool['risk_level']}")
-    
+
     # Test the function directly
     result = get_weather("Jakarta", "celsius")
     print(f"\nWeather result: {result}")

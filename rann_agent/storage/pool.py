@@ -4,12 +4,13 @@ DB Connection Pool for RANN Agent.
 Provides thread-safe connection pooling for SQLite.
 Falls back to single connection if pool unavailable.
 """
+
+import contextlib
+import queue
 import sqlite3
 import threading
-import queue
-import contextlib
-from typing import Optional
 from pathlib import Path
+
 import structlog
 
 logger = structlog.get_logger()
@@ -34,10 +35,12 @@ class ConnectionPool:
     Connections are checked for liveness before dispensing.
     """
 
-    def __init__(self, db_path: Optional[Path] = None, pool_size: int = DEFAULT_POOL_SIZE):
+    def __init__(self, db_path: Path | None = None, pool_size: int = DEFAULT_POOL_SIZE):
         self.db_path = db_path or get_db_path()
         self.pool_size = pool_size
-        self._pool: queue.Queue[Optional[sqlite3.Connection]] = queue.Queue(maxsize=pool_size)
+        self._pool: queue.Queue[sqlite3.Connection | None] = queue.Queue(
+            maxsize=pool_size
+        )
         self._lock = threading.Lock()
         self._init_lock = threading.Lock()
         self._initialized = False
@@ -65,7 +68,11 @@ class ConnectionPool:
                 except Exception as e:
                     logger.warning("pool_init_failed", error=str(e))
             self._initialized = True
-            logger.info("db_pool_initialized", pool_size=self.pool_size, db_path=str(self.db_path))
+            logger.info(
+                "db_pool_initialized",
+                pool_size=self.pool_size,
+                db_path=str(self.db_path),
+            )
 
     @contextlib.contextmanager
     def get_connection(self):
@@ -99,7 +106,7 @@ class ConnectionPool:
 
 
 # Global pool instance
-_pool: Optional[ConnectionPool] = None
+_pool: ConnectionPool | None = None
 _pool_lock = threading.Lock()
 
 

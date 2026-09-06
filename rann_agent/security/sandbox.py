@@ -17,7 +17,7 @@ import tempfile
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 import structlog
 
@@ -49,14 +49,19 @@ class SandboxConfig:
     network_allowed: bool = False  # Block network by default
     cpu_limit: float = 1.0  # Number of CPU cores
     read_only_fs: bool = True  # Read-only filesystem by default
-    allowed_paths: List[str] = field(default_factory=list)  # Whitelist paths
+    allowed_paths: list[str] = field(default_factory=list)  # Whitelist paths
 
     def __post_init__(self):
         """Validate configuration."""
         if self.timeout <= 0:
-            raise SecurityError("Timeout must be positive", details={"timeout": self.timeout})
+            raise SecurityError(
+                "Timeout must be positive", details={"timeout": self.timeout}
+            )
         if self.memory_limit <= 0:
-            raise SecurityError("Memory limit must be positive", details={"memory_limit": self.memory_limit})
+            raise SecurityError(
+                "Memory limit must be positive",
+                details={"memory_limit": self.memory_limit},
+            )
 
 
 @dataclass
@@ -66,9 +71,9 @@ class ExecutionResult:
     success: bool
     stdout: str
     stderr: str
-    exit_code: Optional[int]
+    exit_code: int | None
     duration: float  # seconds
-    error: Optional[str] = None
+    error: str | None = None
     killed: bool = False
 
 
@@ -105,7 +110,7 @@ class SandboxExecutor:
 
     def __init__(self):
         """Initialize the sandbox executor."""
-        self._docker_available: Optional[bool] = None
+        self._docker_available: bool | None = None
 
     @property
     def docker_available(self) -> bool:
@@ -118,7 +123,7 @@ class SandboxExecutor:
         self,
         code: str,
         language: str,
-        config: Optional[SandboxConfig] = None,
+        config: SandboxConfig | None = None,
     ) -> ExecutionResult:
         """
         Execute code in the configured sandbox.
@@ -225,7 +230,7 @@ class SandboxExecutor:
             try:
                 filepath.write_text(code)
                 filepath.chmod(0o600)  # Restrict file permissions
-            except IOError as e:
+            except OSError as e:
                 raise ToolExecutionError(f"Failed to write code to temp file: {e}")
 
             cmd = self._build_command(filepath, language)
@@ -276,18 +281,29 @@ class SandboxExecutor:
             "docker",
             "run",
             "--rm",  # Auto-remove container when done
-            "--name", container_id,
-            "--network", "none" if not config.network_allowed else "bridge",
-            "--memory", str(config.memory_limit),
-            "--memory-swap", str(config.memory_limit),  # Disable swap
-            "--cpus", str(config.cpu_limit),
-            "--pids-limit", "64",  # Limit number of processes
+            "--name",
+            container_id,
+            "--network",
+            "none" if not config.network_allowed else "bridge",
+            "--memory",
+            str(config.memory_limit),
+            "--memory-swap",
+            str(config.memory_limit),  # Disable swap
+            "--cpus",
+            str(config.cpu_limit),
+            "--pids-limit",
+            "64",  # Limit number of processes
             "--read-only" if config.read_only_fs else "",
-            "--security-opt", "no-new-privileges",
-            "--cap-drop", "ALL",
-            "-v", f"{tempfile.gettempdir()}:{tempfile.gettempdir()}:ro"
-            if config.read_only_fs
-            else f"{tempfile.gettempdir()}:{tempfile.gettempdir()}:rw",
+            "--security-opt",
+            "no-new-privileges",
+            "--cap-drop",
+            "ALL",
+            "-v",
+            (
+                f"{tempfile.gettempdir()}:{tempfile.gettempdir()}:ro"
+                if config.read_only_fs
+                else f"{tempfile.gettempdir()}:{tempfile.gettempdir()}:rw"
+            ),
             self._DOCKER_IMAGE,
             "python" if language.startswith("python") else "node",
             local_file,
@@ -299,7 +315,7 @@ class SandboxExecutor:
             try:
                 filepath.write_text(code)
                 filepath.chmod(0o600)
-            except IOError as e:
+            except OSError as e:
                 raise ToolExecutionError(f"Failed to write code to temp file: {e}")
 
             copy_cmd = ["docker", "cp", str(filepath), f"{container_id}:{local_file}"]
@@ -346,7 +362,7 @@ class SandboxExecutor:
             details={"type": SandboxType.VM.value},
         )
 
-    def _build_command(self, code_or_path: str | Path, language: str) -> List[str]:
+    def _build_command(self, code_or_path: str | Path, language: str) -> list[str]:
         """Build the appropriate command to execute code in the given language."""
         lang = language.lower()
 
@@ -374,10 +390,10 @@ def _time_seconds() -> float:
 
 
 async def _run_process(
-    cmd: List[str],
+    cmd: list[str],
     timeout: int,
-    memory_limit: Optional[int] = None,
-    cwd: Optional[str] = None,
+    memory_limit: int | None = None,
+    cwd: str | None = None,
 ) -> subprocess.CompletedProcess:
     """
     Run a subprocess with optional memory limit enforcement.
@@ -398,12 +414,14 @@ async def _run_process(
             # Limit number of processes
             resource.setrlimit(resource.RLIMIT_NPROC, (64, 64))
             # Limit file size to 10MB
-            resource.setrlimit(resource.RLIMIT_FSIZE, (10 * 1024 * 1024, 10 * 1024 * 1024))
+            resource.setrlimit(
+                resource.RLIMIT_FSIZE, (10 * 1024 * 1024, 10 * 1024 * 1024)
+            )
         except (ValueError, OSError) as e:
             log.warning("failed_to_set_resource_limits", error=str(e))
 
     # Create subprocess
-    kwargs: Dict[str, Any] = {
+    kwargs: dict[str, Any] = {
         "args": cmd,
         "stdout": subprocess.PIPE,
         "stderr": subprocess.PIPE,
@@ -419,7 +437,7 @@ async def _run_process(
     )
 
     # Memory monitor future
-    monitor_task: Optional[asyncio.Task] = None
+    monitor_task: asyncio.Task | None = None
 
     async def _monitor_memory():
         """Poll memory usage and kill process if over limit."""
@@ -456,7 +474,9 @@ async def _run_process(
 
     try:
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-        return subprocess.CompletedProcess(args=cmd, returncode=proc.returncode, stdout=stdout, stderr=stderr)
+        return subprocess.CompletedProcess(
+            args=cmd, returncode=proc.returncode, stdout=stdout, stderr=stderr
+        )
     except asyncio.TimeoutExpired:
         # Kill the process
         try:

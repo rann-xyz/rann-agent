@@ -5,15 +5,15 @@ Multi-shell provider architecture with optional PTY support.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import signal
 import subprocess
 import time
-import hashlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Union
+from typing import Any
 
 import structlog
 
@@ -30,20 +30,21 @@ MAX_OUTPUT_SIZE = 1024 * 1024  # 1MB per stdout/stderr
 @dataclass
 class ToolResult:
     """Structured result from tool execution."""
+
     call_id: str
     tool_name: str
-    command: Optional[str]
+    command: str | None
     success: bool
-    exit_code: Optional[int]
+    exit_code: int | None
     stdout: str
     stderr: str
     duration_ms: float
     timed_out: bool = False
     cancelled: bool = False
-    error_type: Optional[str] = None
-    error_message: Optional[str] = None
-    artifacts: List[str] = field(default_factory=list)
-    evidence_id: Optional[str] = None
+    error_type: str | None = None
+    error_message: str | None = None
+    artifacts: list[str] = field(default_factory=list)
+    evidence_id: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -71,7 +72,7 @@ class ShellProvider(ABC):
         ...
 
     @abstractmethod
-    def _build_cmd(self, command: str) -> List[str]:
+    def _build_cmd(self, command: str) -> list[str]:
         """
         Return the argument list used to run *command* in this shell.
 
@@ -98,8 +99,8 @@ class ShellProvider(ABC):
         command: str,
         cwd: str,
         timeout: int,
-        env: Dict[str, str],
-        input_data: Optional[str] = None,
+        env: dict[str, str],
+        input_data: str | None = None,
     ) -> ToolResult:
         """
         Run *command* in this shell and return a ToolResult.
@@ -108,7 +109,6 @@ class ShellProvider(ABC):
         Subclasses only override _build_cmd() to specialise the subprocess
         invocation.
         """
-        import uuid
 
         call_id = hashlib.sha256(str(time.time()).encode()).hexdigest()[:12]
         start_time = time.time()
@@ -130,11 +130,13 @@ class ShellProvider(ABC):
                 cmd_list,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                stdin=subprocess.PIPE if (input_data and self._supports_input()) else None,
+                stdin=(
+                    subprocess.PIPE if (input_data and self._supports_input()) else None
+                ),
                 cwd=cwd,
                 env=env,
-                shell=False,          # Security: never enable shell=True
-                preexec_fn=os.setsid, # Process group for cancellation
+                shell=False,  # Security: never enable shell=True
+                preexec_fn=os.setsid,  # Process group for cancellation
             )
 
             if input_data and proc.stdin:
@@ -271,7 +273,10 @@ class ShellProvider(ABC):
                 label=label,
                 original_size=len(text),
             )
-            return text[:MAX_OUTPUT_SIZE] + f"\n... [{label} truncated, was {len(text)} bytes]"
+            return (
+                text[:MAX_OUTPUT_SIZE]
+                + f"\n... [{label} truncated, was {len(text)} bytes]"
+            )
         return text
 
     def _make_result(
@@ -279,14 +284,14 @@ class ShellProvider(ABC):
         call_id: str,
         command: str,
         success: bool,
-        exit_code: Optional[int],
+        exit_code: int | None,
         stdout: str,
         stderr: str,
         duration_ms: float,
         timed_out: bool = False,
         cancelled: bool = False,
-        error_type: Optional[str] = None,
-        error_message: Optional[str] = None,
+        error_type: str | None = None,
+        error_message: str | None = None,
     ) -> ToolResult:
         """Construct a ToolResult with all fields populated."""
         return ToolResult(
@@ -315,7 +320,7 @@ class BashProvider(ShellProvider):
 
     name = "bash"
 
-    def _build_cmd(self, command: str) -> List[str]:
+    def _build_cmd(self, command: str) -> list[str]:
         return ["/bin/bash", "-c", command]
 
     @property
@@ -328,7 +333,7 @@ class ZshProvider(ShellProvider):
 
     name = "zsh"
 
-    def _build_cmd(self, command: str) -> List[str]:
+    def _build_cmd(self, command: str) -> list[str]:
         return ["/bin/zsh", "-c", command]
 
     @property
@@ -341,7 +346,7 @@ class PwshProvider(ShellProvider):
 
     name = "pwsh"
 
-    def _build_cmd(self, command: str) -> List[str]:
+    def _build_cmd(self, command: str) -> list[str]:
         return ["/usr/bin/pwsh", "-c", command]
 
     @property
@@ -354,7 +359,7 @@ class CmdProvider(ShellProvider):
 
     name = "cmd"
 
-    def _build_cmd(self, command: str) -> List[str]:
+    def _build_cmd(self, command: str) -> list[str]:
         return ["/bin/cmd", "/C", command]
 
     @property
@@ -368,7 +373,7 @@ class FishProvider(ShellProvider):
 
     name = "fish"
 
-    def _build_cmd(self, command: str) -> List[str]:
+    def _build_cmd(self, command: str) -> list[str]:
         return ["/usr/bin/fish", "-c", command]
 
     @property
@@ -381,12 +386,14 @@ class PythonProvider(ShellProvider):
 
     name = "python3"
 
-    def _build_cmd(self, command: str) -> List[str]:
+    def _build_cmd(self, command: str) -> list[str]:
         return ["python3", "-c", command]
 
     @property
     def available(self) -> bool:
-        return os.path.isfile("/usr/bin/python3") and os.access("/usr/bin/python3", os.X_OK)
+        return os.path.isfile("/usr/bin/python3") and os.access(
+            "/usr/bin/python3", os.X_OK
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -412,17 +419,17 @@ class PTYProvider(ShellProvider):
 
     def __init__(self) -> None:
         super().__init__()
-        self._master_fd: Optional[int] = None
-        self._slave_fd: Optional[int] = None
-        self._proc: Optional[subprocess.Popen] = None
-        self._history: List[str] = []
+        self._master_fd: int | None = None
+        self._slave_fd: int | None = None
+        self._proc: subprocess.Popen | None = None
+        self._history: list[str] = []
         self._closed = False
 
     # ------------------------------------------------------------------
     # ShellProvider interface
     # ------------------------------------------------------------------
 
-    def _build_cmd(self, command: str) -> List[str]:
+    def _build_cmd(self, command: str) -> list[str]:
         # Not used when we manage the PTY directly
         return ["/bin/bash", "-i", "-s"]
 
@@ -436,7 +443,7 @@ class PTYProvider(ShellProvider):
     # Lifecycle
     # ------------------------------------------------------------------
 
-    def _ensure_running(self, cwd: str, env: Dict[str, str]) -> None:
+    def _ensure_running(self, cwd: str, env: dict[str, str]) -> None:
         """Start the interactive bash process if it is not already running."""
         if self._proc is not None and self._proc.poll() is None:
             return
@@ -510,7 +517,9 @@ class PTYProvider(ShellProvider):
             if remaining <= 0:
                 break
             try:
-                rd, _, _ = _select.select([self._master_fd], [], [], min(0.1, remaining))
+                rd, _, _ = _select.select(
+                    [self._master_fd], [], [], min(0.1, remaining)
+                )
                 if rd:
                     chunk = os.read(self._master_fd, 4096)
                     if not chunk:
@@ -548,10 +557,9 @@ class PTYProvider(ShellProvider):
         command: str,
         cwd: str,
         timeout: int,
-        env: Dict[str, str],
-        input_data: Optional[str] = None,
+        env: dict[str, str],
+        input_data: str | None = None,
     ) -> ToolResult:
-        import uuid
 
         call_id = hashlib.sha256(str(time.time()).encode()).hexdigest()[:12]
         start_time = time.time()
@@ -660,7 +668,7 @@ class PTYProvider(ShellProvider):
         self._closed = True
 
     @property
-    def history(self) -> List[str]:
+    def history(self) -> list[str]:
         """Return the command history accumulated so far."""
         return list(self._history)
 
@@ -672,6 +680,7 @@ class PTYProvider(ShellProvider):
             import fcntl
             import struct
             import termios
+
             size = struct.pack("HHHH", 0, 0, 0, 0)
             # Get current window size from slave
             try:
@@ -687,10 +696,10 @@ class PTYProvider(ShellProvider):
 # Singleton factory
 # ---------------------------------------------------------------------------
 
-_PROVIDER_REGISTRY: Dict[str, ShellProvider] = {}
+_PROVIDER_REGISTRY: dict[str, ShellProvider] = {}
 
 
-def _make_provider(name: str) -> Optional[ShellProvider]:
+def _make_provider(name: str) -> ShellProvider | None:
     """Instantiate a provider by name, or return None if unavailable."""
     factories = {
         "bash": BashProvider,
@@ -712,7 +721,7 @@ def _make_provider(name: str) -> Optional[ShellProvider]:
     return provider
 
 
-def get_shell_provider(name: str) -> Optional[ShellProvider]:
+def get_shell_provider(name: str) -> ShellProvider | None:
     """
     Return a singleton instance of the named shell provider.
 
@@ -763,13 +772,13 @@ class RealTerminalExecutor:
 
     def __init__(
         self,
-        workspace_root: Optional[str] = None,
-        allowed_env_vars: Optional[List[str]] = None,
-        forbidden_env_patterns: Optional[List[str]] = None,
+        workspace_root: str | None = None,
+        allowed_env_vars: list[str] | None = None,
+        forbidden_env_patterns: list[str] | None = None,
         default_timeout: int = 60,
         *,
         default_shell: str = "bash",
-        allowed_shells: Optional[List[str]] = None,
+        allowed_shells: list[str] | None = None,
         pty_enabled: bool = False,
     ) -> None:
         self.workspace_root = (
@@ -777,8 +786,14 @@ class RealTerminalExecutor:
         )
         self.allowed_env_vars = allowed_env_vars or []
         self.forbidden_env_patterns = forbidden_env_patterns or [
-            "API_KEY", "SECRET", "PASSWORD", "TOKEN", "PRIVATE",
-            "ANTHROPIC", "OPENAI", "HERMES",
+            "API_KEY",
+            "SECRET",
+            "PASSWORD",
+            "TOKEN",
+            "PRIVATE",
+            "ANTHROPIC",
+            "OPENAI",
+            "HERMES",
         ]
         self.default_timeout = default_timeout
         self.default_shell = default_shell
@@ -787,7 +802,7 @@ class RealTerminalExecutor:
 
         # Install SIGWINCH handler if PTY is enabled
         if self.pty_enabled:
-            self._pty_provider: Optional[PTYProvider] = None
+            self._pty_provider: PTYProvider | None = None
             # Defer PTYProvider creation until first use so that signal
             # handlers are registered in the main thread on Unix.
         else:
@@ -805,9 +820,9 @@ class RealTerminalExecutor:
     # Environment and cwd helpers
     # ------------------------------------------------------------------
 
-    def _filter_env(self, env: Dict[str, str]) -> Dict[str, str]:
+    def _filter_env(self, env: dict[str, str]) -> dict[str, str]:
         """Remove forbidden environment variables."""
-        filtered: Dict[str, str] = {}
+        filtered: dict[str, str] = {}
         for key, value in env.items():
             upper_key = key.upper()
             if any(pat in upper_key for pat in self.forbidden_env_patterns):
@@ -830,7 +845,7 @@ class RealTerminalExecutor:
     # Provider resolution
     # ------------------------------------------------------------------
 
-    def _resolve_provider(self, shell: Optional[str]) -> ShellProvider:
+    def _resolve_provider(self, shell: str | None) -> ShellProvider:
         """
         Return the ShellProvider for *shell*, falling back sensibly.
 
@@ -875,12 +890,12 @@ class RealTerminalExecutor:
 
     def execute(
         self,
-        command: Union[str, List[str]],
-        cwd: Optional[str] = None,
-        timeout: Optional[int] = None,
-        input_data: Optional[str] = None,
+        command: str | list[str],
+        cwd: str | None = None,
+        timeout: int | None = None,
+        input_data: str | None = None,
         check: bool = False,
-        shell: Optional[str] = None,
+        shell: str | None = None,
     ) -> ToolResult:
         """
         Execute *command* and return a structured ToolResult.
@@ -954,9 +969,7 @@ class RealTerminalExecutor:
         result.duration_ms = duration_ms
 
         if check and not result.success:
-            raise subprocess.CalledProcessError(
-                result.exit_code or 1, cmd_str
-            )
+            raise subprocess.CalledProcessError(result.exit_code or 1, cmd_str)
 
         return result
 

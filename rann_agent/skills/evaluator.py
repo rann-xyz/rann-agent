@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import dataclass, asdict, field
-from datetime import datetime
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 
@@ -23,6 +23,7 @@ logger = structlog.get_logger()
 # Data classes
 # -----------------------------------------------------------------------------
 
+
 @dataclass
 class TestCase:
     """A single input/expected-output test for a skill."""
@@ -30,7 +31,7 @@ class TestCase:
     name: str
     input: dict[str, Any] = field(default_factory=dict)
     expected: Any = None
-    validate_output: Optional[callable] = None  # not serialised — set in code
+    validate_output: callable | None = None  # not serialised — set in code
 
     def to_dict(self) -> dict:
         return {
@@ -55,7 +56,7 @@ class TestResult:
     test_name: str
     passed: bool
     actual: Any = None
-    error: Optional[str] = None
+    error: str | None = None
     duration_ms: float = 0.0
 
     def to_dict(self) -> dict:
@@ -76,7 +77,9 @@ class EvaluationResult:
     success_rate: float = 0.0
 
     def __post_init__(self) -> None:
-        self.success_rate = self.passed_count / self.total_count if self.total_count > 0 else 0.0
+        self.success_rate = (
+            self.passed_count / self.total_count if self.total_count > 0 else 0.0
+        )
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -102,14 +105,17 @@ class EvaluationResult:
 # Performance ledger
 # -----------------------------------------------------------------------------
 
+
 class PerformanceLedger:
     """
     Append-only JSON ledger of EvaluationResult entries.
     Kept in memory for the session and flushed to disk on demand.
     """
 
-    def __init__(self, ledger_path: Optional[Path] = None) -> None:
-        self._ledger_path = ledger_path or Path("~/.rann-agent/data/skill_evaluations.json")
+    def __init__(self, ledger_path: Path | None = None) -> None:
+        self._ledger_path = ledger_path or Path(
+            "~/.rann-agent/data/skill_evaluations.json"
+        )
         self._entries: list[dict] = []
         self._load()
 
@@ -130,7 +136,9 @@ class PerformanceLedger:
         with open(self._ledger_path, "w", encoding="utf-8") as fh:
             json.dump(self._entries, fh, indent=2)
 
-    def get_history(self, skill_id: Optional[str] = None, limit: int = 100) -> list[EvaluationResult]:
+    def get_history(
+        self, skill_id: str | None = None, limit: int = 100
+    ) -> list[EvaluationResult]:
         entries = self._entries
         if skill_id is not None:
             entries = [e for e in entries if e.get("skill_id") == skill_id]
@@ -158,6 +166,7 @@ class PerformanceLedger:
 # Skill evaluator
 # -----------------------------------------------------------------------------
 
+
 class SkillEvaluator:
     """
     Evaluates skill code against a suite of test cases and records metrics.
@@ -167,7 +176,7 @@ class SkillEvaluator:
 
     def __init__(
         self,
-        ledger_path: Optional[Path] = None,
+        ledger_path: Path | None = None,
         default_timeout: float = 30.0,
     ) -> None:
         self._ledger = PerformanceLedger(ledger_path=ledger_path)
@@ -183,7 +192,7 @@ class SkillEvaluator:
         skill_id: str,
         skill_code: str,
         test_cases: list[TestCase],
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ) -> EvaluationResult:
         """
         Run ``skill_code`` through the given ``test_cases`` and return an
@@ -200,7 +209,9 @@ class SkillEvaluator:
 
         module_result = loader.load_skill(skill_id, source=skill_code)
         if not module_result.loaded:
-            return self._error_result(skill_id, f"Load failed: {module_result.error}", test_cases)
+            return self._error_result(
+                skill_id, f"Load failed: {module_result.error}", test_cases
+            )
 
         skill_module = module_result.module
         assert skill_module is not None
@@ -222,7 +233,7 @@ class SkillEvaluator:
 
         eval_result = EvaluationResult(
             skill_id=skill_id,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             passed_count=passed,
             failed_count=failed,
             total_count=len(test_cases),
@@ -246,7 +257,9 @@ class SkillEvaluator:
         """Return aggregate metrics for a skill."""
         return self._ledger.get_metrics(skill_id)
 
-    def get_history(self, skill_id: Optional[str] = None, limit: int = 50) -> list[EvaluationResult]:
+    def get_history(
+        self, skill_id: str | None = None, limit: int = 50
+    ) -> list[EvaluationResult]:
         """Return recent evaluation results, optionally filtered by skill."""
         return self._ledger.get_history(skill_id=skill_id, limit=limit)
 
@@ -260,7 +273,7 @@ class SkillEvaluator:
         tc: TestCase,
         timeout: float,
     ) -> TestResult:
-        from rann_agent.skills.loader import SkillLoader, ExecutionTimeoutError
+        from rann_agent.skills.loader import ExecutionTimeoutError, SkillLoader
 
         run_func = getattr(skill_module, "run", None)
         if run_func is None:
@@ -270,7 +283,7 @@ class SkillEvaluator:
                 error="'run' function not found in skill module",
             )
 
-        loader = SkillLoader(timeout=timeout)
+        SkillLoader(timeout=timeout)
         start = time.perf_counter()
         try:
             actual = run_func(**tc.input)
@@ -315,7 +328,7 @@ class SkillEvaluator:
     ) -> EvaluationResult:
         return EvaluationResult(
             skill_id=skill_id,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             passed_count=0,
             failed_count=len(test_cases),
             total_count=len(test_cases),

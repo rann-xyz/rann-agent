@@ -3,11 +3,14 @@ Event bus for RANN Agent.
 As required by MASTER PROMPT Section 48.
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, Callable, List, Any, Optional
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import Enum
-from datetime import datetime
+from typing import Any, Optional
+
 import structlog
+from typing_extensions import Self
 
 logger = structlog.get_logger()
 
@@ -54,13 +57,13 @@ class EventType(Enum):
 class Event:
     event_type: EventType
     timestamp: str
-    data: Dict[str, Any]
-    trace_id: Optional[str] = None
-    run_id: Optional[str] = None
+    data: dict[str, Any]
+    trace_id: str | None = None
+    run_id: str | None = None
 
     def __post_init__(self) -> None:
         if not self.timestamp:
-            self.timestamp = datetime.now().isoformat()
+            self.timestamp = datetime.now(UTC).isoformat()
 
 
 class EventBus:
@@ -68,7 +71,7 @@ class EventBus:
 
     _instance: Optional["EventBus"] = None
 
-    def __new__(cls) -> "EventBus":
+    def __new__(cls) -> Self:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
@@ -78,7 +81,7 @@ class EventBus:
         if self._initialized:
             return
         self._initialized = True
-        self._handlers: Dict[EventType, List[Callable[[Event], None]]] = {
+        self._handlers: dict[EventType, list[Callable[[Event], None]]] = {
             et: [] for et in EventType
         }
         logger.info("event_bus_initialized")
@@ -120,21 +123,21 @@ class EventBus:
     def emit(
         self,
         event_type: EventType,
-        data: Optional[Dict[str, Any]] = None,
-        trace_id: Optional[str] = None,
-        run_id: Optional[str] = None,
+        data: dict[str, Any] | None = None,
+        trace_id: str | None = None,
+        run_id: str | None = None,
     ) -> None:
         """Convenience method to emit an event."""
         event = Event(
             event_type=event_type,
-            timestamp=datetime.now().isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             data=data or {},
             trace_id=trace_id,
             run_id=run_id,
         )
         self.publish(event)
 
-    def clear_handlers(self, event_type: Optional[EventType] = None) -> None:
+    def clear_handlers(self, event_type: EventType | None = None) -> None:
         """Clear handlers for a specific event type, or all if None."""
         if event_type:
             self._handlers[event_type] = []

@@ -4,9 +4,10 @@ Cache key generation utilities.
 Provides stable, collision-resistant hash keys for cache entries.
 Used by CacheManager to generate keys for LLM responses, tool calls, and embeddings.
 """
+
 import hashlib
 import json
-from typing import Any, Optional
+from typing import Any
 
 
 def hash_data(data: Any) -> str:
@@ -34,13 +35,13 @@ def hash_data(data: Any) -> str:
 def cache_key(
     prefix: str,
     *,
-    messages: Optional[list] = None,
-    prompt: Optional[str] = None,
-    params: Optional[dict] = None,
-    tool_name: Optional[str] = None,
-    args: Optional[dict] = None,
-    model: Optional[str] = None,
-    embedding_text: Optional[str] = None,
+    messages: list | None = None,
+    prompt: str | None = None,
+    params: dict | None = None,
+    tool_name: str | None = None,
+    args: dict | None = None,
+    model: str | None = None,
+    embedding_text: str | None = None,
 ) -> str:
     """
     Generate a stable cache key for LLM responses, tool calls, or embeddings.

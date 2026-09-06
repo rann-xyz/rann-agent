@@ -6,7 +6,8 @@ Implements V3 Section 6 specification.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, List
+from typing import Any
+
 import structlog
 
 logger = structlog.get_logger()
@@ -33,20 +34,21 @@ class ToolResult:
         artifacts: List of artifact paths/files produced
         evidence_id: Optional ID linking to evidence ledger
     """
+
     call_id: str
     tool_name: str
-    command: Optional[str]
+    command: str | None
     success: bool
-    exit_code: Optional[int]
+    exit_code: int | None
     stdout: str
     stderr: str
     duration_ms: float
     timed_out: bool = False
     cancelled: bool = False
-    error_type: Optional[str] = None
-    error_message: Optional[str] = None
-    artifacts: List[str] = field(default_factory=list)
-    evidence_id: Optional[str] = None
+    error_type: str | None = None
+    error_message: str | None = None
+    artifacts: list[str] = field(default_factory=list)
+    evidence_id: str | None = None
 
     def __post_init__(self):
         """Validate and normalize result after initialization"""
@@ -73,16 +75,16 @@ class ToolResult:
         return bool(self.stdout.strip() or self.stderr.strip())
 
     @property
-    def output_lines(self) -> List[str]:
+    def output_lines(self) -> list[str]:
         """Get stdout as list of lines"""
         return [line for line in self.stdout.split("\n") if line]
 
     @property
-    def error_lines(self) -> List[str]:
+    def error_lines(self) -> list[str]:
         """Get stderr as list of lines"""
         return [line for line in self.stderr.split("\n") if line]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary"""
         return {
             "call_id": self.call_id,
@@ -102,7 +104,7 @@ class ToolResult:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ToolResult":
+    def from_dict(cls, data: dict[str, Any]) -> "ToolResult":
         """Deserialize from dictionary"""
         return cls(
             call_id=data["call_id"],
@@ -126,12 +128,12 @@ class ToolResult:
         cls,
         call_id: str,
         tool_name: str,
-        command: Optional[str] = None,
+        command: str | None = None,
         stdout: str = "",
         stderr: str = "",
         duration_ms: float = 0.0,
-        artifacts: Optional[List[str]] = None,
-        evidence_id: Optional[str] = None,
+        artifacts: list[str] | None = None,
+        evidence_id: str | None = None,
     ) -> "ToolResult":
         """Factory for successful results"""
         return cls(
@@ -152,14 +154,14 @@ class ToolResult:
         cls,
         call_id: str,
         tool_name: str,
-        command: Optional[str] = None,
+        command: str | None = None,
         exit_code: int = -1,
         error_message: str = "",
-        error_type: Optional[str] = None,
+        error_type: str | None = None,
         stdout: str = "",
         stderr: str = "",
         duration_ms: float = 0.0,
-        evidence_id: Optional[str] = None,
+        evidence_id: str | None = None,
     ) -> "ToolResult":
         """Factory for error results"""
         return cls(
@@ -181,7 +183,7 @@ class ToolResult:
         cls,
         call_id: str,
         tool_name: str,
-        command: Optional[str] = None,
+        command: str | None = None,
         duration_ms: float = 0.0,
     ) -> "ToolResult":
         """Factory for timeout results"""
@@ -204,7 +206,7 @@ class ToolResult:
         cls,
         call_id: str,
         tool_name: str,
-        command: Optional[str] = None,
+        command: str | None = None,
         duration_ms: float = 0.0,
     ) -> "ToolResult":
         """Factory for cancelled results"""
@@ -223,7 +225,7 @@ class ToolResult:
         )
 
 
-def result_to_summary(result: ToolResult) -> Dict[str, Any]:
+def result_to_summary(result: ToolResult) -> dict[str, Any]:
     """
     Convert ToolResult to a summary dict for logging.
 

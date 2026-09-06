@@ -5,14 +5,15 @@ Records and manages evidence for task verification.
 Implements V3 Section 12 specification.
 """
 
-from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, List
-from datetime import datetime
-from enum import Enum
-import uuid
 import json
-import structlog
+import uuid
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from enum import Enum
 from pathlib import Path
+from typing import Any
+
+import structlog
 
 logger = structlog.get_logger()
 
@@ -21,6 +22,7 @@ EVIDENCE_DIR = Path.home() / ".rann_agent" / "evidence"
 
 class EvidenceType(Enum):
     """Types of evidence that can be recorded"""
+
     COMMAND = "command"
     TEST = "test"
     FILE_DIFF = "file_diff"
@@ -47,11 +49,12 @@ class Evidence:
         timestamp: ISO format timestamp
         validated: Whether this evidence has been validated
     """
+
     evidence_id: str
     claim: str
     evidence_type: EvidenceType
     source: str
-    data: Dict[str, Any]
+    data: dict[str, Any]
     timestamp: str
     validated: bool = False
 
@@ -60,9 +63,9 @@ class Evidence:
         if not self.evidence_id:
             self.evidence_id = str(uuid.uuid4())
         if not self.timestamp:
-            self.timestamp = datetime.now().isoformat()
+            self.timestamp = datetime.now(UTC).isoformat()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary"""
         return {
             "evidence_id": self.evidence_id,
@@ -75,7 +78,7 @@ class Evidence:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Evidence":
+    def from_dict(cls, data: dict[str, Any]) -> "Evidence":
         """Deserialize from dictionary"""
         return cls(
             evidence_id=data["evidence_id"],
@@ -95,12 +98,12 @@ class EvidenceLedger:
     Evidence is stored in memory and persisted to disk for auditability.
     """
 
-    def __init__(self, ledger_id: Optional[str] = None):
+    def __init__(self, ledger_id: str | None = None):
         self.ledger_id = ledger_id or str(uuid.uuid4())
-        self._evidence: Dict[str, Evidence] = {}
+        self._evidence: dict[str, Evidence] = {}
         self._evidence_dir = EVIDENCE_DIR / self.ledger_id
         self._evidence_dir.mkdir(parents=True, exist_ok=True)
-        
+
         logger.info("evidence_ledger_init", ledger_id=self.ledger_id)
 
     def record(
@@ -108,7 +111,7 @@ class EvidenceLedger:
         claim: str,
         evidence_type: EvidenceType,
         source: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Evidence:
         """
         Record new evidence.
@@ -128,7 +131,7 @@ class EvidenceLedger:
             evidence_type=evidence_type,
             source=source,
             data=data,
-            timestamp=datetime.now().isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             validated=False,
         )
 
@@ -145,7 +148,7 @@ class EvidenceLedger:
 
         return evidence
 
-    def get(self, evidence_id: str) -> Optional[Evidence]:
+    def get(self, evidence_id: str) -> Evidence | None:
         """
         Get evidence by ID.
 
@@ -157,7 +160,7 @@ class EvidenceLedger:
         """
         return self._evidence.get(evidence_id)
 
-    def search(self, claim_substring: str) -> List[Evidence]:
+    def search(self, claim_substring: str) -> list[Evidence]:
         """
         Search for evidence by claim substring.
 
@@ -175,14 +178,12 @@ class EvidenceLedger:
         ]
 
         logger.debug(
-            "evidence_search",
-            query=claim_substring,
-            result_count=len(matches)
+            "evidence_search", query=claim_substring, result_count=len(matches)
         )
 
         return matches
 
-    def search_by_type(self, evidence_type: EvidenceType) -> List[Evidence]:
+    def search_by_type(self, evidence_type: EvidenceType) -> list[Evidence]:
         """
         Search for evidence by type.
 
@@ -239,7 +240,7 @@ class EvidenceLedger:
         logger.info("evidence_invalidated", evidence_id=evidence_id)
         return True
 
-    def export(self) -> List[Dict[str, Any]]:
+    def export(self) -> list[dict[str, Any]]:
         """
         Export all evidence as list of dictionaries.
 
@@ -248,22 +249,18 @@ class EvidenceLedger:
         """
         return [e.to_dict() for e in self._evidence.values()]
 
-    def export_validated(self) -> List[Dict[str, Any]]:
+    def export_validated(self) -> list[dict[str, Any]]:
         """
         Export only validated evidence.
 
         Returns:
             List of validated evidence dictionaries
         """
-        return [
-            e.to_dict()
-            for e in self._evidence.values()
-            if e.validated
-        ]
+        return [e.to_dict() for e in self._evidence.values() if e.validated]
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get statistics about recorded evidence"""
-        type_counts: Dict[str, int] = {}
+        type_counts: dict[str, int] = {}
         validated_count = 0
 
         for evidence in self._evidence.values():
@@ -289,7 +286,7 @@ class EvidenceLedger:
             logger.warning(
                 "evidence_persist_failed",
                 evidence_id=evidence.evidence_id,
-                error=str(e)
+                error=str(e),
             )
 
     def load_all(self) -> int:
@@ -311,9 +308,7 @@ class EvidenceLedger:
                 loaded += 1
             except Exception as e:
                 logger.warning(
-                    "evidence_load_failed",
-                    file=str(evidence_file),
-                    error=str(e)
+                    "evidence_load_failed", file=str(evidence_file), error=str(e)
                 )
 
         logger.info("evidence_loaded", count=loaded, ledger_id=self.ledger_id)

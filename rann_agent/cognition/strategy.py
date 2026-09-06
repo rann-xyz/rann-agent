@@ -8,7 +8,7 @@ to multi-agent collaboration to deep research modes.
 
 import re
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import structlog
 
@@ -60,23 +60,70 @@ class StrategySelector:
     # Keywords that indicate each strategy
     STRATEGY_KEYWORDS = {
         StrategyType.DIRECT: [
-            "list", "get", "show", "find", "check", "what is", "who is",
-            "current", "today", "now", "display", "print", "echo",
+            "list",
+            "get",
+            "show",
+            "find",
+            "check",
+            "what is",
+            "who is",
+            "current",
+            "today",
+            "now",
+            "display",
+            "print",
+            "echo",
         ],
         StrategyType.PLANNER: [
-            "create", "make", "build", "implement", "write", "refactor",
-            "update", "modify", "fix", "add", "remove", "delete",
-            "configure", "setup", "install", "deploy", "run", "execute",
+            "create",
+            "make",
+            "build",
+            "implement",
+            "write",
+            "refactor",
+            "update",
+            "modify",
+            "fix",
+            "add",
+            "remove",
+            "delete",
+            "configure",
+            "setup",
+            "install",
+            "deploy",
+            "run",
+            "execute",
         ],
         StrategyType.MULTI_AGENT: [
-            "application", "service", "system", "full", "complete",
-            "comprehensive", "end-to-end", "entire", "multiple",
-            "build a", "develop a", "create a",
+            "application",
+            "service",
+            "system",
+            "full",
+            "complete",
+            "comprehensive",
+            "end-to-end",
+            "entire",
+            "multiple",
+            "build a",
+            "develop a",
+            "create a",
         ],
         StrategyType.RESEARCH: [
-            "research", "investigate", "compare", "analyze", "evaluate",
-            "review", "study", "explore", "understand", "difference",
-            "pros and cons", "vs", "versus", "alternative", "benchmark",
+            "research",
+            "investigate",
+            "compare",
+            "analyze",
+            "evaluate",
+            "review",
+            "study",
+            "explore",
+            "understand",
+            "difference",
+            "pros and cons",
+            "vs",
+            "versus",
+            "alternative",
+            "benchmark",
         ],
     }
 
@@ -99,13 +146,15 @@ class StrategySelector:
                                   to suggest PLANNER or higher strategy.
         """
         self.complexity_threshold = complexity_threshold
-        logger.info("strategy_selector_initialized", complexity_threshold=complexity_threshold)
+        logger.info(
+            "strategy_selector_initialized", complexity_threshold=complexity_threshold
+        )
 
     def select(
         self,
         goal: str,
-        context: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[StrategyType, str]:
+        context: dict[str, Any] | None = None,
+    ) -> tuple[StrategyType, str]:
         """
         Select the best strategy for the given goal.
 
@@ -136,7 +185,9 @@ class StrategySelector:
 
             # Factor in context if provided
             if context:
-                strategy_scores = self._apply_context(strategy_scores, context, goal_lower)
+                strategy_scores = self._apply_context(
+                    strategy_scores, context, goal_lower
+                )
 
             # Boost complexity-influenced strategies
             if complexity >= self.complexity_threshold:
@@ -148,7 +199,9 @@ class StrategySelector:
 
             # Select highest scoring strategy
             selected = max(strategy_scores, key=strategy_scores.get)
-            reasoning = self._build_reasoning(selected, goal, complexity, strategy_scores)
+            reasoning = self._build_reasoning(
+                selected, goal, complexity, strategy_scores
+            )
 
             logger.info(
                 "strategy_selected",
@@ -184,9 +237,9 @@ class StrategySelector:
 
         return complexity
 
-    def _score_strategies(self, goal: str) -> Dict[StrategyType, float]:
+    def _score_strategies(self, goal: str) -> dict[StrategyType, float]:
         """Score each strategy based on keyword matching."""
-        scores: Dict[StrategyType, float] = {st: 0.0 for st in StrategyType}
+        scores: dict[StrategyType, float] = {st: 0.0 for st in StrategyType}
 
         for strategy, keywords in self.STRATEGY_KEYWORDS.items():
             matches = sum(1 for kw in keywords if kw in goal)
@@ -202,10 +255,10 @@ class StrategySelector:
 
     def _apply_context(
         self,
-        scores: Dict[StrategyType, float],
-        context: Dict[str, Any],
+        scores: dict[StrategyType, float],
+        context: dict[str, Any],
         goal: str,
-    ) -> Dict[StrategyType, float]:
+    ) -> dict[StrategyType, float]:
         """Apply context-based adjustments to strategy scores."""
         # User preference override
         preferred = context.get("preferred_strategy")
@@ -234,7 +287,9 @@ class StrategySelector:
 
         # Explicit multi-agent indicator in goal
         if any(p in goal for p in ["parallel", "concurrent", "simultaneously"]):
-            scores[StrategyType.MULTI_AGENT] = max(scores[StrategyType.MULTI_AGENT], 0.7)
+            scores[StrategyType.MULTI_AGENT] = max(
+                scores[StrategyType.MULTI_AGENT], 0.7
+            )
 
         return scores
 
@@ -243,7 +298,7 @@ class StrategySelector:
         strategy: StrategyType,
         goal: str,
         complexity: int,
-        scores: Dict[StrategyType, float],
+        scores: dict[StrategyType, float],
     ) -> str:
         """Build human-readable reasoning for strategy selection."""
         reasoning_parts = []

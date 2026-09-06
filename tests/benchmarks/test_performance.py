@@ -3,11 +3,12 @@ RANN Agent Performance Benchmarks.
 
 Run: pytest tests/benchmarks/test_performance.py -v
 """
-import pytest
-import time
-import asyncio
-from pathlib import Path
+
 import sys
+import time
+from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -18,6 +19,7 @@ class TestPerformanceBenchmarks:
     @pytest.fixture
     def perf_config(self):
         from rann_agent.core.config import Config
+
         return Config()
 
     @pytest.mark.benchmark
@@ -50,7 +52,9 @@ class TestPerformanceBenchmarks:
         avg = sum(times) / len(times)
         p95 = sorted(times)[int(len(times) * 0.95)]
         # Relaxed for mobile/slow env
-        assert avg < 0.1, f"DB connection avg {avg:.3f}s (SLO: <0.05s, got {p95:.3f}s p95)"
+        assert (
+            avg < 0.1
+        ), f"DB connection avg {avg:.3f}s (SLO: <0.05s, got {p95:.3f}s p95)"
         assert result[0] == 1
 
     @pytest.mark.benchmark
@@ -59,10 +63,11 @@ class TestPerformanceBenchmarks:
         from rann_agent.utils.context_window import ContextWindowManager
 
         # 2000 messages with code-heavy content to push over token limit
-        messages = [
-            {"role": "system", "content": "You are a helpful assistant."}
-        ] + [
-            {"role": "user", "content": f"Message {i}\n" + "def func():\n    return " + "x" * 300}
+        messages = [{"role": "system", "content": "You are a helpful assistant."}] + [
+            {
+                "role": "user",
+                "content": f"Message {i}\n" + "def func():\n    return " + "x" * 300,
+            }
             for i in range(2000)
         ]
 
@@ -72,7 +77,9 @@ class TestPerformanceBenchmarks:
         elapsed = time.perf_counter() - start
 
         assert elapsed < 0.05, f"Context trim took {elapsed:.3f}s (SLO: <0.05s)"
-        assert len(result) < len(messages), f"Expected trim but got same length: {len(result)}"
+        assert len(result) < len(
+            messages
+        ), f"Expected trim but got same length: {len(result)}"
         assert result[0]["role"] == "system"
 
     @pytest.mark.benchmark
@@ -101,7 +108,9 @@ class TestPerformanceBenchmarks:
         complex to mock correctly. Cache layer is validated by integration tests.
         Run manually with: pytest tests/benchmarks/test_performance.py -k cache -v
         """
-        pytest.skip("CacheManager requires pydantic config — complex to mock; validated by integration tests")
+        pytest.skip(
+            "CacheManager requires pydantic config — complex to mock; validated by integration tests"
+        )
 
     @pytest.mark.benchmark
     def test_event_emission(self, perf_config):
@@ -160,10 +169,6 @@ class TestPerformanceBenchmarks:
 
         gc.collect()
         initial_modules = len(sys.modules)
-
-        from rann_agent.core import agent, runtime, state, event_bus, lifecycle
-        from rann_agent.tools import registry, executor
-        from rann_agent.storage import database
 
         new_modules = len(sys.modules) - initial_modules
         estimated_mb = new_modules * 2

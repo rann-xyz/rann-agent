@@ -5,7 +5,8 @@ As required by MASTER PROMPT Section 7.
 
 import re
 from enum import Enum
-from typing import Tuple, List, Optional, Dict, Any
+from typing import Any
+
 import structlog
 
 logger = structlog.get_logger()
@@ -75,12 +76,12 @@ MODIFYING_PATTERNS = [
 class CommandPolicy:
     """Classifies and enforces command risk policies."""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         self.config = config or {}
 
-    def classify(self, command: str) -> Tuple[CommandRiskLevel, str]:
+    def classify(self, command: str) -> tuple[CommandRiskLevel, str]:
         """Classify a command's risk level and return reason."""
-        cmd_lower = command.lower()
+        command.lower()
 
         # Check destructive patterns first (highest risk)
         for pattern, reason in DESTRUCTIVE_PATTERNS:
@@ -108,7 +109,19 @@ class CommandPolicy:
                 return CommandRiskLevel.MODIFYING, reason
 
         # Read-only commands
-        read_only_commands = {"ls", "cat", "head", "tail", "grep", "find", "stat", "pwd", "whoami", "id", "date"}
+        read_only_commands = {
+            "ls",
+            "cat",
+            "head",
+            "tail",
+            "grep",
+            "find",
+            "stat",
+            "pwd",
+            "whoami",
+            "id",
+            "date",
+        }
         first_word = command.strip().split()[0] if command.strip() else ""
         if first_word in read_only_commands:
             return CommandRiskLevel.READ_ONLY, "Read-only command"
@@ -117,7 +130,7 @@ class CommandPolicy:
 
     def check(
         self, command: str, max_risk: CommandRiskLevel = CommandRiskLevel.MODIFYING
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Check if a command is allowed at the given risk threshold.
 

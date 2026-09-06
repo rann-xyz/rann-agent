@@ -11,26 +11,29 @@ The cache backend is selected automatically:
 - RedisCache if REDIS_URL env var is set and redis package is installed
 - InMemoryCache otherwise (always available)
 """
+
 import os
 import threading
-from typing import Any, Optional
+from typing import Optional
 
 import structlog
 
 from rann_agent.cache.backend import CacheBackend
-from rann_agent.cache.memory import InMemoryCache
-from rann_agent.cache.redis_ import RedisCache, REDIS_AVAILABLE as REDIS_INSTALLED
 from rann_agent.cache.keys import (
+    embedding_cache_key,
     llm_cache_key,
     tool_cache_key,
-    embedding_cache_key,
 )
+from rann_agent.cache.memory import InMemoryCache
+from rann_agent.cache.redis_ import REDIS_AVAILABLE as REDIS_INSTALLED
+from rann_agent.cache.redis_ import RedisCache
 
 logger = structlog.get_logger()
 
 # Global singleton
 _cache: Optional["CacheManager"] = None
 _cache_lock = threading.Lock()
+
 
 def _is_cache_enabled() -> bool:
     """Check if cache is enabled — re-reads env each call so feature flag works at runtime."""
@@ -53,9 +56,14 @@ def reset_cache() -> None:
         if _cache is not None:
             # fire-and-forget close
             import asyncio
+
             try:
                 loop = asyncio.get_running_loop()
-                loop.create_task(_cache.backend.close() if hasattr(_cache.backend, "close") else asyncio.sleep(0))
+                loop.create_task(
+                    _cache.backend.close()
+                    if hasattr(_cache.backend, "close")
+                    else asyncio.sleep(0)
+                )
             except RuntimeError:
                 pass
         _cache = None
@@ -80,7 +88,7 @@ class CacheManager:
         llm_ttl: int = 3600,
         tool_ttl: int = 300,
         embedding_ttl: int = 86400,
-        redis_url: Optional[str] = None,
+        redis_url: str | None = None,
     ):
         self._enabled = _is_cache_enabled()
         self._llm_ttl = llm_ttl
@@ -98,7 +106,7 @@ class CacheManager:
             embedding_ttl=self._embedding_ttl,
         )
 
-    def _select_backend(self, redis_url: Optional[str]) -> CacheBackend:
+    def _select_backend(self, redis_url: str | None) -> CacheBackend:
         """Pick Redis if available and configured, otherwise InMemory."""
         url = redis_url or os.environ.get("REDIS_URL", "")
         if url and REDIS_INSTALLED:
@@ -120,7 +128,7 @@ class CacheManager:
         messages: list,
         model: str,
         **params,
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """
         Get cached LLM response for identical messages + params.
 
@@ -158,7 +166,7 @@ class CacheManager:
         self,
         tool_name: str,
         args: dict,
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """
         Get cached result for an idempotent tool call.
 
@@ -199,7 +207,7 @@ class CacheManager:
         self,
         text: str,
         model: str,
-    ) -> Optional[list]:
+    ) -> list | None:
         """
         Get cached embedding vector for text.
 
@@ -253,7 +261,6 @@ class CacheManager:
 
         # Redis: use SCAN with pattern
         try:
-            import redis.asyncio as redis
             client = getattr(self._backend, "_client", None)
             if client is None:
                 return 0

@@ -6,27 +6,20 @@ Interactive CLI interface with rich UI.
 import asyncio
 import sys
 from pathlib import Path
-from typing import Optional, Dict, Any
-from rich.console import Console
-from rich.prompt import Prompt
-from rich.panel import Panel
-from rich.markdown import Markdown
-from rich.table import Table
-from rich.live import Live
-from rich.layout import Layout
-from rich.text import Text
+
 from rich import box
+from rich.console import Console
+from rich.layout import Layout
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.table import Table
+from rich.text import Text
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from rann_agent.core.agent import Agent
-from rann_agent.intelligence import (
-    CodebaseContext,
-    CodeCompletion,
-    AutonomousCoder
-)
-
+from rann_agent.intelligence import AutonomousCoder, CodebaseContext, CodeCompletion
 
 console = Console()
 
@@ -160,11 +153,11 @@ class TerminalApp:
             console.print("[red]❌ Usage: code <description>[/red]")
             return
         
-        console.print(f"\n[bold cyan]🤖 Starting autonomous coding...[/bold cyan]")
+        console.print("\n[bold cyan]🤖 Starting autonomous coding...[/bold cyan]")
         console.print(f"[dim]Task: {args}[/dim]\n")
         
         try:
-            with console.status("[bold green]Coding in progress...") as status:
+            with console.status("[bold green]Coding in progress..."):
                 # Simple implementation - split by comma or use as single requirement
                 requirements = [req.strip() for req in args.split(',')] if ',' in args else [args]
                 

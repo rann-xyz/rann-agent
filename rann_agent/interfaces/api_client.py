@@ -6,17 +6,18 @@ Async HTTP client for programmatic access: execute, stream, status, cancel.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, AsyncIterator, Dict, Any
+from typing import Any
 from urllib.parse import urljoin
 
 import httpx
 import structlog
+from typing_extensions import Self
 
 from rann_agent.core.exceptions import RannAgentError
-from rann_agent.utils.http_pool import get_http_client, get_pool_limits
-
+from rann_agent.utils.http_pool import get_pool_limits
 
 logger = structlog.get_logger()
 
@@ -39,9 +40,9 @@ class RunResult:
     run_id: str
     status: RunStatus
     success: bool
-    output: Optional[str] = None
-    error: Optional[str] = None
-    metadata: Dict[str, Any] = None
+    output: str | None = None
+    error: str | None = None
+    metadata: dict[str, Any] = None
 
     def __post_init__(self):
         if self.metadata is None:
@@ -49,15 +50,19 @@ class RunResult:
 
     @property
     def is_terminal(self) -> bool:
-        return self.status in {RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED}
+        return self.status in {
+            RunStatus.COMPLETED,
+            RunStatus.FAILED,
+            RunStatus.CANCELLED,
+        }
 
 
 @dataclass
 class StreamEvent:
     event_type: str
-    data: Optional[str] = None
-    session_id: Optional[str] = None
-    error: Optional[str] = None
+    data: str | None = None
+    session_id: str | None = None
+    error: str | None = None
 
 
 class APIClientError(RannAgentError):
@@ -71,7 +76,7 @@ class AuthenticationError(APIClientError):
 class APIClient:
     """
     Async HTTP client for RANN Agent API.
-    
+
     Methods:
         execute(task) -> RunResult
         stream(task) -> AsyncIterator[StreamEvent]
@@ -82,7 +87,7 @@ class APIClient:
     def __init__(
         self,
         base_url: str = "http://localhost:8000",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         timeout: float = 300.0,
         max_retries: int = 3,
     ):
@@ -90,10 +95,13 @@ class APIClient:
         self.api_key = api_key
         self.timeout = timeout
         self.max_retries = max_retries
-        self._headers: Dict[str, str] = {"Content-Type": "application/json", "Accept": "application/json"}
+        self._headers: dict[str, str] = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
         if api_key:
             self._headers["Authorization"] = f"Bearer {api_key}"
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
         logger.info("api_client_init", base_url=self.base_url, timeout=self.timeout)
 
     async def _get_client(self) -> httpx.AsyncClient:
@@ -112,7 +120,7 @@ class APIClient:
             await self._client.aclose()
             self._client = None
 
-    async def _request(self, method: str, path: str, **kwargs) -> Dict[str, Any]:
+    async def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
         """Make HTTP request with retry logic."""
         client = await self._get_client()
         url = urljoin(self.base_url + "/", path.lstrip("/"))
@@ -136,7 +144,9 @@ class APIClient:
                     await asyncio.sleep(delay)
                     delay *= 1.5
                     continue
-                raise APIClientError(f"HTTP {e.response.status_code}: {e.response.text}")
+                raise APIClientError(
+                    f"HTTP {e.response.status_code}: {e.response.text}"
+                )
             except httpx.RequestError as e:
                 if attempt < self.max_retries:
                     await asyncio.sleep(delay)
@@ -148,15 +158,15 @@ class APIClient:
     async def execute(
         self,
         task: str,
-        context: Optional[str] = None,
-        provider: Optional[str] = None,
-        model: Optional[str] = None,
+        context: str | None = None,
+        provider: str | None = None,
+        model: str | None = None,
         wait: bool = True,
         poll_interval: float = 0.5,
     ) -> RunResult:
         """Execute a task. Optionally wait for completion."""
         logger.info("api_execute", task=task[:100])
-        payload: Dict[str, Any] = {"goal": task}
+        payload: dict[str, Any] = {"goal": task}
         if context:
             payload["context"] = context
         if provider:
@@ -186,9 +196,13 @@ class APIClient:
             )
         except Exception as e:
             logger.error("api_execute_failed", error=str(e))
-            return RunResult(run_id="error", status=RunStatus.FAILED, success=False, error=str(e))
+            return RunResult(
+                run_id="error", status=RunStatus.FAILED, success=False, error=str(e)
+            )
 
-    async def stream(self, task: str, context: Optional[str] = None) -> AsyncIterator[StreamEvent]:
+    async def stream(
+        self, task: str, context: str | None = None
+    ) -> AsyncIterator[StreamEvent]:
         """Execute with streaming. Yields StreamEvent objects."""
         logger.info("api_stream", task=task[:100])
         # Fallback: polling-based streaming simulation
@@ -220,19 +234,28 @@ class APIClient:
             )
         except Exception as e:
             logger.error("api_get_status_failed", run_id=run_id, error=str(e))
-            return RunResult(run_id=run_id, status=RunStatus.UNKNOWN, success=False, error=str(e))
+            return RunResult(
+                run_id=run_id, status=RunStatus.UNKNOWN, success=False, error=str(e)
+            )
 
     async def cancel(self, run_id: str) -> RunResult:
         """Cancel a running task."""
         logger.info("api_cancel", run_id=run_id)
         try:
             response = await self._request("POST", f"/api/cancel/{run_id}")
-            return RunResult(run_id=run_id, status=RunStatus.CANCELLED, success=True, metadata=response)
+            return RunResult(
+                run_id=run_id,
+                status=RunStatus.CANCELLED,
+                success=True,
+                metadata=response,
+            )
         except Exception as e:
             logger.error("api_cancel_failed", run_id=run_id, error=str(e))
-            return RunResult(run_id=run_id, status=RunStatus.UNKNOWN, success=False, error=str(e))
+            return RunResult(
+                run_id=run_id, status=RunStatus.UNKNOWN, success=False, error=str(e)
+            )
 
-    async def __aenter__(self) -> "APIClient":
+    async def __aenter__(self) -> Self:
         await self._get_client()
         return self
 

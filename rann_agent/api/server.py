@@ -2,13 +2,13 @@
 FastAPI server with WebSocket support
 """
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from typing import Any
+
+import structlog
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-import asyncio
-import structlog
 
 from rann_agent import Agent, Config
 
@@ -35,23 +35,23 @@ if config.api.cors.get("enabled", True):
     )
 
 # Active agents
-active_agents: Dict[str, Agent] = {}
+active_agents: dict[str, Agent] = {}
 
 
 class TaskRequest(BaseModel):
     goal: str
-    context: Optional[str] = None
-    provider: Optional[str] = None
-    model: Optional[str] = None
+    context: str | None = None
+    provider: str | None = None
+    model: str | None = None
     stream: bool = False
 
 
 class TaskResponse(BaseModel):
     session_id: str
     success: bool
-    output: Optional[str] = None
-    error: Optional[str] = None
-    metadata: Dict[str, Any] = {}
+    output: str | None = None
+    error: str | None = None
+    metadata: dict[str, Any] = {}
 
 
 @app.get("/")
@@ -67,14 +67,14 @@ async def root():
             "agents": "/api/agents",
             "config": "/api/config",
             "dashboard": "/dashboard",
-        }
+        },
     }
 
 
 @app.post("/api/execute", response_model=TaskResponse)
 async def execute_task(request: TaskRequest):
     """Execute a task"""
-    
+
     try:
         # Create agent
         agent = Agent(
@@ -82,13 +82,13 @@ async def execute_task(request: TaskRequest):
             provider=request.provider,
             model=request.model,
         )
-        
+
         # Execute
         result = await agent.execute(
             goal=request.goal,
             context=request.context,
         )
-        
+
         return TaskResponse(
             session_id=agent.session_id,
             success=result.get("done", False),
@@ -96,7 +96,7 @@ async def execute_task(request: TaskRequest):
             error=result.get("error"),
             metadata=result.get("metadata", {}),
         )
-    
+
     except Exception as e:
         logger.error("execute_failed", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
@@ -105,51 +105,59 @@ async def execute_task(request: TaskRequest):
 @app.websocket("/api/stream")
 async def stream_task(websocket: WebSocket):
     """Stream task execution via WebSocket"""
-    
+
     await websocket.accept()
-    
+
     try:
         # Receive task
         data = await websocket.receive_json()
         goal = data.get("goal")
         context = data.get("context")
-        
+
         if not goal:
             await websocket.send_json({"error": "No goal provided"})
             return
-        
+
         # Create agent
         agent = Agent(config=config)
         active_agents[agent.session_id] = agent
-        
+
         # Send session ID
-        await websocket.send_json({
-            "type": "session_started",
-            "session_id": agent.session_id,
-        })
-        
+        await websocket.send_json(
+            {
+                "type": "session_started",
+                "session_id": agent.session_id,
+            }
+        )
+
         # Stream execution
         async for token in agent.stream(goal, context):
-            await websocket.send_json({
-                "type": "token",
-                "data": token,
-            })
-        
+            await websocket.send_json(
+                {
+                    "type": "token",
+                    "data": token,
+                }
+            )
+
         # Done
-        await websocket.send_json({
-            "type": "complete",
-            "session_id": agent.session_id,
-        })
-    
+        await websocket.send_json(
+            {
+                "type": "complete",
+                "session_id": agent.session_id,
+            }
+        )
+
     except WebSocketDisconnect:
         logger.info("websocket_disconnected")
-    
+
     except Exception as e:
         logger.error("stream_failed", error=str(e))
-        await websocket.send_json({
-            "type": "error",
-            "error": str(e),
-        })
+        await websocket.send_json(
+            {
+                "type": "error",
+                "error": str(e),
+            }
+        )
 
 
 @app.get("/api/agents")
@@ -157,10 +165,7 @@ async def list_agents():
     """List active agents"""
     return {
         "count": len(active_agents),
-        "agents": [
-            {"session_id": sid, "status": "active"}
-            for sid in active_agents.keys()
-        ]
+        "agents": [{"session_id": sid, "status": "active"} for sid in active_agents],
     }
 
 
@@ -175,7 +180,7 @@ async def get_config():
             "self_healing": config.agent.self_healing.enabled,
             "orchestration": config.agent.orchestration.enabled,
             "memory": config.agent.memory.persist,
-        }
+        },
     }
 
 

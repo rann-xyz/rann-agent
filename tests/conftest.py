@@ -2,13 +2,14 @@
 Pytest configuration and fixtures
 """
 
-import pytest
 import asyncio
 import os
-from pathlib import Path
-import tempfile
 import shutil
-from unittest.mock import Mock, AsyncMock, patch
+import tempfile
+from pathlib import Path
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 # Set mock API keys BEFORE importing anything that reads them
 os.environ.setdefault("ANTHROPIC_API_KEY", "test-anthropic-key")
@@ -37,11 +38,13 @@ def temp_dir():
 def mock_llm_provider():
     """Mock LLM provider for testing"""
     provider = Mock()
-    provider.complete = AsyncMock(return_value={
-        "content": "Mocked response",
-        "usage": {"input_tokens": 10, "output_tokens": 20},
-        "model": "mock-model",
-    })
+    provider.complete = AsyncMock(
+        return_value={
+            "content": "Mocked response",
+            "usage": {"input_tokens": 10, "output_tokens": 20},
+            "model": "mock-model",
+        }
+    )
     provider.stream = AsyncMock(return_value=iter(["Mocked", " stream", " response"]))
     return provider
 
@@ -50,12 +53,12 @@ def mock_llm_provider():
 def mock_config():
     """Mock configuration for testing"""
     from rann_agent.core.config import Config
-    
+
     config = Config()
     config.agent.llm.provider = "mock"
     config.agent.llm.model = "mock-model"
     config.tools.enabled = ["terminal", "files"]
-    
+
     return config
 
 
@@ -63,7 +66,7 @@ def mock_config():
 def mock_agent_with_llm(mock_llm_provider):
     """Create a mock agent with mocked LLM provider"""
     from rann_agent.core.agent import Agent
-    
+
     with patch("rann_agent.core.agent.LLMProvider", return_value=mock_llm_provider):
         agent = Agent()
         agent.llm = mock_llm_provider
@@ -78,5 +81,5 @@ def sample_files(temp_dir):
     (temp_dir / "test.txt").write_text("Sample text content")
     (temp_dir / "subdir").mkdir()
     (temp_dir / "subdir" / "nested.txt").write_text("Nested file")
-    
+
     return temp_dir

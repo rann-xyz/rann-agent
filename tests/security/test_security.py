@@ -4,10 +4,10 @@
 # Run: python -m pytest tests/security/ -v
 # =============================================================================
 
-import pytest
 import subprocess
-import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).parent.parent.parent
 
@@ -41,11 +41,13 @@ class TestSecurityBasics:
                 content = py_file.read_text()
                 for pattern in suspicious_patterns:
                     if pattern in content:
-                        violations.append(f"{py_file.relative_to(ROOT)}: found '{pattern}'")
+                        violations.append(
+                            f"{py_file.relative_to(ROOT)}: found '{pattern}'"
+                        )
             except Exception:
                 pass
 
-        assert not violations, f"Hardcoded secrets found:\n" + "\n".join(violations)
+        assert not violations, "Hardcoded secrets found:\n" + "\n".join(violations)
 
     def test_env_example_no_real_keys(self):
         """Ensure .env.example only has placeholder values."""
@@ -66,18 +68,23 @@ class TestSecurityBasics:
                 if line.startswith(f"{var_name}="):
                     value = line.split("=", 1)[1].strip()
                     if is_real_key(value):
-                        violations.append(f"{var_name} has non-placeholder value: {value}")
+                        violations.append(
+                            f"{var_name} has non-placeholder value: {value}"
+                        )
 
-        assert not violations, f".env.example contains real keys:\n" + "\n".join(violations)
+        assert not violations, ".env.example contains real keys:\n" + "\n".join(
+            violations
+        )
 
     def test_shell_injection_protection(self):
         """Test that shell metacharacters are handled in commands."""
         # The actual sanitization happens in RealTerminalExecutor
         # which uses subprocess with shell=False by default
-        from rann_agent.tools.real_terminal import RealTerminalExecutor
         import subprocess
 
-        exec = RealTerminalExecutor(workspace_root="/tmp")
+        from rann_agent.tools.real_terminal import RealTerminalExecutor
+
+        RealTerminalExecutor(workspace_root="/tmp")
 
         # Verify subprocess doesn't use shell=True
         # The dangerous command with shell=True would be:
@@ -97,8 +104,9 @@ class TestSecurityBasics:
 
     def test_path_traversal_protection(self):
         """Test that path traversal attempts are blocked."""
-        from rann_agent.tools.filesystem import FilesystemEngine
         from pathlib import Path
+
+        from rann_agent.tools.filesystem import FilesystemEngine
 
         fs = FilesystemEngine(workspace_root="/tmp/rann_test")
         Path("/tmp/rann_test").mkdir(exist_ok=True)
@@ -113,8 +121,9 @@ class TestSecurityBasics:
             if hasattr(fs, "_resolve_path"):
                 resolved = fs._resolve_path(path)
                 # Should be sandboxed to workspace
-                assert str(resolved).startswith("/tmp/rann_test"), \
-                    f"Path traversal allowed: {path} -> {resolved}"
+                assert str(resolved).startswith(
+                    "/tmp/rann_test"
+                ), f"Path traversal allowed: {path} -> {resolved}"
             elif hasattr(fs, "read_file"):
                 # If no sanitization exists, this will read outside workspace
                 # which is the vulnerability we're testing for
@@ -132,7 +141,7 @@ class TestSecurityBasics:
                 "SELECT * FROM tasks WHERE task_id = ?",
                 ("'; DROP TABLE tasks; --",),
             )
-            result = list(cursor)
+            list(cursor)
             # Should return empty or results, not execute DROP
         except Exception:
             # Either table doesn't exist or query failed gracefully
@@ -148,8 +157,10 @@ class TestSecurityBasics:
         # Check that URLs are validated if _validate_url exists
         if hasattr(tool, "_validate_url"):
             assert tool._validate_url("javascript:alert(1)") is None
-            assert tool._validate_url("http://evil.com") is None or \
-                   tool._validate_url("http://evil.com") == False
+            assert (
+                tool._validate_url("http://evil.com") is None
+                or tool._validate_url("http://evil.com") == False
+            )
 
 
 class TestDependencySecurity:

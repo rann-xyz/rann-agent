@@ -1,20 +1,14 @@
 """
 Unit tests for context_trim module.
 """
-import pytest
-import sys
-from unittest.mock import patch, MagicMock
 
 from rann_agent.memory import context_trim
 from rann_agent.memory.context_trim import (
-    trim_context,
-    estimate_tokens,
-    enable_test_mode,
     disable_test_mode,
-    RESERVED_TOKENS,
-    _TEST_MODE,
+    enable_test_mode,
+    estimate_tokens,
+    trim_context,
 )
-
 
 # Use a small-context model for realistic trimming tests
 SMALL_MODEL = "minimax/minimax-m2.7-highspeed:free"  # 16k window
@@ -40,9 +34,7 @@ class TestSystemPromptAlwaysPreserved:
         # Use small max_tokens to force trimming
         messages = [
             make_msg("system", "SYSTEM_PROMPT"),
-        ] + [
-            make_msg("user", f"msg{i}") for i in range(50)
-        ]
+        ] + [make_msg("user", f"msg{i}") for i in range(50)]
         result = trim_context(messages, SMALL_MODEL, max_tokens=5000)
         assert result[0]["role"] == "system"
         assert result[0]["content"] == "SYSTEM_PROMPT"
@@ -87,10 +79,9 @@ class TestRecentMessagesAlwaysKept:
 
     def test_trim_within_tail_count(self):
         """If total messages <= tail_count + system, nothing is trimmed."""
-        messages = (
-            [make_msg("system", "System")]
-            + [make_msg("user", f"msg{i}") for i in range(9)]
-        )
+        messages = [make_msg("system", "System")] + [
+            make_msg("user", f"msg{i}") for i in range(9)
+        ]
         result = trim_context(messages, SMALL_MODEL)
         assert len(result) == len(messages)
 

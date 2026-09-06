@@ -2,24 +2,24 @@
 Pre-built workflows for common tasks
 """
 
-from typing import Dict, List
 from dataclasses import dataclass
 
 
 @dataclass
 class Workflow:
     """Workflow definition"""
+
     name: str
     description: str
     goal: str
     context: str = ""
-    tools: List[str] = None
+    tools: list[str] = None
     estimated_time: str = "2-5 minutes"
 
 
 class WorkflowLibrary:
     """Library of pre-built workflows"""
-    
+
     WORKFLOWS = {
         "deploy-vercel": Workflow(
             name="deploy-vercel",
@@ -33,9 +33,8 @@ class WorkflowLibrary:
             4. Show deployment URL
             """,
             tools=["terminal"],
-            estimated_time="3-5 minutes"
+            estimated_time="3-5 minutes",
         ),
-        
         "setup-ci": Workflow(
             name="setup-ci",
             description="Set up GitHub Actions CI/CD",
@@ -49,9 +48,8 @@ class WorkflowLibrary:
             Support for: Python, Node.js, Go based on project
             """,
             tools=["files", "git"],
-            estimated_time="2-3 minutes"
+            estimated_time="2-3 minutes",
         ),
-        
         "add-auth": Workflow(
             name="add-auth",
             description="Add JWT authentication",
@@ -65,9 +63,8 @@ class WorkflowLibrary:
             - Token refresh
             """,
             tools=["files", "code_exec"],
-            estimated_time="5-10 minutes"
+            estimated_time="5-10 minutes",
         ),
-        
         "generate-crud": Workflow(
             name="generate-crud",
             description="Generate CRUD API endpoints",
@@ -82,9 +79,8 @@ class WorkflowLibrary:
             With validation, error handling, and tests
             """,
             tools=["files", "code_exec"],
-            estimated_time="4-6 minutes"
+            estimated_time="4-6 minutes",
         ),
-        
         "write-tests": Workflow(
             name="write-tests",
             description="Write tests for untested code",
@@ -97,9 +93,8 @@ class WorkflowLibrary:
             5. Run tests to verify they pass
             """,
             tools=["files", "terminal", "code_exec"],
-            estimated_time="10-15 minutes"
+            estimated_time="10-15 minutes",
         ),
-        
         "setup-docker": Workflow(
             name="setup-docker",
             description="Create Dockerfile and docker-compose",
@@ -113,9 +108,8 @@ class WorkflowLibrary:
             - Environment variable handling
             """,
             tools=["files"],
-            estimated_time="3-4 minutes"
+            estimated_time="3-4 minutes",
         ),
-        
         "add-logging": Workflow(
             name="add-logging",
             description="Add structured logging",
@@ -129,9 +123,8 @@ class WorkflowLibrary:
             - Error tracking
             """,
             tools=["files", "code_exec"],
-            estimated_time="4-5 minutes"
+            estimated_time="4-5 minutes",
         ),
-        
         "setup-db": Workflow(
             name="setup-db",
             description="Set up database with migrations",
@@ -146,9 +139,8 @@ class WorkflowLibrary:
             Support SQLite, PostgreSQL, MySQL
             """,
             tools=["files", "terminal"],
-            estimated_time="5-7 minutes"
+            estimated_time="5-7 minutes",
         ),
-        
         "optimize-performance": Workflow(
             name="optimize-performance",
             description="Analyze and optimize performance",
@@ -162,9 +154,8 @@ class WorkflowLibrary:
             6. Minimize bundle size
             """,
             tools=["terminal", "code_exec", "files"],
-            estimated_time="10-15 minutes"
+            estimated_time="10-15 minutes",
         ),
-        
         "security-audit": Workflow(
             name="security-audit",
             description="Run security audit and fix issues",
@@ -180,25 +171,26 @@ class WorkflowLibrary:
             Auto-fix issues where possible
             """,
             tools=["terminal", "files"],
-            estimated_time="5-8 minutes"
+            estimated_time="5-8 minutes",
         ),
     }
-    
+
     @classmethod
     def get(cls, name: str) -> Workflow:
         """Get workflow by name"""
         return cls.WORKFLOWS.get(name)
-    
+
     @classmethod
-    def list_all(cls) -> List[Workflow]:
+    def list_all(cls) -> list[Workflow]:
         """List all workflows"""
         return list(cls.WORKFLOWS.values())
-    
+
     @classmethod
-    def search(cls, query: str) -> List[Workflow]:
+    def search(cls, query: str) -> list[Workflow]:
         """Search workflows by query"""
         query_lower = query.lower()
         return [
-            wf for wf in cls.WORKFLOWS.values()
+            wf
+            for wf in cls.WORKFLOWS.values()
             if query_lower in wf.name.lower() or query_lower in wf.description.lower()
         ]

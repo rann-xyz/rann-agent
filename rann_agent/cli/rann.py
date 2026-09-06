@@ -17,25 +17,24 @@ Usage:
     rann audit                 Show audit log
 """
 
-import sys
 import os
-import yaml
+import sys
 from pathlib import Path
+
+import yaml
 
 # Add parent to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import click
 import asyncio
 import json
-from datetime import datetime
-from typing import Optional
 
-from rann_agent.core.runtime import RuntimeAgent
+import click
+
 from rann_agent.core.budget import Budget
-from rann_agent.core.task_contract import TaskContract, TaskCategory
-from rann_agent.core.event_bus import EventBus
 from rann_agent.core.config import Config
+from rann_agent.core.event_bus import EventBus
+from rann_agent.core.runtime import RuntimeAgent
 from rann_agent.storage.database import Database
 
 
@@ -46,7 +45,6 @@ def cli():
 
     THE MODEL GENERATES DECISIONS. RANN CONTROLS EXECUTION.
     """
-    pass
 
 
 @cli.command()
@@ -106,14 +104,21 @@ def doctor():
 
     # Python version
     py_version = sys.version_info
-    checks.append(("Python version", f"{py_version.major}.{py_version.minor}.{py_version.micro}", py_version >= (3, 11)))
+    checks.append(
+        (
+            "Python version",
+            f"{py_version.major}.{py_version.minor}.{py_version.micro}",
+            py_version >= (3, 11),
+        )
+    )
 
     # Check core modules
     try:
-        from rann_agent.core.runtime import RuntimeAgent
         from rann_agent.core.budget import Budget
         from rann_agent.core.event_bus import EventBus
+        from rann_agent.core.runtime import RuntimeAgent
         from rann_agent.storage.database import Database
+
         checks.append(("Core modules", "OK", True))
     except ImportError as e:
         checks.append(("Core modules", f"FAIL: {e}", False))
@@ -159,7 +164,9 @@ def status():
 
         # Event bus stats
         eb = EventBus()
-        handler_counts = {et.value: len(eb._handlers.get(et, [])) for et in list(EventType)[:5]}
+        handler_counts = {
+            et.value: len(eb._handlers.get(et, [])) for et in list(EventType)[:5]
+        }
         click.echo(f"  Event handlers: {sum(handler_counts.values())}")
 
     except Exception as e:
@@ -170,7 +177,6 @@ def status():
 @cli.group("config")
 def config_cmd():
     """Configuration management."""
-    pass
 
 
 @config_cmd.command("get")
@@ -203,7 +209,7 @@ def config_get(key: str):
 @click.argument("value")
 def config_set(key: str, value: str):
     """Set config value. Example: rann config set agent.llm.model claude-sonnet-4-20250514
-    
+
     Supported keys:
       agent.llm.provider   - Provider: xkiro, custom, anthropic, openai, ollama
       agent.llm.model      - Model name (e.g. minimax/minimax-m2.7-highspeed:free, claude-sonnet-4-20250514)
@@ -212,7 +218,7 @@ def config_set(key: str, value: str):
     """
     config_path = Path.home() / ".rann_agent" / "config.yaml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     try:
         # Load existing config or create new
         if config_path.exists():
@@ -220,10 +226,10 @@ def config_set(key: str, value: str):
                 data = yaml.safe_load(f) or {}
         else:
             data = {}
-        
+
         # Ensure nested structure
         data.setdefault("agent", {}).setdefault("llm", {})
-        
+
         # Set value
         if key == "agent.llm.provider":
             data["agent"]["llm"]["provider"] = value
@@ -235,20 +241,22 @@ def config_set(key: str, value: str):
             data["agent"]["llm"]["temperature"] = float(value)
         else:
             click.echo(f"Unsupported config key: {key}")
-            click.echo("Supported: agent.llm.provider, agent.llm.model, agent.llm.max_tokens, agent.llm.temperature")
+            click.echo(
+                "Supported: agent.llm.provider, agent.llm.model, agent.llm.max_tokens, agent.llm.temperature"
+            )
             return
-        
+
         # Save to yaml
         with open(config_path, "w") as f:
             yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
-        
+
         click.echo(f"✅ Set {key} = {value}")
         click.echo(f"   Saved to {config_path}")
-        
+
         # Verify
         cfg = Config()
         click.echo(f"   Current: {cfg.agent.llm.provider} / {cfg.agent.llm.model}")
-        
+
     except Exception as e:
         click.echo(f"Error: {e}")
 
@@ -257,11 +265,21 @@ def config_set(key: str, value: str):
 def config_list_providers():
     """List available providers and example models."""
     providers = [
-        ("xkiro",     "https://api.xkiro.com",  "minimax/minimax-m2.7-highspeed:free",          "Free tier, fast"),
-        ("custom",    "https://seekai.cc",       "claude-fable-5-1",                              "Custom endpoint"),
-        ("anthropic", "api.anthropic.com",       "claude-sonnet-4-20250514",                       "Anthropic (needs ANTHROPIC_API_KEY)"),
-        ("openai",    "api.openai.com",          "gpt-4o",                                        "OpenAI (needs OPENAI_API_KEY)"),
-        ("ollama",    "localhost:11434",         "llama3.1:8b",                                   "Local Ollama"),
+        (
+            "xkiro",
+            "https://api.xkiro.com",
+            "minimax/minimax-m2.7-highspeed:free",
+            "Free tier, fast",
+        ),
+        ("custom", "https://seekai.cc", "claude-fable-5-1", "Custom endpoint"),
+        (
+            "anthropic",
+            "api.anthropic.com",
+            "claude-sonnet-4-20250514",
+            "Anthropic (needs ANTHROPIC_API_KEY)",
+        ),
+        ("openai", "api.openai.com", "gpt-4o", "OpenAI (needs OPENAI_API_KEY)"),
+        ("ollama", "localhost:11434", "llama3.1:8b", "Local Ollama"),
     ]
     click.echo("Available providers:\n")
     for name, url, model, note in providers:
@@ -273,7 +291,6 @@ def config_list_providers():
 @cli.group("task")
 def task():
     """Task management commands."""
-    pass
 
 
 @task.command("list")
@@ -329,7 +346,9 @@ def task_show(task_id: str):
                 if transitions:
                     click.echo(f"\n  State transitions ({len(transitions)}):")
                     for tr in transitions[-5:]:
-                        click.echo(f"    {tr.get('from_state', '?'):15} -> {tr.get('to_state', '?'):15}")
+                        click.echo(
+                            f"    {tr.get('from_state', '?'):15} -> {tr.get('to_state', '?'):15}"
+                        )
 
     except Exception as e:
         click.echo(f"Error: {e}")
@@ -348,14 +367,13 @@ def task_cancel(task_id: str):
 @cli.group("memory")
 def memory():
     """Memory management commands."""
-    pass
 
 
 @memory.command("search")
 @click.argument("query")
 @click.option("--type", "mem_type", default=None, help="Memory type filter")
 @click.option("--limit", default=10, help="Maximum results")
-def memory_search(query: str, mem_type: Optional[str], limit: int):
+def memory_search(query: str, mem_type: str | None, limit: int):
     """Search memory for information."""
     try:
         db = Database()
@@ -392,7 +410,7 @@ def memory_stats():
 
         click.echo("📊 Memory Statistics\n")
         click.echo(f"  Total memories: {len(all_memories)}")
-        click.echo(f"  By type:")
+        click.echo("  By type:")
         for t, count in sorted(by_type.items(), key=lambda x: -x[1]):
             click.echo(f"    {t}: {count}")
 
@@ -429,7 +447,6 @@ def audit():
 @cli.group("skills")
 def skills():
     """Skill management commands."""
-    pass
 
 
 @skills.command("list")
@@ -437,6 +454,7 @@ def skills_list():
     """List available skills."""
     try:
         from rann_agent.skills.registry import SkillRegistry
+
         registry = SkillRegistry()
         all_skills = registry.list_all()
 
@@ -460,18 +478,18 @@ def learn():
     """Show learning status, lessons, and solutions learned."""
     try:
         from rann_agent.core.runtime import RuntimeAgent
-        
+
         # Create temporary agent to access learning engine
         agent = RuntimeAgent()
-        
+
         click.echo("📚 RANN Agent Learning Status\n")
-        
+
         # Stats
         stats = agent.learning_engine.get_solution_stats()
         click.echo(f"  Solutions learned: {stats['successful']}")
         click.echo(f"  Failed attempts recorded: {stats['failed']}")
         click.echo(f"  Total lessons: {stats['total_lessons']}")
-        
+
         # Recent lessons
         lessons = agent.learning_engine.get_lessons(limit=5)
         if lessons:
@@ -481,24 +499,26 @@ def learn():
                 lesson = l.get("lesson", l.get("error", ""))
                 icon = "✅" if lt == "success" else "❌"
                 click.echo(f"    {icon} {lesson[:60]}")
-        
+
         # Self-correction status
-        click.echo(f"\n  Retry queue: {len([k for k, v in agent.self_correction.failed_attempts.items() if v >= 2])} tasks")
-        
+        click.echo(
+            f"\n  Retry queue: {len([k for k, v in agent.self_correction.failed_attempts.items() if v >= 2])} tasks"
+        )
+
     except Exception as e:
         click.echo(f"Error: {e}")
 
 
 # Register extended commands
 from rann_agent.cli.commands import (
-    register_shell,
-    register_task_commands,
+    register_context_commands,
     register_memory_commands,
-    register_session_commands,
     register_project_commands,
     register_serve,
-    register_context_commands,
+    register_session_commands,
+    register_shell,
     register_stats,
+    register_task_commands,
 )
 
 register_shell(cli)
@@ -514,4 +534,5 @@ register_stats(cli)
 if __name__ == "__main__":
     # Import EventType here to avoid circular import issues
     from rann_agent.core.event_bus import EventType
+
     cli()

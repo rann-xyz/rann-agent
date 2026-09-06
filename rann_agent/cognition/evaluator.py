@@ -8,11 +8,11 @@ into a final 0-10 score with detailed feedback and improvement suggestions.
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import structlog
 
-from rann_agent.core.exceptions import RannAgentError, VerificationError
+from rann_agent.core.exceptions import VerificationError
 
 logger = structlog.get_logger()
 
@@ -31,10 +31,10 @@ class EvaluationResult:
 
     passed: bool
     score: float
-    details: Dict[str, Any] = field(default_factory=dict)
-    suggestions: List[str] = field(default_factory=list)
+    details: dict[str, Any] = field(default_factory=dict)
+    suggestions: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "passed": self.passed,
@@ -70,7 +70,7 @@ class Evaluator:
 
     def __init__(
         self,
-        weights: Optional[Dict[str, float]] = None,
+        weights: dict[str, float] | None = None,
         timeout: float = 30.0,
         pass_threshold: float = PASS_THRESHOLD,
     ) -> None:
@@ -101,7 +101,7 @@ class Evaluator:
     async def evaluate(
         self,
         goal: str,
-        plan: Optional[str],
+        plan: str | None,
         output: Any,
     ) -> EvaluationResult:
         """
@@ -148,7 +148,7 @@ class Evaluator:
     async def _perform_evaluation(
         self,
         goal: str,
-        plan: Optional[str],
+        plan: str | None,
         output: Any,
     ) -> EvaluationResult:
         """Perform the actual evaluation across all dimensions."""
@@ -192,9 +192,9 @@ class Evaluator:
     async def _evaluate_correctness(
         self,
         goal: str,
-        plan: Optional[str],
+        plan: str | None,
         output: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Evaluate correctness: Does the output fulfill the goal?
 
@@ -206,7 +206,7 @@ class Evaluator:
         - 0-2: Goal not achieved
         """
         score = 7.0  # Default reasonable score
-        suggestions: List[str] = []
+        suggestions: list[str] = []
         analysis = ""
 
         # Check if output is None or empty
@@ -229,7 +229,20 @@ class Evaluator:
 
             # Simple heuristic: check for goal-related content
             important_words = [
-                w for w in goal_lower.split() if len(w) > 4 and w not in ["which", "what", "where", "when", "how", "create", "make", "build"]
+                w
+                for w in goal_lower.split()
+                if len(w) > 4
+                and w
+                not in [
+                    "which",
+                    "what",
+                    "where",
+                    "when",
+                    "how",
+                    "create",
+                    "make",
+                    "build",
+                ]
             ]
 
             matched = sum(1 for word in important_words if word in output_str)
@@ -252,9 +265,9 @@ class Evaluator:
     async def _evaluate_efficiency(
         self,
         goal: str,
-        plan: Optional[str],
+        plan: str | None,
         output: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Evaluate efficiency: Is the solution performant?
 
@@ -264,7 +277,7 @@ class Evaluator:
         - Algorithm efficiency indicators
         """
         score = 7.0
-        suggestions: List[str] = []
+        suggestions: list[str] = []
         analysis = ""
 
         output_str = str(output)
@@ -298,9 +311,9 @@ class Evaluator:
     async def _evaluate_style(
         self,
         goal: str,
-        plan: Optional[str],
+        plan: str | None,
         output: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Evaluate style: Is the output well-structured and readable?
 
@@ -310,7 +323,7 @@ class Evaluator:
         - Documentation quality
         """
         score = 7.0
-        suggestions: List[str] = []
+        suggestions: list[str] = []
         analysis = ""
 
         output_str = str(output)
@@ -320,7 +333,11 @@ class Evaluator:
 
         # Check for missing documentation in code
         if "def " in output_str or "class " in output_str:
-            if "# " not in output_str and '"""' not in output_str and "'''" not in output_str:
+            if (
+                "# " not in output_str
+                and '"""' not in output_str
+                and "'''" not in output_str
+            ):
                 issues.append("code lacks documentation/comments")
 
         # Check for overly long lines (simplistic check)
@@ -330,7 +347,7 @@ class Evaluator:
             issues.append("many long lines may hurt readability")
 
         # Check for consistent indentation (basic check)
-        indented_lines = [l for l in lines if l.startswith("    ") or l.startswith("\t")]
+        indented_lines = [l for l in lines if l.startswith(("    ", "\t"))]
         if indented_lines and len(indented_lines) > 5:
             # Basic sanity check
             analysis += "Indentation appears consistent"
@@ -352,9 +369,9 @@ class Evaluator:
     async def _evaluate_safety(
         self,
         goal: str,
-        plan: Optional[str],
+        plan: str | None,
         output: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Evaluate safety: Are there security concerns?
 
@@ -365,7 +382,7 @@ class Evaluator:
         - Insecure deserialization
         """
         score = 10.0
-        suggestions: List[str] = []
+        suggestions: list[str] = []
         analysis = ""
 
         output_str = str(output)
@@ -375,7 +392,10 @@ class Evaluator:
             ("hardcoded password", ["password", "pwd", "passwd"]),
             ("hardcoded API key", ["api_key", "apikey", "api-key"]),
             ("hardcoded secret", ["secret", "token"]),
-            ("potential SQL injection", ["execute(", "cursor.execute", "SELECT .* \\+ "]),
+            (
+                "potential SQL injection",
+                ["execute(", "cursor.execute", "SELECT .* \\+ "],
+            ),
             ("potential command injection", ["os.system", "subprocess", "eval("]),
         ]
 

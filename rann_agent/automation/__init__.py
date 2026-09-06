@@ -3,6 +3,6 @@ Browser automation package.
 """
 
 from .browser import BrowserAutomation
-from .cron_scheduler import CronScheduler, CronJob, JobStatus
+from .cron_scheduler import CronJob, CronScheduler, JobStatus
 
-__all__ = ['BrowserAutomation', 'CronScheduler', 'CronJob', 'JobStatus']
+__all__ = ["BrowserAutomation", "CronJob", "CronScheduler", "JobStatus"]

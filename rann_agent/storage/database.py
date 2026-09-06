@@ -4,12 +4,11 @@ As required by MASTER PROMPT Section 22.
 """
 
 import sqlite3
-import json
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from dataclasses import dataclass, asdict
+from typing import Any, Optional
+
 import structlog
+from typing_extensions import Self
 
 logger = structlog.get_logger()
 
@@ -27,7 +26,7 @@ class Database:
 
     _instance: Optional["Database"] = None
 
-    def __new__(cls) -> "Database":
+    def __new__(cls) -> Self:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
@@ -239,20 +238,23 @@ class Database:
     # ---- Tasks ----
     def save_task(self, task_id: str, contract_json: str, state: str) -> None:
         import datetime
-        now = datetime.datetime.now().isoformat()
+
+        now = datetime.datetime.now(datetime.UTC).isoformat()
         with self._get_conn() as conn:
             conn.execute(
                 """INSERT OR REPLACE INTO tasks (task_id, contract_json, state, created_at, updated_at)
                    VALUES (?, ?, ?, COALESCE((SELECT created_at FROM tasks WHERE task_id = ?), ?), ?)""",
-                (task_id, contract_json, state, task_id, now, now)
+                (task_id, contract_json, state, task_id, now, now),
             )
 
-    def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+    def get_task(self, task_id: str) -> dict[str, Any] | None:
         with self._get_conn() as conn:
-            row = conn.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM tasks WHERE task_id = ?", (task_id,)
+            ).fetchone()
             return dict(row) if row else None
 
-    def list_tasks(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def list_tasks(self, limit: int = 50) -> list[dict[str, Any]]:
         with self._get_conn() as conn:
             rows = conn.execute(
                 "SELECT * FROM tasks ORDER BY updated_at DESC LIMIT ?", (limit,)
@@ -265,23 +267,25 @@ class Database:
         run_id: str,
         task_id: str,
         start_time: str,
-        end_time: Optional[str] = None,
-        result: Optional[str] = None,
+        end_time: str | None = None,
+        result: str | None = None,
         verification_level: int = 0,
     ) -> None:
         with self._get_conn() as conn:
             conn.execute(
                 """INSERT OR REPLACE INTO runs (run_id, task_id, start_time, end_time, result, verification_level)
                    VALUES (?, ?, ?, ?, ?, ?)""",
-                (run_id, task_id, start_time, end_time, result, verification_level)
+                (run_id, task_id, start_time, end_time, result, verification_level),
             )
 
-    def get_run(self, run_id: str) -> Optional[Dict[str, Any]]:
+    def get_run(self, run_id: str) -> dict[str, Any] | None:
         with self._get_conn() as conn:
-            row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM runs WHERE run_id = ?", (run_id,)
+            ).fetchone()
             return dict(row) if row else None
 
-    def get_incomplete_runs(self) -> List[Dict[str, Any]]:
+    def get_incomplete_runs(self) -> list[dict[str, Any]]:
         with self._get_conn() as conn:
             rows = conn.execute(
                 "SELECT * FROM runs WHERE end_time IS NULL ORDER BY start_time DESC"
@@ -292,23 +296,24 @@ class Database:
     def record_transition(
         self,
         run_id: str,
-        from_state: Optional[str],
+        from_state: str | None,
         to_state: str,
-        reason: Optional[str] = None,
+        reason: str | None = None,
     ) -> None:
         import datetime
-        now = datetime.datetime.now().isoformat()
+
+        now = datetime.datetime.now(datetime.UTC).isoformat()
         with self._get_conn() as conn:
             conn.execute(
                 "INSERT INTO state_transitions (run_id, from_state, to_state, timestamp, reason) VALUES (?, ?, ?, ?, ?)",
-                (run_id, from_state, to_state, now, reason)
+                (run_id, from_state, to_state, now, reason),
             )
 
-    def get_transitions(self, run_id: str) -> List[Dict[str, Any]]:
+    def get_transitions(self, run_id: str) -> list[dict[str, Any]]:
         with self._get_conn() as conn:
             rows = conn.execute(
                 "SELECT * FROM state_transitions WHERE run_id = ? ORDER BY timestamp ASC",
-                (run_id,)
+                (run_id,),
             ).fetchall()
             return [dict(r) for r in rows]
 
@@ -318,19 +323,26 @@ class Database:
         run_id: str,
         tool_name: str,
         arguments_json: str,
-        result_json: Optional[str] = None,
-        duration_ms: Optional[float] = None,
-        success: Optional[bool] = None,
+        result_json: str | None = None,
+        duration_ms: float | None = None,
+        success: bool | None = None,
     ) -> int:
         with self._get_conn() as conn:
             cursor = conn.execute(
                 """INSERT INTO tool_calls (run_id, tool_name, arguments_json, result_json, duration_ms, success)
                    VALUES (?, ?, ?, ?, ?, ?)""",
-                (run_id, tool_name, arguments_json, result_json, duration_ms, int(success) if success is not None else None)
+                (
+                    run_id,
+                    tool_name,
+                    arguments_json,
+                    result_json,
+                    duration_ms,
+                    int(success) if success is not None else None,
+                ),
             )
             return cursor.lastrowid or 0
 
-    def get_tool_calls(self, run_id: str) -> List[Dict[str, Any]]:
+    def get_tool_calls(self, run_id: str) -> list[dict[str, Any]]:
         with self._get_conn() as conn:
             rows = conn.execute(
                 "SELECT * FROM tool_calls WHERE run_id = ? ORDER BY id ASC", (run_id,)
@@ -345,49 +357,63 @@ class Database:
         evidence_type: str,
         source: str,
         data_json: str,
-        run_id: Optional[str] = None,
+        run_id: str | None = None,
         validated: bool = False,
     ) -> None:
         import datetime
-        now = datetime.datetime.now().isoformat()
+
+        now = datetime.datetime.now(datetime.UTC).isoformat()
         with self._get_conn() as conn:
             conn.execute(
                 """INSERT OR REPLACE INTO evidence (id, run_id, claim, evidence_type, source, data_json, timestamp, validated)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                (evidence_id, run_id, claim, evidence_type, source, data_json, now, int(validated))
+                (
+                    evidence_id,
+                    run_id,
+                    claim,
+                    evidence_type,
+                    source,
+                    data_json,
+                    now,
+                    int(validated),
+                ),
             )
 
-    def get_evidence(self, evidence_id: str) -> Optional[Dict[str, Any]]:
+    def get_evidence(self, evidence_id: str) -> dict[str, Any] | None:
         with self._get_conn() as conn:
-            row = conn.execute("SELECT * FROM evidence WHERE id = ?", (evidence_id,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM evidence WHERE id = ?", (evidence_id,)
+            ).fetchone()
             return dict(row) if row else None
 
-    def search_evidence(self, claim_substring: str) -> List[Dict[str, Any]]:
+    def search_evidence(self, claim_substring: str) -> list[dict[str, Any]]:
         with self._get_conn() as conn:
             rows = conn.execute(
                 "SELECT * FROM evidence WHERE claim LIKE ? ORDER BY timestamp DESC",
-                (f"%{claim_substring}%",)
+                (f"%{claim_substring}%",),
             ).fetchall()
             return [dict(r) for r in rows]
 
     # ---- Episodes ----
-    def save_episode(self, episode_id: str, data: Dict[str, Any]) -> None:
+    def save_episode(self, episode_id: str, data: dict[str, Any]) -> None:
         import datetime
-        now = datetime.datetime.now().isoformat()
+
+        now = datetime.datetime.now(datetime.UTC).isoformat()
         fields = ", ".join(data.keys())
         placeholders = ", ".join(["?"] * len(data))
         data["created_at"] = now
         conn = self._get_conn()
         conn.execute(
             f"INSERT OR REPLACE INTO episodes (episode_id, {fields}) VALUES (?, {placeholders})",
-            [episode_id] + list(data.values())
+            [episode_id] + list(data.values()),
         )
         conn.commit()
 
     # ---- Memories ----
-    def save_memory(self, memory_id: str, data: Dict[str, Any]) -> None:
+    def save_memory(self, memory_id: str, data: dict[str, Any]) -> None:
         import datetime
-        now = datetime.datetime.now().isoformat()
+
+        now = datetime.datetime.now(datetime.UTC).isoformat()
         data["updated_at"] = now
         if "created_at" not in data:
             data["created_at"] = now
@@ -396,49 +422,54 @@ class Database:
         conn = self._get_conn()
         conn.execute(
             f"INSERT OR REPLACE INTO memories (memory_id, {fields}) VALUES (?, {placeholders})",
-            [memory_id] + list(data.values())
+            [memory_id] + list(data.values()),
         )
         conn.commit()
 
-    def get_memory(self, memory_id: str) -> Optional[Dict[str, Any]]:
+    def get_memory(self, memory_id: str) -> dict[str, Any] | None:
         with self._get_conn() as conn:
-            row = conn.execute("SELECT * FROM memories WHERE memory_id = ?", (memory_id,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM memories WHERE memory_id = ?", (memory_id,)
+            ).fetchone()
             return dict(row) if row else None
 
-    def search_memories(self, content_substring: str, memory_type: Optional[str] = None) -> List[Dict[str, Any]]:
+    def search_memories(
+        self, content_substring: str, memory_type: str | None = None
+    ) -> list[dict[str, Any]]:
         with self._get_conn() as conn:
             if memory_type:
                 rows = conn.execute(
                     "SELECT * FROM memories WHERE content LIKE ? AND memory_type = ? ORDER BY updated_at DESC",
-                    (f"%{content_substring}%", memory_type)
+                    (f"%{content_substring}%", memory_type),
                 ).fetchall()
             else:
                 rows = conn.execute(
                     "SELECT * FROM memories WHERE content LIKE ? ORDER BY updated_at DESC",
-                    (f"%{content_substring}%",)
+                    (f"%{content_substring}%",),
                 ).fetchall()
             return [dict(r) for r in rows]
 
     # ---- Lessons ----
-    def save_lesson(self, lesson_id: str, data: Dict[str, Any]) -> None:
+    def save_lesson(self, lesson_id: str, data: dict[str, Any]) -> None:
         import datetime
-        now = datetime.datetime.now().isoformat()
+
+        now = datetime.datetime.now(datetime.UTC).isoformat()
         data["created_at"] = now
         fields = ", ".join(data.keys())
         placeholders = ", ".join(["?"] * len(data))
         conn = self._get_conn()
         conn.execute(
             f"INSERT OR REPLACE INTO lessons (lesson_id, {fields}) VALUES (?, {placeholders})",
-            [lesson_id] + list(data.values())
+            [lesson_id] + list(data.values()),
         )
         conn.commit()
 
-    def get_lessons(self, category: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_lessons(self, category: str | None = None) -> list[dict[str, Any]]:
         with self._get_conn() as conn:
             if category:
                 rows = conn.execute(
                     "SELECT * FROM lessons WHERE category = ? AND validated = 1 ORDER BY confidence DESC",
-                    (category,)
+                    (category,),
                 ).fetchall()
             else:
                 rows = conn.execute(
@@ -450,21 +481,32 @@ class Database:
     def record_audit(
         self,
         operation: str,
-        actor: Optional[str] = None,
-        run_id: Optional[str] = None,
-        task_id: Optional[str] = None,
-        arguments_json: Optional[str] = None,
-        policy_result: Optional[str] = None,
-        result: Optional[str] = None,
-        affected_resources: Optional[str] = None,
+        actor: str | None = None,
+        run_id: str | None = None,
+        task_id: str | None = None,
+        arguments_json: str | None = None,
+        policy_result: str | None = None,
+        result: str | None = None,
+        affected_resources: str | None = None,
     ) -> None:
         import datetime
-        now = datetime.datetime.now().isoformat()
+
+        now = datetime.datetime.now(datetime.UTC).isoformat()
         with self._get_conn() as conn:
             conn.execute(
                 """INSERT INTO audit_log (actor, run_id, task_id, operation, arguments_json, policy_result, result, timestamp, affected_resources)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (actor, run_id, task_id, operation, arguments_json, policy_result, result, now, affected_resources)
+                (
+                    actor,
+                    run_id,
+                    task_id,
+                    operation,
+                    arguments_json,
+                    policy_result,
+                    result,
+                    now,
+                    affected_resources,
+                ),
             )
 
     # ---- Operations (idempotency) ----
@@ -472,46 +514,53 @@ class Database:
         with self._get_conn() as conn:
             row = conn.execute(
                 "SELECT operation_id FROM operations WHERE operation_id = ?",
-                (operation_id,)
+                (operation_id,),
             ).fetchone()
             return row is not None
 
-    def record_operation(self, operation_id: str, result_json: Optional[str] = None) -> None:
+    def record_operation(
+        self, operation_id: str, result_json: str | None = None
+    ) -> None:
         import datetime
-        now = datetime.datetime.now().isoformat()
+
+        now = datetime.datetime.now(datetime.UTC).isoformat()
         with self._get_conn() as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO operations (operation_id, result_json, created_at) VALUES (?, ?, ?)",
-                (operation_id, result_json, now)
+                (operation_id, result_json, now),
             )
 
     def clear_old_operations(self, older_than_hours: int = 24) -> int:
         import datetime
-        cutoff = datetime.datetime.now() - datetime.timedelta(hours=older_than_hours)
+
+        cutoff = datetime.datetime.now(datetime.UTC) - datetime.timedelta(
+            hours=older_than_hours
+        )
         with self._get_conn() as conn:
             cursor = conn.execute(
-                "DELETE FROM operations WHERE created_at < ?",
-                (cutoff.isoformat(),)
+                "DELETE FROM operations WHERE created_at < ?", (cutoff.isoformat(),)
             )
             conn.commit()
             return cursor.rowcount
 
     # ---- Approvals ----
-    def save_approval_request(self, request_id: str, data: Dict[str, Any]) -> None:
+    def save_approval_request(self, request_id: str, data: dict[str, Any]) -> None:
         with self._get_conn() as conn:
             fields = ", ".join(data.keys())
             placeholders = ", ".join(["?"] * len(data))
             conn.execute(
                 f"INSERT OR REPLACE INTO approval_requests (request_id, {fields}) VALUES (?, {placeholders})",
-                [request_id] + list(data.values())
+                [request_id] + list(data.values()),
             )
 
-    def get_approval_request(self, request_id: str) -> Optional[Dict[str, Any]]:
+    def get_approval_request(self, request_id: str) -> dict[str, Any] | None:
         with self._get_conn() as conn:
-            row = conn.execute("SELECT * FROM approval_requests WHERE request_id = ?", (request_id,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM approval_requests WHERE request_id = ?", (request_id,)
+            ).fetchone()
             return dict(row) if row else None
 
-    def list_pending_approvals(self) -> List[Dict[str, Any]]:
+    def list_pending_approvals(self) -> list[dict[str, Any]]:
         with self._get_conn() as conn:
             rows = conn.execute(
                 "SELECT * FROM approval_requests WHERE status = 'pending' ORDER BY timestamp DESC"
@@ -522,16 +571,17 @@ class Database:
         self,
         request_id: str,
         status: str,
-        reviewed_by: Optional[str] = None,
-        rejection_reason: Optional[str] = None,
+        reviewed_by: str | None = None,
+        rejection_reason: str | None = None,
     ) -> None:
         import datetime
-        now = datetime.datetime.now().isoformat()
+
+        now = datetime.datetime.now(datetime.UTC).isoformat()
         with self._get_conn() as conn:
             conn.execute(
                 """UPDATE approval_requests SET status = ?, reviewed_by = ?, reviewed_at = ?, rejection_reason = ?
                    WHERE request_id = ?""",
-                (status, reviewed_by, now, rejection_reason, request_id)
+                (status, reviewed_by, now, rejection_reason, request_id),
             )
 
     def close(self) -> None:
