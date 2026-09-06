@@ -15,6 +15,7 @@ import httpx
 import structlog
 
 from rann_agent.core.exceptions import RannAgentError
+from rann_agent.utils.http_pool import get_http_client, get_pool_limits
 
 
 logger = structlog.get_logger()
@@ -97,11 +98,12 @@ class APIClient:
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
+            # Share the same connection-limits config as the global HTTP pool
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
                 headers=self._headers,
                 timeout=httpx.Timeout(self.timeout),
-                limits=httpx.Limits(max_keepalive_connections=10, max_connections=20),
+                limits=get_pool_limits(),
             )
         return self._client
 

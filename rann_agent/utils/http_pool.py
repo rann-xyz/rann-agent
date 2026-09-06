@@ -30,6 +30,11 @@ _client: Optional[httpx.AsyncClient] = None
 _client_lock = threading.Lock()
 
 
+def get_pool_limits() -> httpx.Limits:
+    """Return the shared connection pool limits (for reuse in other clients)."""
+    return POOL_LIMITS
+
+
 def get_http_client() -> httpx.AsyncClient:
     """Get or create the shared HTTP client with connection pooling."""
     global _client

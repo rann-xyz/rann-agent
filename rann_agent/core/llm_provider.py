@@ -5,10 +5,22 @@ LLM Provider abstraction layer
 from typing import List, Dict, Any, Optional, AsyncIterator
 import asyncio
 import json
+import threading
 from abc import ABC, abstractmethod
 import structlog
 
 logger = structlog.get_logger()
+
+# Module-level LLM client cache: (provider_name, api_key, model) -> SDK client
+# Prevents re-creating HTTP clients for the same credentials
+_LLM_CLIENT_CACHE: Dict[tuple, object] = {}
+_LLM_CLIENT_CACHE_LOCK = threading.Lock()
+
+
+def clear_client_cache() -> None:
+    """Clear the LLM client cache (useful for testing)."""
+    with _LLM_CLIENT_CACHE_LOCK:
+        _LLM_CLIENT_CACHE.clear()
 
 
 class BaseLLMProvider(ABC):
@@ -27,11 +39,16 @@ class BaseLLMProvider(ABC):
 
 class AnthropicProvider(BaseLLMProvider):
     """Anthropic Claude provider"""
-    
+
     def __init__(self, api_key: str, model: str, **kwargs):
-        from anthropic import AsyncAnthropic
-        
-        self.client = AsyncAnthropic(api_key=api_key)
+        cache_key = ("anthropic", api_key, model)
+        with _LLM_CLIENT_CACHE_LOCK:
+            if cache_key in _LLM_CLIENT_CACHE:
+                self.client = _LLM_CLIENT_CACHE[cache_key]
+            else:
+                from anthropic import AsyncAnthropic
+                self.client = AsyncAnthropic(api_key=api_key)
+                _LLM_CLIENT_CACHE[cache_key] = self.client
         self.model = model
         self.temperature = kwargs.get("temperature", 0.7)
         self.max_tokens = kwargs.get("max_tokens", 8192)
@@ -74,9 +91,14 @@ class OpenAIProvider(BaseLLMProvider):
     """OpenAI GPT provider"""
     
     def __init__(self, api_key: str, model: str, **kwargs):
-        from openai import AsyncOpenAI
-        
-        self.client = AsyncOpenAI(api_key=api_key)
+        cache_key = ("openai", api_key, model)
+        with _LLM_CLIENT_CACHE_LOCK:
+            if cache_key in _LLM_CLIENT_CACHE:
+                self.client = _LLM_CLIENT_CACHE[cache_key]
+            else:
+                from openai import AsyncOpenAI
+                self.client = AsyncOpenAI(api_key=api_key)
+                _LLM_CLIENT_CACHE[cache_key] = self.client
         self.model = model
         self.temperature = kwargs.get("temperature", 0.7)
         self.max_tokens = kwargs.get("max_tokens", 8192)
