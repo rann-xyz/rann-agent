@@ -1,0 +1,22 @@
+# Development dependencies (not needed in production)
+-r requirements.txt
+
+# Testing
+pytest>=8.3.0
+pytest-asyncio>=0.24.0
+pytest-cov>=6.0.0
+pytest-timeout>=2.3.1
+pytest-mock>=3.14.0
+pytest-benchmark>=4.0.0
+
+# Code quality
+black>=24.10.0
+ruff>=0.7.0
+mypy>=1.13.0
+pre-commit>=4.0.0
+
+# Security
+pip-audit>=2.7.0
+
+# Profiling
+py-spy>=0.3.14
