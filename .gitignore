@@ -3,6 +3,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+
+# Test/artifacts
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Environments
+venv/
+.venv/
+.env
 .Python
 build/
 develop-eggs/

@@ -19,12 +19,12 @@
 - [x] Graceful degradation strategies (via recovery system)
 - [x] Circuit breakers for external services (via budget engine)
 
-### 1.3 Performance
-- [ ] Profile and optimize hot paths
-- [ ] Add caching layer (Redis/memcached)
-- [ ] Implement connection pooling
-- [ ] Optimize context window management
-- [ ] Benchmark and set performance SLOs
+### 1.3 Performance ✅ (PHASE 1 COMPLETE)
+- [x] Profile and optimize hot paths (rann_agent/utils/profiler.py - cProfile/py-spy)
+- [x] Add caching layer (rann_agent/utils/cache.py - Redis + in-memory fallback)
+- [x] Implement connection pooling (rann_agent/storage/pool.py - SQLite pool with WAL)
+- [x] Optimize context window management (rann_agent/utils/context_window.py - trim/summarize)
+- [x] Benchmark and set performance SLOs (tests/benchmarks/test_slo.py, test_performance.py)
 
 ### 1.4 Core Runtime ✅ (PHASE 1 COMPLETE)
 - [x] Explicit state machine (state.py - 14 states, VALID_TRANSITIONS)

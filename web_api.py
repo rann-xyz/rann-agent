@@ -76,6 +76,14 @@ PROVIDERS = {
         "free": True,
         "models": ["llama3.2", "llama3.1", "mistral", "codellama", "phi3"]
     },
+    "seekai": {
+        "name": "SeekAI",
+        "base_url": "https://seekai.cc/v1",
+        "default_model": "claude-fable-5",
+        "api_type": "openai",
+        "free": True,
+        "models": ["claude-fable-5", "claude-sonnet-4-20250514", "claude-opus-4-20250514"]
+    },
     "custom": {
         "name": "Custom",
         "base_url": "",
@@ -132,6 +140,17 @@ class APIHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
 
+    def send_file(self, file_path):
+        import mimetypes
+        mime, _ = mimetypes.guess_type(str(file_path))
+        self.send_response(200)
+        self.send_header('Content-Type', mime or 'application/octet-stream')
+        self.send_header('Content-Length', file_path.stat().st_size)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        with open(file_path, 'rb') as f:
+            self.wfile.write(f.read())
+
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -142,6 +161,24 @@ class APIHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
+
+        # Serve static files (index.html for /)
+        if not path.startswith('/api/'):
+            static_dir = Path(__file__).parent
+            if path == '/' or not path:
+                file_path = static_dir / 'index.html'
+            else:
+                file_path = static_dir / path.lstrip('/')
+
+            if file_path.is_file():
+                self.send_file(file_path)
+                return
+            elif path == '/' or not path:
+                self.send_response(404)
+                self.send_header('Content-Type', 'text/html')
+                self.end_headers()
+                self.wfile.write(b'<h1>RANN Web API</h1><p>API endpoints: /api/chat, /api/status, /api/providers</p>')
+                return
 
         if path == '/api/status':
             keys = load_keys()

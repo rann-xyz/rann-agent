@@ -1,15 +1,22 @@
 # RANN Agent V3
 
+[![CI](https://github.com/rann-xyz/rann-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/rann-xyz/rann-agent/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/rann-xyz/rann-agent/branch/main/graph/badge.svg)](https://codecov.io/gh/rann-xyz/rann-agent)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 > **THE MODEL GENERATES DECISIONS. RANN CONTROLS EXECUTION.**
 
 Autonomous AI engineering platform with 16-state machine, real terminal execution, evidence ledger, and structured memory.
 
 ## Status
 
-- **169 tests passing** ✅
-- **35% code coverage** (9,170 executable lines)
+- **177 tests passing** ✅
+- **33% code coverage** (10,451 executable lines)
 - **121 Python modules**
 - **End-to-end execution verified** — LLM → tool calls → terminal → file system
+- **Phase 1 complete** ✅ (Foundation & Stability)
+- **Phase 1.3 Performance complete** ✅ (profiling, caching, pooling, benchmarks, SLOs)
 
 ## Features
 
@@ -166,9 +173,15 @@ rann_agent/
 │   └── semantic_diff.py  # SemanticDiff (AST-based)
 ├── storage/
 │   ├── database.py       # SQLite (12 tables)
+│   ├── pool.py           # Connection pool (WAL, mmap, threading-safe)
 │   ├── recovery.py       # CrashRecovery + WAL
 │   ├── queue.py          # DurableQueue
 │   └── locks.py          # ConcurrencyControl (fcntl)
+├── utils/
+│   ├── cache.py          # Redis + in-memory caching layer
+│   ├── context_window.py # Context window management (trim/summarize)
+│   ├── http_pool.py      # Shared httpx connection pool
+│   └── profiler.py       # cProfile hot-path profiler
 ├── memory/
 │   ├── project_store.py  # ProjectMemoryStore
 │   ├── episodic_store.py # EpisodicMemoryStore

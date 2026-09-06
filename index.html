@@ -252,6 +252,7 @@
     .provider-item.gemini .provider-icon { background: #4285f4; }
     .provider-item.ollama .provider-icon { background: #904930; }
     .provider-item.xkiro .provider-icon { background: var(--accent); }
+    .provider-item.seekai .provider-icon { background: #9333ea; }
     .provider-item.custom .provider-icon { background: #9333ea; }
 
     .provider-info {
@@ -374,6 +375,30 @@
     .message-content pre code {
       background: transparent;
       padding: 0;
+    }
+
+    .code-block {
+      position: relative;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--bg4);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: var(--border);
+      color: var(--text);
     }
 
     /* Thinking */
@@ -511,7 +536,17 @@
       transform: none;
     }
 
-    .input-hint {
+    .mobile-hint { display: none; }
+
+    @media (max-width: 480px) {
+      .welcome h1 { font-size: 22px; }
+      .messages { padding: 16px; }
+      .input-area { padding: 12px 16px 20px; }
+      .welcome-icon { width: 56px; height: 56px; font-size: 24px; }
+      .header-title { display: none; }
+    }
+
+    /* Input hint
       text-align: center;
       font-size: 12px;
       color: var(--text3);
@@ -719,7 +754,15 @@
 
       .message-content {
         max-width: 95%;
+        padding: 12px 16px;
       }
+
+      .welcome h1 { font-size: 22px; }
+      .messages { padding: 16px; }
+      .input-area { padding: 12px 16px 20px; }
+      .welcome-icon { width: 56px; height: 56px; font-size: 24px; }
+      .header-title { display: none; }
+      .modal { width: 95vw; }
     }
 
     /* Scrollbar */
@@ -803,6 +846,7 @@
             <option value="ollama">Ollama (Local)</option>
             <option value="openai">OpenAI (Paid)</option>
             <option value="anthropic">Anthropic (Paid)</option>
+            <option value="seekai">SeekAI (Free)</option>
             <option value="custom">Custom Provider</option>
           </select>
         </div>
@@ -830,8 +874,8 @@
   <div class="status-toast" id="toast"></div>
 
   <script>
-    var API = 'http://127.0.0.1:5555/api';
-    var currentProvider = 'groq';
+    var API = window.location.origin + '/api';
+    var currentProvider = 'seekai';
     var chatHistory = [];
     var modelsByProvider = {
       groq: ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma-7b-it'],
@@ -841,6 +885,7 @@
       anthropic: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
       gemini: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'],
       ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3'],
+      seekai: ['claude-fable-5', 'claude-sonnet-4-20250514', 'claude-opus-4-20250514'],
       custom: []
     };
 
@@ -964,7 +1009,9 @@
           loadProviders();
           closeSettings();
         } else {
-          var err = await resp.json();
+          var errText = await resp.text();
+          var err = {};
+          try { err = JSON.parse(errText); } catch(e) { err = { error: 'Server error (code: ' + resp.status + ')' }; }
           showToast(err.error || 'Failed to save', 'error');
         }
       } catch (e) {
@@ -1041,12 +1088,14 @@
             chatHistory.push({ role: 'assistant', content: data.content });
           }
         } else {
-          var err = await resp.json();
+          var errText = await resp.text();
+          var err = {};
+          try { err = JSON.parse(errText); } catch(e) { err = { error: 'Server error (code: ' + resp.status + ')' }; }
           addMessage('assistant', 'Error: ' + (err.error || 'Request failed'));
         }
       } catch (e) {
         removeThinking();
-        addMessage('assistant', 'Cannot connect to RANN API. Make sure the backend is running:\n\n```\npython3 web_api.py\n```');
+        addMessage('assistant', 'Tidak dapat terhubung ke server. Pastikan koneksi internet aktif dan coba lagi.');
       }
     }
 
@@ -1056,7 +1105,11 @@
       div.className = 'message ' + role;
 
       // Format
-      content = content.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+      content = content
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>$2</code></pre>');
       content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
       content = content.replace(/\n/g, '<br>');
 
@@ -1083,8 +1136,16 @@
       document.getElementById('thinking')?.remove();
     }
 
+    // Copy code button
+    function copyCode(btn) {
+      var code = btn.nextElementSibling.textContent;
+      navigator.clipboard.writeText(code).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
     // Init
-    loadProviders();
     onProviderChange();
   </script>
 </body>
