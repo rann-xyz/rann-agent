@@ -1101,21 +1101,24 @@
         <div class="settings-group">
           <label>Provider</label>
           <select id="settings-provider" onchange="onProviderChange()">
-            <option value="xkiro">xkiro — Free</option>
             <option value="groq">Groq — Free</option>
             <option value="deepseek">DeepSeek — Free</option>
             <option value="gemini">Google Gemini — Free</option>
             <option value="ollama">Ollama — Local</option>
-            <option value="seekai">SeekAI — Free</option>
             <option value="openai">OpenAI — Paid</option>
             <option value="anthropic">Anthropic — Paid</option>
             <option value="custom">Custom Provider</option>
           </select>
         </div>
         <div class="settings-group" id="custom-url-group" style="display:none">
-          <label>Base URL</label>
+          <label>Base URL <span style="color:var(--error)">*</span></label>
           <input type="text" id="settings-base-url" placeholder="https://api.example.com/v1">
-          <div class="settings-hint">The base URL for your custom OpenAI-compatible API</div>
+          <div class="settings-hint">OpenAI-compatible endpoint (required for Custom)</div>
+        </div>
+        <div class="settings-group" id="custom-model-group" style="display:none">
+          <label>Model <span style="color:var(--error)">*</span></label>
+          <input type="text" id="settings-custom-model" placeholder="e.g. meta-llama/Llama-3-70b-chat">
+          <div class="settings-hint">Model name your Custom API uses</div>
         </div>
         <div class="settings-group">
           <label>Model</label>
@@ -1143,20 +1146,18 @@
        STATE & CONFIG
     ================================================ */
     const API = window.location.origin + '/api';
-    let currentProvider = localStorage.getItem('rann_provider') || 'xkiro';
+    let currentProvider = localStorage.getItem('rann_provider') || 'groq';
     let chatHistory = [];
     let isStreaming = false;
     let currentAbortController = null;
 
     const MODELS_BY_PROVIDER = {
       groq: ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma-7b-it'],
-      xkiro: ['minimax/minimax-m2.7-highspeed:free'],
       deepseek: ['deepseek-chat', 'deepseek-coder'],
       openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
       anthropic: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
       gemini: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'],
       ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3'],
-      seekai: ['claude-fable-5', 'claude-sonnet-4-20250514', 'claude-opus-4-20250514'],
       custom: []
     };
 
@@ -1208,12 +1209,12 @@
     function renderProvidersFallback() {
       const defaults = [
         { id: 'groq', name: 'Groq', icon: 'G', model: 'llama-3.1-70b', free: true },
-        { id: 'xkiro', name: 'xkiro', icon: 'X', model: 'minimax-m2.7', free: true },
         { id: 'deepseek', name: 'DeepSeek', icon: 'D', model: 'deepseek-chat', free: true },
         { id: 'gemini', name: 'Gemini', icon: 'G', model: 'gemini-1.5-flash', free: true },
-        { id: 'seekai', name: 'SeekAI', icon: 'S', model: 'claude-fable-5', free: true },
         { id: 'openai', name: 'OpenAI', icon: 'O', model: 'gpt-4o', free: false },
         { id: 'anthropic', name: 'Anthropic', icon: 'A', model: 'claude-sonnet-4', free: false },
+        { id: 'ollama', name: 'Ollama', icon: 'O', model: 'llama3.2', free: true },
+        { id: 'custom', name: 'Custom', icon: '+', model: 'your model', free: true },
       ];
       const list = document.getElementById('provider-list');
       list.innerHTML = '';
@@ -1260,15 +1261,18 @@
     function onProviderChange() {
       const prov = document.getElementById('settings-provider').value;
       const customGroup = document.getElementById('custom-url-group');
+      const customModelGroup = document.getElementById('custom-model-group');
       const modelSelect = document.getElementById('settings-model');
       const modelHint = document.getElementById('model-hint');
 
       if (prov === 'custom') {
         customGroup.style.display = 'block';
+        customModelGroup.style.display = 'block';
         modelSelect.innerHTML = '<option value="">Custom model name</option>';
         modelHint.textContent = 'Enter your custom model name after saving';
       } else {
         customGroup.style.display = 'none';
+        customModelGroup.style.display = 'none';
         const models = MODELS_BY_PROVIDER[prov] || [];
         modelSelect.innerHTML = models.map(m =>
           `<option value="${m}">${m.split('/').pop()}</option>`
@@ -1280,11 +1284,17 @@
     async function saveSettings() {
       const prov = document.getElementById('settings-provider').value;
       const apiKey = document.getElementById('settings-api-key').value.trim();
-      const model = document.getElementById('settings-model').value;
+      const model = prov === 'custom'
+        ? document.getElementById('settings-custom-model').value.trim()
+        : document.getElementById('settings-model').value;
       const baseUrl = document.getElementById('settings-base-url').value.trim();
 
       if (!apiKey) {
         showToast('Please enter an API key', 'error');
+        return;
+      }
+      if (prov === 'custom' && (!baseUrl || !model)) {
+        showToast('Custom provider requires Base URL and Model', 'error');
         return;
       }
 

@@ -3,825 +3,716 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RANN Agent Dashboard - Real-Time Monitoring</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <title>RANN Agent — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --parchment: #f5f4ed;
-      --ivory: #faf9f5;
-      --white: #ffffff;
-      --sand: #e8e6dc;
-      --near-black: #141413;
-      --dark-surface: #30302e;
-      --terracotta: #c96442;
-      --coral: #d97757;
-      --charcoal: #4d4c48;
-      --olive: #5e5d59;
-      --stone: #87867f;
-      --warm-silver: #b0aea5;
-      --green: #2d8a4e;
-      --green-light: #e8f5ed;
-      --blue: #4a7fb5;
-      --blue-light: #e8f0fa;
-      --yellow: #c9943a;
-      --yellow-light: #faf3e6;
-      --red: #c4483a;
-      --red-light: #fae8e6;
-      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+      --bg: #09090b;
+      --bg2: #111114;
+      --bg3: #18181c;
+      --bg4: #222228;
+      --bg5: #2a2a32;
+      --border: #27272a;
+      --border2: #3f3f46;
+      --text: #fafafa;
+      --text2: #a1a1aa;
+      --text3: #71717a;
+      --text4: #52525b;
+      --accent: #f97316;
+      --accent2: #fb923c;
+      --accent-dim: rgba(249, 115, 22, 0.12);
+      --accent-glow: rgba(249, 115, 22, 0.25);
+      --success: #22c55e;
+      --success-dim: rgba(34, 197, 94, 0.12);
+      --error: #ef4444;
+      --error-dim: rgba(239, 68, 68, 0.12);
+      --warning: #eab308;
+      --warning-dim: rgba(234, 179, 8, 0.12);
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+      --radius: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 18px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { height: 100%; scroll-behavior: smooth; }
 
     body {
-      font-family: var(--font-sans);
-      background: var(--parchment);
-      color: var(--near-black);
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
       line-height: 1.6;
+      min-height: 100%;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Navbar */
-    .navbar {
-      background: var(--near-black);
-      padding: 16px 24px;
+    /* ── HEADER ── */
+    .header {
+      height: 56px;
+      background: rgba(9, 9, 11, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
       position: sticky;
       top: 0;
       z-index: 100;
     }
 
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    .header-left { display: flex; align-items: center; gap: 12px; }
+
+    .logo {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--accent) 0%, #ea580c 100%);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; color: #fff;
+      box-shadow: 0 0 20px var(--accent-glow);
     }
 
-    .nav-logo-icon {
-      width: 36px;
-      height: 36px;
-      background: var(--terracotta);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      color: var(--ivory);
-      font-size: 14px;
+    .header-brand {
+      display: flex; flex-direction: column;
+    }
+    .header-brand-name {
+      font-size: 15px; font-weight: 600; line-height: 1.2;
+    }
+    .header-brand-sub {
+      font-size: 11px; color: var(--text3); line-height: 1;
     }
 
-    .nav-logo-text {
-      color: var(--ivory);
-      font-weight: 500;
-      font-size: 18px;
-    }
+    .header-right { display: flex; align-items: center; gap: 12px; }
 
-    .nav-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--green);
-      font-size: 14px;
+    .header-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--success);
     }
-
     .status-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--green);
-      border-radius: 50%;
-      animation: pulse 2s infinite;
+      width: 8px; height: 8px; background: var(--success);
+      border-radius: 50%; animation: pulse-dot 2s infinite;
     }
-
-    @keyframes pulse {
+    @keyframes pulse-dot {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+      50% { opacity: 0.4; }
     }
 
-    /* Dashboard Grid */
-    .dashboard {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 24px;
+    .nav-links { display: flex; gap: 4px; }
+    .nav-link {
+      padding: 6px 14px; border-radius: 8px;
+      font-size: 13px; font-weight: 500; color: var(--text2);
+      text-decoration: none; transition: all 0.15s;
+    }
+    .nav-link:hover { background: var(--bg3); color: var(--text); }
+    .nav-link.active { background: var(--accent-dim); color: var(--accent); }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      max-width: 1200px; margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .page-title {
+      font-size: 24px; font-weight: 600; margin-bottom: 6px;
+    }
+    .page-subtitle {
+      font-size: 14px; color: var(--text3); margin-bottom: 28px;
+    }
+
+    /* ── STATS GRID ── */
+    .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
+      gap: 16px;
+      margin-bottom: 24px;
     }
 
-    /* Stat Cards */
     .stat-card {
-      background: var(--ivory);
-      border: 1px solid var(--border-cream);
-      border-radius: 12px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
       padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover {
+      border-color: var(--border2);
+      box-shadow: var(--shadow-md);
     }
 
-    .stat-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
+    .stat-card-accent {
+      position: absolute; top: 0; right: 0;
+      width: 80px; height: 80px;
+      border-radius: 0 var(--radius-lg) 0 100%;
+      opacity: 0.06;
     }
+    .stat-card:nth-child(1) .stat-card-accent { background: var(--accent); }
+    .stat-card:nth-child(2) .stat-card-accent { background: var(--success); }
+    .stat-card:nth-child(3) .stat-card-accent { background: #3b82f6; }
+    .stat-card:nth-child(4) .stat-card-accent { background: #a855f7; }
 
-    .stat-card-title {
-      font-size: 13px;
-      color: var(--olive);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .stat-card-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
+    .stat-card-label {
+      font-size: 12px; font-weight: 500; color: var(--text3);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 10px;
     }
 
     .stat-card-value {
-      font-size: 32px;
-      font-weight: 600;
-      color: var(--near-black);
-      font-family: var(--font-mono);
+      font-size: 28px; font-weight: 700; font-family: var(--mono);
+      line-height: 1;
+      background: linear-gradient(135deg, var(--text) 0%, var(--text2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
 
-    .stat-card-change {
-      font-size: 13px;
-      margin-top: 4px;
+    .stat-card-meta {
+      font-size: 12px; color: var(--text3); margin-top: 8px;
     }
 
-    .stat-card-change.positive { color: var(--green); }
-    .stat-card-change.negative { color: var(--red); }
-    .stat-card-change.neutral { color: var(--stone); }
+    .stat-card-meta .up { color: var(--success); }
+    .stat-card-meta .down { color: var(--error); }
 
-    /* Task Queue */
-    .task-queue {
-      grid-column: span 2;
-      background: var(--ivory);
-      border: 1px solid var(--border-cream);
-      border-radius: 12px;
-      padding: 20px;
-    }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .section-title {
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--near-black);
-    }
-
-    .section-badge {
-      background: var(--sand);
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      color: var(--charcoal);
-    }
-
-    /* Task Items */
-    .task-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      background: var(--white);
-      border: 1px solid var(--border-warm);
-      transition: all 0.2s;
-    }
-
-    .task-item:hover {
-      border-color: var(--ring);
-      transform: translateX(2px);
-    }
-
-    .task-status {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .task-status.pending { background: var(--yellow); }
-    .task-status.running { background: var(--blue); animation: pulse 1s infinite; }
-    .task-status.completed { background: var(--green); }
-    .task-status.failed { background: var(--red); }
-
-    .task-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .task-description {
-      font-size: 14px;
-      color: var(--near-black);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .task-meta {
-      font-size: 12px;
-      color: var(--stone);
-      margin-top: 2px;
-    }
-
-    .task-time {
-      font-size: 12px;
-      color: var(--stone);
-      font-family: var(--font-mono);
-    }
-
-    /* Activity Feed */
-    .activity-feed {
-      grid-column: span 2;
-      background: var(--ivory);
-      border: 1px solid var(--border-cream);
-      border-radius: 12px;
-      padding: 20px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    .activity-item {
-      display: flex;
-      gap: 12px;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border-warm);
-    }
-
-    .activity-item:last-child {
-      border-bottom: none;
-    }
-
-    .activity-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      flex-shrink: 0;
-    }
-
-    .activity-icon.thought { background: var(--blue-light); }
-    .activity-icon.action { background: var(--yellow-light); }
-    .activity-icon.result { background: var(--green-light); }
-    .activity-icon.error { background: var(--red-light); }
-    .activity-icon.learn { background: var(--parchment); }
-
-    .activity-content {
-      flex: 1;
-    }
-
-    .activity-text {
-      font-size: 13px;
-      color: var(--near-black);
-      line-height: 1.4;
-    }
-
-    .activity-time {
-      font-size: 11px;
-      color: var(--stone);
-      margin-top: 2px;
-    }
-
-    /* Agent Brain */
-    .agent-brain {
-      grid-column: span 2;
-      background: var(--near-black);
-      border-radius: 12px;
-      padding: 20px;
-      color: var(--ivory);
-    }
-
-    .agent-brain-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .agent-brain-title {
-      font-size: 16px;
-      font-weight: 500;
-    }
-
-    .thinking-phase {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .phase {
-      padding: 6px 12px;
-      border-radius: 16px;
-      font-size: 12px;
-      background: var(--dark-surface);
-      color: var(--warm-silver);
-      transition: all 0.3s;
-    }
-
-    .phase.active {
-      background: var(--terracotta);
-      color: var(--ivory);
-    }
-
-    .phase.completed {
-      background: var(--green);
-      color: var(--ivory);
-    }
-
-    .thought-trace {
-      background: var(--dark-surface);
-      border-radius: 8px;
-      padding: 16px;
-      font-family: var(--font-mono);
-      font-size: 12px;
-      max-height: 200px;
-      overflow-y: auto;
-      line-height: 1.6;
-    }
-
-    .thought-line {
-      padding: 4px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .thought-phase {
-      color: var(--terracotta);
-      margin-right: 8px;
-    }
-
-    .thought-text {
-      color: var(--warm-silver);
-    }
-
-    /* Model Config */
-    .model-config {
-      grid-column: span 2;
-      background: var(--ivory);
-      border: 1px solid var(--border-cream);
-      border-radius: 12px;
-      padding: 20px;
-    }
-
-    .config-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--border-warm);
-    }
-
-    .config-row:last-child {
-      border-bottom: none;
-    }
-
-    .config-label {
-      font-size: 14px;
-      color: var(--olive);
-    }
-
-    .config-value {
-      font-size: 14px;
-      color: var(--near-black);
-      font-family: var(--font-mono);
-    }
-
-    /* Quick Actions */
-    .quick-actions {
-      grid-column: span 2;
-      background: var(--ivory);
-      border: 1px solid var(--border-cream);
-      border-radius: 12px;
-      padding: 20px;
-    }
-
-    .action-grid {
+    /* ── MAIN GRID (2 columns) ── */
+    .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .card-badge {
+      font-size: 11px; font-weight: 500;
+      padding: 2px 8px; border-radius: 10px;
+      background: var(--bg4); color: var(--text3);
+    }
+
+    .card-body { padding: 16px 20px; }
+
+    /* ── PROVIDER STATUS ── */
+    .provider-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .provider-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: all 0.15s;
+    }
+    .provider-item:hover { border-color: var(--border2); }
+    .provider-item.configured { border-color: rgba(34, 197, 94, 0.3); }
+
+    .provider-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; flex-shrink: 0;
+    }
+    .provider-item.groq .provider-icon { background: rgba(15, 31, 77, 0.8); color: #8b5cf6; }
+    .provider-item.deepseek .provider-icon { background: rgba(0, 147, 150, 0.15); color: #0a9396; }
+    .provider-item.openai .provider-icon { background: rgba(16, 163, 127, 0.15); color: #10a37f; }
+    .provider-item.anthropic .provider-icon { background: rgba(210, 166, 121, 0.15); color: #d2a679; }
+    .provider-item.gemini .provider-icon { background: rgba(66, 133, 244, 0.15); color: #4285f4; }
+    .provider-item.ollama .provider-icon { background: rgba(144, 73, 48, 0.15); color: #904930; }
+    .provider-item.custom .provider-icon { background: var(--accent-dim); color: var(--accent); }
+
+    .provider-info { flex: 1; min-width: 0; }
+    .provider-name { font-size: 14px; font-weight: 500; }
+    .provider-model { font-size: 12px; color: var(--text3); margin-top: 1px; }
+
+    .provider-status {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 500;
+    }
+    .provider-status.configured { color: var(--success); }
+    .provider-status.missing { color: var(--text4); }
+
+    /* ── RECENT CHATS ── */
+    .chat-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .chat-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .chat-item:hover { background: var(--bg3); }
+
+    .chat-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--bg4); display: flex;
+      align-items: center; justify-content: center;
+      color: var(--text3); font-size: 14px; flex-shrink: 0;
+    }
+
+    .chat-info { flex: 1; min-width: 0; }
+    .chat-preview { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-meta { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+    .chat-empty {
+      text-align: center; padding: 40px 20px;
+      color: var(--text3); font-size: 14px;
+    }
+    .chat-empty-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.5; }
+
+    /* ── SYSTEM CHECKS ── */
+    .check-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .check-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .check-item:last-child { border-bottom: none; }
+
+    .check-left { display: flex; align-items: center; gap: 10px; }
+    .check-icon { font-size: 16px; }
+    .check-name { font-size: 13px; font-weight: 500; }
+    .check-version { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+    .check-badge {
+      font-size: 11px; font-weight: 600; padding: 3px 10px;
+      border-radius: 10px; letter-spacing: 0.3px;
+    }
+    .check-badge.ok { background: var(--success-dim); color: var(--success); }
+    .check-badge.warning { background: var(--warning-dim); color: var(--warning); }
+    .check-badge.error { background: var(--error-dim); color: var(--error); }
+
+    /* ── QUICK ACTIONS ── */
+    .quick-actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
     }
 
     .action-btn {
-      padding: 14px;
-      border: 1px solid var(--border-warm);
-      border-radius: 8px;
-      background: var(--white);
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s;
-      font-family: var(--font-sans);
+      display: flex; flex-direction: column; align-items: center;
+      gap: 8px; padding: 18px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer; text-decoration: none;
+      transition: all 0.15s;
     }
-
     .action-btn:hover {
-      border-color: var(--terracotta);
-      background: var(--parchment);
+      background: var(--bg3);
+      border-color: var(--border2);
+      transform: translateY(-1px);
     }
 
     .action-icon {
-      font-size: 24px;
-      margin-bottom: 6px;
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .action-btn:nth-child(1) .action-icon { background: var(--accent-dim); color: var(--accent); }
+    .action-btn:nth-child(2) .action-icon { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+    .action-btn:nth-child(3) .action-icon { background: var(--success-dim); color: var(--success); }
+    .action-btn:nth-child(4) .action-icon { background: rgba(168, 85, 247, 0.12); color: #a855f7; }
+
+    .action-label { font-size: 13px; font-weight: 500; text-align: center; }
+    .action-desc { font-size: 11px; color: var(--text3); text-align: center; }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align: center; padding: 24px;
+      font-size: 12px; color: var(--text4);
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
     }
 
-    .action-label {
-      font-size: 13px;
-      color: var(--charcoal);
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .header-status { display: none; }
     }
 
-    /* Memory Display */
-    .memory-display {
-      grid-column: span 2;
-      background: var(--ivory);
-      border: 1px solid var(--border-cream);
-      border-radius: 12px;
-      padding: 20px;
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stat-card-value { font-size: 22px; }
+      .main { padding: 20px 16px; }
     }
 
-    .memory-chart {
-      display: flex;
-      gap: 4px;
-      align-items: flex-end;
-      height: 60px;
-      margin-top: 12px;
-    }
-
-    .memory-bar {
-      flex: 1;
-      background: var(--sand);
-      border-radius: 2px;
-      transition: all 0.3s;
-    }
-
-    .memory-bar:hover {
-      background: var(--terracotta);
-    }
-
-    .memory-bar.semantic { background: var(--blue); }
-    .memory-bar.episodic { background: var(--green); }
-    .memory-bar.working { background: var(--yellow); }
-
-    /* Responsive */
-    @media (max-width: 1024px) {
-      .dashboard {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .task-queue, .activity-feed, .agent-brain, .model-config, .quick-actions, .memory-display {
-        grid-column: span 2;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .dashboard {
-        grid-template-columns: 1fr;
-      }
-      .task-queue, .activity-feed, .agent-brain, .model-config, .quick-actions, .memory-display {
-        grid-column: span 1;
-      }
-    }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
   </style>
 </head>
 <body>
-  <nav class="navbar">
-    <div class="nav-logo">
-      <div class="nav-logo-icon">RA</div>
-      <span class="nav-logo-text">RANN Agent Dashboard</span>
-    </div>
-    <div class="nav-status">
-      <div class="status-dot"></div>
-      <span>System Active</span>
-    </div>
-  </nav>
 
-  <div class="dashboard">
-    <!-- Stats Row -->
-    <div class="stat-card">
-      <div class="stat-card-header">
-        <span class="stat-card-title">Tasks Completed</span>
-        <div class="stat-card-icon" style="background: var(--green-light);">&#10003;</div>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">RA</div>
+      <div class="header-brand">
+        <span class="header-brand-name">RANN Agent</span>
+        <span class="header-brand-sub">AI Chat Interface</span>
       </div>
-      <div class="stat-card-value" id="tasks-completed">0</div>
-      <div class="stat-card-change positive" id="tasks-change">+0 today</div>
+    </div>
+    <nav class="nav-links">
+      <a href="/" class="nav-link">Chat</a>
+      <a href="/dashboard.html" class="nav-link active">Dashboard</a>
+    </nav>
+    <div class="header-right">
+      <div class="header-status">
+        <span class="status-dot"></span>
+        <span id="uptime-label">Online</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-subtitle">System overview and configuration status</p>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-card-accent"></div>
+        <div class="stat-card-label">Provider</div>
+        <div class="stat-card-value" id="stat-provider">—</div>
+        <div class="stat-card-meta" id="stat-provider-model">Select in chat</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-accent"></div>
+        <div class="stat-card-label">Sessions</div>
+        <div class="stat-card-value" id="stat-sessions">0</div>
+        <div class="stat-card-meta">stored locally</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-accent"></div>
+        <div class="stat-card-label">System</div>
+        <div class="stat-card-value" id="stat-system">OK</div>
+        <div class="stat-card-meta" id="stat-system-msg">All checks passed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-accent"></div>
+        <div class="stat-card-label">Uptime</div>
+        <div class="stat-card-value" id="stat-uptime">—</div>
+        <div class="stat-card-meta" id="stat-uptime-msg">since page load</div>
+      </div>
     </div>
 
-    <div class="stat-card">
-      <div class="stat-card-header">
-        <span class="stat-card-title">Active Runs</span>
-        <div class="stat-card-icon" style="background: var(--blue-light);">&#9654;</div>
-      </div>
-      <div class="stat-card-value" id="active-runs">0</div>
-      <div class="stat-card-change neutral">In progress</div>
-    </div>
+    <!-- Main Grid -->
+    <div class="dashboard-grid">
 
-    <div class="stat-card">
-      <div class="stat-card-header">
-        <span class="stat-card-title">Success Rate</span>
-        <div class="stat-card-icon" style="background: var(--yellow-light);">&#9733;</div>
-      </div>
-      <div class="stat-card-value" id="success-rate">0%</div>
-      <div class="stat-card-change positive">All time</div>
-    </div>
+      <!-- Left Column -->
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <!-- Provider Status -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <span>⚡</span> Provider Status
+            </span>
+            <span class="card-badge" id="provider-count">—</span>
+          </div>
+          <div class="card-body">
+            <div class="provider-list" id="provider-list">
+              <div class="chat-empty">
+                <div class="chat-empty-icon">⚡</div>
+                Loading providers...
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <div class="stat-card">
-      <div class="stat-card-header">
-        <span class="stat-card-title">Avg Response</span>
-        <div class="stat-card-icon" style="background: var(--parchment);">&#128336;</div>
-      </div>
-      <div class="stat-card-value" id="avg-response">0ms</div>
-      <div class="stat-card-change neutral">Per task</div>
-    </div>
-
-    <!-- Task Queue -->
-    <div class="task-queue">
-      <div class="section-header">
-        <span class="section-title">Task Queue</span>
-        <span class="section-badge" id="queue-count">0 tasks</span>
-      </div>
-      <div id="task-list">
-        <div class="task-item">
-          <div class="task-status pending"></div>
-          <div class="task-info">
-            <div class="task-description">No tasks in queue</div>
-            <div class="task-meta">Waiting for tasks...</div>
+        <!-- Quick Actions -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <span>🚀</span> Quick Actions
+            </span>
+          </div>
+          <div class="card-body">
+            <div class="quick-actions">
+              <a href="/" class="action-btn">
+                <div class="action-icon">💬</div>
+                <div class="action-label">New Chat</div>
+                <div class="action-desc">Start fresh</div>
+              </a>
+              <a href="/dashboard.html" class="action-btn" onclick="location.reload()">
+                <div class="action-icon">🔄</div>
+                <div class="action-label">Refresh</div>
+                <div class="action-desc">Reload data</div>
+              </a>
+              <button class="action-btn" onclick="clearAllData()">
+                <div class="action-icon">🗑️</div>
+                <div class="action-label">Clear Data</div>
+                <div class="action-desc">Reset local storage</div>
+              </button>
+              <button class="action-btn" onclick="testProviders()">
+                <div class="action-icon">🔬</div>
+                <div class="action-label">Test API</div>
+                <div class="action-desc">Verify connections</div>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Activity Feed -->
-    <div class="activity-feed">
-      <div class="section-header">
-        <span class="section-title">Activity Feed</span>
-        <span class="section-badge">Live</span>
-      </div>
-      <div id="activity-list">
-        <div class="activity-item">
-          <div class="activity-icon thought">&#128172;</div>
-          <div class="activity-content">
-            <div class="activity-text">Dashboard initialized. Waiting for agent activity...</div>
-            <div class="activity-time">Just now</div>
+      <!-- Right Column -->
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <!-- System Checks -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <span>🔍</span> System Checks
+            </span>
+          </div>
+          <div class="card-body">
+            <div class="check-list" id="check-list">
+              <div class="check-item">
+                <div class="check-left">
+                  <span class="check-icon">⏳</span>
+                  <div>
+                    <div class="check-name">Loading...</div>
+                  </div>
+                </div>
+                <span class="check-badge warning">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Chats -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">
+              <span>📜</span> Recent Chats
+            </span>
+            <button class="card-badge" style="cursor:pointer;border:none;background:var(--bg4);color:var(--text3);" onclick="clearChatHistory()">Clear</button>
+          </div>
+          <div class="card-body">
+            <div class="chat-list" id="chat-list">
+              <div class="chat-empty" id="chat-empty">
+                <div class="chat-empty-icon">📜</div>
+                No chat history yet.<br>Start chatting to see your history here.
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
     </div>
 
-    <!-- Agent Brain -->
-    <div class="agent-brain">
-      <div class="agent-brain-header">
-        <span class="agent-brain-title">Agent Thinking Process</span>
-      </div>
-      <div class="thinking-phase">
-        <span class="phase" id="phase-receive">RECEIVE</span>
-        <span class="phase" id="phase-understand">UNDERSTAND</span>
-        <span class="phase" id="phase-research">RESEARCH</span>
-        <span class="phase" id="phase-plan">PLAN</span>
-        <span class="phase" id="phase-execute">EXECUTE</span>
-        <span class="phase" id="phase-verify">VERIFY</span>
-        <span class="phase" id="phase-respond">RESPOND</span>
-      </div>
-      <div class="thought-trace" id="thought-trace">
-        <div class="thought-line">
-          <span class="thought-phase">[IDLE]</span>
-          <span class="thought-text">Waiting for task...</span>
-        </div>
-      </div>
+    <div class="footer">
+      RANN Agent v1.0 &mdash; Powered by Hermes Agent
     </div>
-
-    <!-- Model Config -->
-    <div class="model-config">
-      <div class="section-header">
-        <span class="section-title">Model Configuration</span>
-      </div>
-      <div class="config-row">
-        <span class="config-label">Provider</span>
-        <span class="config-value" id="cfg-provider">xkiro</span>
-      </div>
-      <div class="config-row">
-        <span class="config-label">Model</span>
-        <span class="config-value" id="cfg-model">minimax/m2.7-highspeed</span>
-      </div>
-      <div class="config-row">
-        <span class="config-label">Temperature</span>
-        <span class="config-value" id="cfg-temp">0.7</span>
-      </div>
-      <div class="config-row">
-        <span class="config-label">Max Tokens</span>
-        <span class="config-value" id="cfg-tokens">50000</span>
-      </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-      <div class="section-header">
-        <span class="section-title">Quick Actions</span>
-      </div>
-      <div class="action-grid">
-        <button class="action-btn" onclick="runTask('list files')">
-          <div class="action-icon">&#128193;</div>
-          <div class="action-label">List Files</div>
-        </button>
-        <button class="action-btn" onclick="runTask('check system health')">
-          <div class="action-icon">&#128736;</div>
-          <div class="action-label">Health Check</div>
-        </button>
-        <button class="action-btn" onclick="runTask('show memory stats')">
-          <div class="action-icon">&#128203;</div>
-          <div class="action-label">Memory Stats</div>
-        </button>
-        <button class="action-btn" onclick="runTask('run tests')">
-          <div class="action-icon">&#10003;</div>
-          <div class="action-label">Run Tests</div>
-        </button>
-        <button class="action-btn" onclick="runTask('show git status')">
-          <div class="action-icon">&#128336;</div>
-          <div class="action-label">Git Status</div>
-        </button>
-        <button class="action-btn" onclick="runTask('show config')">
-          <div class="action-icon">&#9881;</div>
-          <div class="action-label">Show Config</div>
-        </button>
-      </div>
-    </div>
-
-    <!-- Memory Display -->
-    <div class="memory-display">
-      <div class="section-header">
-        <span class="section-title">Memory Usage</span>
-        <span class="section-badge" id="memory-total">0 memories</span>
-      </div>
-      <div class="memory-chart" id="memory-chart">
-        <div class="memory-bar semantic" style="height: 20%;"></div>
-        <div class="memory-bar episodic" style="height: 35%;"></div>
-        <div class="memory-bar working" style="height: 50%;"></div>
-        <div class="memory-bar semantic" style="height: 30%;"></div>
-        <div class="memory-bar episodic" style="height: 25%;"></div>
-        <div class="memory-bar working" style="height: 40%;"></div>
-        <div class="memory-bar semantic" style="height: 15%;"></div>
-        <div class="memory-bar episodic" style="height: 20%;"></div>
-      </div>
-      <div style="display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--olive);">
-        <span><span style="color: var(--blue);">&#9632;</span> Semantic</span>
-        <span><span style="color: var(--green);">&#9632;</span> Episodic</span>
-        <span><span style="color: var(--yellow);">&#9632;</span> Working</span>
-      </div>
-    </div>
-  </div>
+  </main>
 
   <script>
-    // Dashboard state
-    const state = {
-      tasksCompleted: 0,
-      activeRuns: 0,
-      successRate: 0,
-      activities: [],
-      thoughtTrace: [],
-      currentPhase: null,
-    };
+    const API = window.location.origin + '/api';
+    const startTime = Date.now();
 
-    // Load config
-    function loadConfig() {
-      // In real app, would fetch from rann config
-      document.getElementById('cfg-provider').textContent = 'xkiro';
-      document.getElementById('cfg-model').textContent = 'minimax/m2.7-highspeed:free';
-      document.getElementById('cfg-temp').textContent = '0.7';
-      document.getElementById('cfg-tokens').textContent = '50000';
+    // ── Uptime counter ──
+    function updateUptime() {
+      const secs = Math.floor((Date.now() - startTime) / 1000);
+      const h = Math.floor(secs / 3600);
+      const m = Math.floor((secs % 3600) / 60);
+      const s = secs % 60;
+      document.getElementById('stat-uptime').textContent =
+        h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
     }
+    setInterval(updateUptime, 1000);
+    updateUptime();
 
-    // Update stats
-    function updateStats(stats) {
-      if (stats.tasks_completed !== undefined) {
-        document.getElementById('tasks-completed').textContent = stats.tasks_completed;
-        document.getElementById('tasks-change').textContent = `+${stats.today || 0} today`;
-      }
-      if (stats.active_runs !== undefined) {
-        document.getElementById('active-runs').textContent = stats.active_runs;
-      }
-      if (stats.success_rate !== undefined) {
-        document.getElementById('success-rate').textContent = Math.round(stats.success_rate * 100) + '%';
-      }
-      if (stats.avg_response_ms !== undefined) {
-        document.getElementById('avg-response').textContent = stats.avg_response_ms + 'ms';
+    // ── Load providers ──
+    async function loadProviders() {
+      try {
+        const resp = await fetch(API + '/providers');
+        if (!resp.ok) throw new Error();
+        const providers = await resp.json();
+        renderProviders(providers);
+      } catch (e) {
+        document.getElementById('provider-list').innerHTML =
+          '<div class="chat-empty"><div class="chat-empty-icon">⚡</div>API offline — start the server</div>';
       }
     }
 
-    // Add activity
-    function addActivity(type, text) {
-      const activityList = document.getElementById('activity-list');
-      const icons = {
-        thought: '&#128172;',
-        action: '&#9888;',
-        result: '&#10003;',
-        error: '&#10060;',
-        learn: '&#128218;'
-      };
-      
-      const activity = document.createElement('div');
-      activity.className = 'activity-item';
-      activity.innerHTML = `
-        <div class="activity-icon ${type}">${icons[type] || '&#128172;'}</div>
-        <div class="activity-content">
-          <div class="activity-text">${text}</div>
-          <div class="activity-time">Just now</div>
-        </div>
-      `;
-      
-      activityList.insertBefore(activity, activityList.firstChild);
-      
-      // Keep only last 20 activities
-      while (activityList.children.length > 20) {
-        activityList.removeChild(activityList.lastChild);
-      }
-    }
+    function renderProviders(providers) {
+      const list = document.getElementById('provider-list');
+      document.getElementById('provider-count').textContent = providers.length + ' providers';
+      list.innerHTML = '';
+      providers.forEach(p => {
+        const hasKey = p.has_key;
+        const modelShort = (p.default_model || '').split('/').pop();
+        const div = document.createElement('div');
+        div.className = 'provider-item ' + p.id + (hasKey ? ' configured' : '');
+        div.innerHTML = `
+          <div class="provider-icon">${(p.name || '?')[0].toUpperCase()}</div>
+          <div class="provider-info">
+            <div class="provider-name">${p.name}</div>
+            <div class="provider-model">${modelShort}${p.free ? ' · FREE' : ' · PAID'}</div>
+          </div>
+          <div class="provider-status ${hasKey ? 'configured' : 'missing'}">
+            ${hasKey ? '✓ configured' : '○ no key'}
+          </div>
+        `;
+        list.appendChild(div);
 
-    // Update thinking phase
-    function updatePhase(phase) {
-      const phases = ['receive', 'understand', 'research', 'plan', 'execute', 'verify', 'respond'];
-      phases.forEach(p => {
-        const el = document.getElementById(`phase-${p}`);
-        if (p === phase) {
-          el.classList.add('active');
-          el.classList.remove('completed');
-        } else if (phases.indexOf(p) < phases.indexOf(phase)) {
-          el.classList.add('completed');
-          el.classList.remove('active');
-        } else {
-          el.classList.remove('active', 'completed');
+        // Update stats card
+        if (hasKey && !p.custom) {
+          document.getElementById('stat-provider').textContent = p.name;
+          document.getElementById('stat-provider-model').textContent = modelShort;
         }
       });
     }
 
-    // Add thought to trace
-    function addThought(phase, text) {
-      const trace = document.getElementById('thought-trace');
-      const line = document.createElement('div');
-      line.className = 'thought-line';
-      line.innerHTML = `
-        <span class="thought-phase">[${phase.toUpperCase()}]</span>
-        <span class="thought-text">${text}</span>
-      `;
-      trace.appendChild(line);
-      trace.scrollTop = trace.scrollHeight;
-      
-      // Keep only last 50 thoughts
-      while (trace.children.length > 50) {
-        trace.removeChild(trace.firstChild);
+    // ── System checks ──
+    async function loadSystemChecks() {
+      try {
+        const resp = await fetch(API + '/system/check');
+        if (!resp.ok) throw new Error();
+        const data = await resp.json();
+        renderChecks(data.checks || []);
+      } catch (e) {
+        renderChecks([
+          { name: 'API Server', status: 'error', message: 'Server unreachable' }
+        ]);
       }
     }
 
-    // Run task (simulated)
-    function runTask(task) {
-      addActivity('action', `Starting task: "${task}"`);
-      
-      // Simulate phases
-      const phases = ['receive', 'understand', 'research', 'plan', 'execute', 'verify', 'respond'];
-      let i = 0;
-      
-      const interval = setInterval(() => {
-        if (i < phases.length) {
-          updatePhase(phases[i]);
-          addThought(phases[i], `Processing ${task.substring(0, 30)}...`);
-          i++;
-        } else {
-          clearInterval(interval);
-          updatePhase(null);
-          addActivity('result', `Completed: "${task}"`);
-          addThought('done', 'Task completed successfully');
-          
-          // Update stats
-          state.tasksCompleted++;
-          updateStats({ tasks_completed: state.tasksCompleted, today: state.tasksCompleted });
-        }
-      }, 500);
+    function renderChecks(checks) {
+      const list = document.getElementById('check-list');
+      list.innerHTML = '';
+      let hasError = false;
+      checks.forEach(c => {
+        if (c.status === 'error') hasError = true;
+        const badgeClass = c.status === 'ok' ? 'ok' : c.status === 'warning' ? 'warning' : 'error';
+        const badgeText = c.status === 'ok' ? 'OK' : c.status === 'warning' ? 'WARN' : 'ERROR';
+        const div = document.createElement('div');
+        div.className = 'check-item';
+        div.innerHTML = `
+          <div class="check-left">
+            <span class="check-icon">${c.status === 'ok' ? '✓' : c.status === 'warning' ? '⚠' : '✗'}</span>
+            <div>
+              <div class="check-name">${c.name}</div>
+              <div class="check-version">${c.message || ''}</div>
+            </div>
+          </div>
+          <span class="check-badge ${badgeClass}">${badgeText}</span>
+        `;
+        list.appendChild(div);
+      });
+      if (checks.length === 0) {
+        document.getElementById('stat-system').textContent = 'OK';
+        document.getElementById('stat-system-msg').textContent = 'All checks passed';
+      } else if (hasError) {
+        document.getElementById('stat-system').textContent = 'ERR';
+        document.getElementById('stat-system-msg').textContent = 'Some checks failed';
+      }
     }
 
-    // Initialize
-    loadConfig();
-    addActivity('learn', 'Dashboard ready. Agent is standing by.');
-    
-    // Simulate some activity
-    setTimeout(() => {
-      updateStats({
-        tasks_completed: 47,
-        active_runs: 0,
-        success_rate: 0.94,
-        avg_response_ms: 1250,
-        today: 5
-      });
-    }, 1000);
+    // ── Chat history ──
+    function loadChatHistory() {
+      try {
+        const raw = localStorage.getItem('rann_chat_history');
+        if (!raw) {
+          document.getElementById('chat-empty').style.display = '';
+          return;
+        }
+        const history = JSON.parse(raw);
+        document.getElementById('stat-sessions').textContent = history.length;
+        const list = document.getElementById('chat-list');
+        const empty = document.getElementById('chat-empty');
+        if (history.length === 0) { empty.style.display = ''; return; }
+        empty.style.display = 'none';
+        history.slice(-10).reverse().forEach(session => {
+          const preview = (session.messages || [])[0] || {};
+          const firstMsg = typeof preview === 'string' ? preview : (preview.content || '');
+          const div = document.createElement('div');
+          div.className = 'chat-item';
+          div.innerHTML = `
+            <div class="chat-icon">💬</div>
+            <div class="chat-info">
+              <div class="chat-preview">${escapeHtml(firstMsg.slice(0, 60) || 'Empty chat')}</div>
+              <div class="chat-meta">${session.provider || 'unknown'} · ${formatTime(session.timestamp)}</div>
+            </div>
+          `;
+          list.appendChild(div);
+        });
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatTime(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      const now = new Date();
+      const diffMs = now - d;
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'just now';
+      if (diffMins < 60) return diffMins + 'm ago';
+      if (diffMins < 1440) return Math.floor(diffMins / 60) + 'h ago';
+      return d.toLocaleDateString();
+    }
+
+    function clearChatHistory() {
+      if (confirm('Clear all chat history?')) {
+        localStorage.removeItem('rann_chat_history');
+        document.getElementById('chat-list').innerHTML =
+          '<div class="chat-empty" id="chat-empty"><div class="chat-empty-icon">📜</div>No chat history yet.<br>Start chatting to see your history here.</div>';
+        document.getElementById('stat-sessions').textContent = '0';
+      }
+    }
+
+    function clearAllData() {
+      if (confirm('Clear ALL local data (chat history, settings, provider keys)?')) {
+        const keys = Object.keys(localStorage).filter(k => k.startsWith('rann_'));
+        keys.forEach(k => localStorage.removeItem(k));
+        location.reload();
+      }
+    }
+
+    async function testProviders() {
+      try {
+        const resp = await fetch(API + '/status');
+        if (resp.ok) {
+          const data = await resp.json();
+          const configured = data.configured_providers || [];
+          alert('Configured providers: ' + (configured.length ? configured.join(', ') : 'none'));
+        }
+      } catch (e) {
+        alert('Cannot reach API server. Is it running?');
+      }
+    }
+
+    // ── Init ──
+    loadProviders();
+    loadSystemChecks();
+    loadChatHistory();
   </script>
 </body>
 </html>

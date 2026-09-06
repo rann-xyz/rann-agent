@@ -19,15 +19,9 @@ KEYS_DIR.mkdir(parents=True, exist_ok=True)
 KEYS_FILE = KEYS_DIR / "keys.json"
 CONFIG_FILE = KEYS_DIR / "config.json"
 
-# Providers config
+# Providers config — well-known providers only
+# For other providers, use "Custom" provider with your own base URL + model
 PROVIDERS = {
-    "xkiro": {
-        "name": "xkiro",
-        "base_url": "https://api.xkiro.com/v1",
-        "default_model": "minimax/minimax-m2.7-highspeed:free",
-        "api_type": "openai",
-        "free": True
-    },
     "groq": {
         "name": "Groq",
         "base_url": "https://api.groq.com/openai/v1",
@@ -75,14 +69,6 @@ PROVIDERS = {
         "api_type": "openai",
         "free": True,
         "models": ["llama3.2", "llama3.1", "mistral", "codellama", "phi3"]
-    },
-    "seekai": {
-        "name": "SeekAI",
-        "base_url": "https://seekai.cc/v1",
-        "default_model": "claude-fable-5",
-        "api_type": "openai",
-        "free": True,
-        "models": ["claude-fable-5", "claude-sonnet-4-20250514", "claude-opus-4-20250514"]
     },
     "custom": {
         "name": "Custom",
