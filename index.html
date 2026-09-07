@@ -1335,9 +1335,6 @@
       document.getElementById('settings-modal').classList.add('show');
       document.getElementById('settings-provider').value = currentProvider;
       onProviderChange();
-      // Try to load saved key from localStorage
-      const savedKey = localStorage.getItem('rann_api_key');
-      if (savedKey) document.getElementById('settings-api-key').value = savedKey;
     }
 
     function closeSettings() {
@@ -1368,13 +1365,26 @@
         modelHint.textContent = `${models.length} model${models.length !== 1 ? 's' : ''} available`;
       }
 
-      // Show/hide API key field based on whether provider is free
-      if (FREE_PROVIDERS.has(prov)) {
+      // Show/hide API key field based on provider
+      const freeProviders = new Set(['ollama', 'groq', 'deepseek', 'gemini']);
+      if (freeProviders.has(prov)) {
         apiKeyGroup.style.display = 'none';
       } else {
         apiKeyGroup.style.display = 'block';
         apiKeyHint.textContent = 'Your API key is stored locally and never sent to our servers';
       }
+
+      // Load saved key for THIS provider
+      const savedKey = localStorage.getItem('rann_api_key_' + prov) || '';
+      document.getElementById('settings-api-key').value = savedKey;
+
+      // Load saved model for THIS provider
+      const savedModel = localStorage.getItem('rann_model_' + prov);
+      if (savedModel) modelSelect.value = savedModel;
+
+      // Load saved base URL for THIS provider (custom only)
+      const savedBaseUrl = localStorage.getItem('rann_base_url_' + prov) || '';
+      document.getElementById('settings-base-url').value = savedBaseUrl;
     }
 
     async function saveSettings() {
@@ -1418,7 +1428,6 @@
       } catch (e) { /* ignore */ }
 
       onProviderChange();
-      updateSendButton();
       closeSettings();
       showToast('Settings saved', 'success');
     }

@@ -182,11 +182,12 @@ module.exports = async function handler(req, res) {
     try {
       const data = await getBody(req);
       const { provider, api_key, model, base_url } = data;
-      if (!provider || !api_key) {
-        return res.status(400).json({ error: 'provider and api_key are required' });
+      if (!provider) {
+        return res.status(400).json({ error: 'provider is required' });
       }
-      // Vercel serverless: no persistent storage, just validate key format
-      return res.status(200).json({ success: true, provider });
+      // Accept any non-empty API key (localStorage only, no server-side storage on Vercel)
+      const hasKey = api_key && api_key.trim().length > 0;
+      return res.status(200).json({ success: true, provider, has_key: hasKey });
     } catch (err) {
       return res.status(400).json({ error: err.message });
     }
