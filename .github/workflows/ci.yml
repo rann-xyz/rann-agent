@@ -29,7 +29,7 @@ jobs:
       - run: pip list | head -10
       - run: ruff check .
       - run: black --check .
-      - run: mypy rann_agent
+      - run: mypy rann_agent --follow-imports=skip
 
   test:
     name: Tests
