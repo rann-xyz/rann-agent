@@ -45,8 +45,9 @@ jobs:
       - run: python --version
       - run: pip list | head -5
       - run: |
-          set -e
+          set -x
           pytest tests/ -v --cov=rann_agent --cov-report=xml --cov-fail-under=15
+          echo "TEST_DONE: $?"
 
   benchmark:
     name: Benchmarks
