@@ -34,9 +34,7 @@ class RedisCache(CacheBackend):
 
     def __init__(self, *, url: str | None = None, default_ttl: int = 3600):
         if not REDIS_AVAILABLE:
-            raise RuntimeError(
-                "redis package not installed. " "Install with: pip install redis"
-            )
+            raise RuntimeError("redis package not installed. " "Install with: pip install redis")
 
         self._url = url or os.environ.get("REDIS_URL", "redis://localhost:6379/0")
         self._default_ttl = default_ttl

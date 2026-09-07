@@ -171,9 +171,7 @@ class TestCacheManager:
         messages = [{"role": "user", "content": "hi"}]
         await cache.set_llm_response(messages, "claude-sonnet-4", {"content": "sonnet"})
         await cache.set_llm_response(messages, "gpt-4o", {"content": "gpt"})
-        assert (await cache.get_llm_response(messages, "claude-sonnet-4"))[
-            "content"
-        ] == "sonnet"
+        assert (await cache.get_llm_response(messages, "claude-sonnet-4"))["content"] == "sonnet"
         assert (await cache.get_llm_response(messages, "gpt-4o"))["content"] == "gpt"
 
     @pytest.mark.asyncio
@@ -190,9 +188,7 @@ class TestCacheManager:
             {"success": False, "error": "not found"},
         )
         # Success should be cached
-        assert (
-            await cache.get_tool_result("read_file", {"path": "/tmp/a.txt"}) is not None
-        )
+        assert await cache.get_tool_result("read_file", {"path": "/tmp/a.txt"}) is not None
         # Failure should NOT be cached
         assert await cache.get_tool_result("read_file", {"path": "/tmp/b.txt"}) is None
 
@@ -214,9 +210,7 @@ class TestCacheManager:
         await cache.set_llm_response(
             [{"role": "user", "content": "x"}], "claude-sonnet-4", {"content": "y"}
         )
-        result = await cache.get_llm_response(
-            [{"role": "user", "content": "x"}], "claude-sonnet-4"
-        )
+        result = await cache.get_llm_response([{"role": "user", "content": "x"}], "claude-sonnet-4")
         assert result is None
         os.environ["RANN_CACHE_ENABLED"] = "true"
         reset_cache()

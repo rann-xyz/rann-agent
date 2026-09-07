@@ -83,9 +83,7 @@ class AgentLifecycle:
             self.budget_engine.start_run()
 
             self.events.emit(
-                self.events.create_event(
-                    EventType.RUN_STARTED, status=EventStatus.SUCCESS
-                )
+                self.events.create_event(EventType.RUN_STARTED, status=EventStatus.SUCCESS)
             )
 
             yield self
@@ -124,9 +122,7 @@ class AgentLifecycle:
 
     # === State Management ===
 
-    def transition_to(
-        self, state: AgentState, reason: str | None = None, **metadata
-    ) -> None:
+    def transition_to(self, state: AgentState, reason: str | None = None, **metadata) -> None:
         """Transition to a new state"""
         try:
             self.state_machine.transition(state, reason, **metadata)
@@ -164,9 +160,7 @@ class AgentLifecycle:
         if warnings and self._on_budget_warning:
             self._on_budget_warning(warnings)
 
-    def record_model_call(
-        self, input_tokens: int, output_tokens: int, cost_usd: float = 0
-    ) -> None:
+    def record_model_call(self, input_tokens: int, output_tokens: int, cost_usd: float = 0) -> None:
         """Record a model call"""
         self.budget_engine.record_model_call(input_tokens, output_tokens, cost_usd)
         self.check_budget_warnings()
@@ -215,16 +209,11 @@ class AgentLifecycle:
 
     def can_resume_from_checkpoint(self) -> bool:
         """Check if we can resume from checkpoint"""
-        return (
-            bool(self._checkpoint_data)
-            and self.state_machine.state == AgentState.QUEUED
-        )
+        return bool(self._checkpoint_data) and self.state_machine.state == AgentState.QUEUED
 
     # === Recovery ===
 
-    async def attempt_recovery(
-        self, error: Exception, recovery_strategies: list
-    ) -> bool:
+    async def attempt_recovery(self, error: Exception, recovery_strategies: list) -> bool:
         """
         Attempt to recover from an error.
 

@@ -81,9 +81,7 @@ class DurableQueue:
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_status ON jobs(status)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_worker ON jobs(worker_id)")
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_priority ON jobs(priority DESC, created_at)"
-        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_priority ON jobs(priority DESC, created_at)")
         conn.commit()
         conn.close()
 
@@ -91,9 +89,7 @@ class DurableQueue:
         """Add a job to the queue. Returns job_id."""
         job_id = str(uuid.uuid4())
         task_json = json.dumps(
-            task_contract.to_dict()
-            if hasattr(task_contract, "to_dict")
-            else task_contract
+            task_contract.to_dict() if hasattr(task_contract, "to_dict") else task_contract
         )
         now = datetime.now(UTC).isoformat()
 
@@ -180,9 +176,7 @@ class DurableQueue:
         logger.info("job_completed", job_id=job_id)
         return n > 0
 
-    def fail(
-        self, job_id: str, worker_id: str, error: str, retry: bool = False
-    ) -> bool:
+    def fail(self, job_id: str, worker_id: str, error: str, retry: bool = False) -> bool:
         """Mark job as failed. Optionally increment retry count."""
         now = datetime.now(UTC).isoformat()
         conn = self._get_conn()

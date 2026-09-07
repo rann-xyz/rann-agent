@@ -46,9 +46,7 @@ class MCTSPlanner:
             possible_actions: List of possible actions
             iterations: Number of search iterations
         """
-        self.root = MCTSNode(
-            state=initial_state, untried_actions=possible_actions.copy()
-        )
+        self.root = MCTSNode(state=initial_state, untried_actions=possible_actions.copy())
 
         for _ in range(iterations):
             node = self._select(self.root)

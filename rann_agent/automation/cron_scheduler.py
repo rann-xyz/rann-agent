@@ -230,9 +230,7 @@ class CronScheduler:
             "runs_count": job.runs_count,
             "success_count": job.success_count,
             "fail_count": job.fail_count,
-            "success_rate": (
-                job.success_count / job.runs_count if job.runs_count > 0 else 0
-            ),
+            "success_rate": (job.success_count / job.runs_count if job.runs_count > 0 else 0),
             "last_run": job.last_run,
             "next_run": job.next_run,
         }

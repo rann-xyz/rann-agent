@@ -41,9 +41,7 @@ class TestSecurityBasics:
                 content = py_file.read_text()
                 for pattern in suspicious_patterns:
                     if pattern in content:
-                        violations.append(
-                            f"{py_file.relative_to(ROOT)}: found '{pattern}'"
-                        )
+                        violations.append(f"{py_file.relative_to(ROOT)}: found '{pattern}'")
             except Exception:
                 pass
 
@@ -68,13 +66,9 @@ class TestSecurityBasics:
                 if line.startswith(f"{var_name}="):
                     value = line.split("=", 1)[1].strip()
                     if is_real_key(value):
-                        violations.append(
-                            f"{var_name} has non-placeholder value: {value}"
-                        )
+                        violations.append(f"{var_name} has non-placeholder value: {value}")
 
-        assert not violations, ".env.example contains real keys:\n" + "\n".join(
-            violations
-        )
+        assert not violations, ".env.example contains real keys:\n" + "\n".join(violations)
 
     def test_shell_injection_protection(self):
         """Test that shell metacharacters are handled in commands."""

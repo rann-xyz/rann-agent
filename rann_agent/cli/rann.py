@@ -164,9 +164,7 @@ def status():
 
         # Event bus stats
         eb = EventBus()
-        handler_counts = {
-            et.value: len(eb._handlers.get(et, [])) for et in list(EventType)[:5]
-        }
+        handler_counts = {et.value: len(eb._handlers.get(et, [])) for et in list(EventType)[:5]}
         click.echo(f"  Event handlers: {sum(handler_counts.values())}")
 
     except Exception as e:
@@ -424,9 +422,7 @@ def audit():
     try:
         db = Database()
         conn = db._get_conn()
-        rows = conn.execute(
-            "SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT 20"
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT 20").fetchall()
         conn.close()
 
         if not rows:

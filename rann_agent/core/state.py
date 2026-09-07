@@ -207,9 +207,7 @@ class AgentStateMachine:
         # Ensure state directory exists
         STATE_DIR.mkdir(parents=True, exist_ok=True)
 
-        logger.info(
-            "state_machine_init", run_id=run_id, initial_state=self._state.value
-        )
+        logger.info("state_machine_init", run_id=run_id, initial_state=self._state.value)
 
     @property
     def state(self) -> AgentState:
@@ -314,9 +312,7 @@ class AgentStateMachine:
                 history=[r.to_dict() for r in self._history],
             )
             self._state_file.write_text(json.dumps(persisted.to_dict(), indent=2))
-            logger.debug(
-                "state_persisted", run_id=self.run_id, path=str(self._state_file)
-            )
+            logger.debug("state_persisted", run_id=self.run_id, path=str(self._state_file))
         except Exception as e:
             logger.warning("state_persist_failed", run_id=self.run_id, error=str(e))
 
@@ -336,9 +332,7 @@ class AgentStateMachine:
 
             self._state = persisted.state
             self._state_since = persisted.state_since
-            self._history = [
-                StateTransitionRecord.from_dict(h) for h in persisted.history
-            ]
+            self._history = [StateTransitionRecord.from_dict(h) for h in persisted.history]
 
             logger.info(
                 "state_loaded",

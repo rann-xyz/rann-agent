@@ -82,9 +82,7 @@ class Planner:
             files_to_change=[],
             verification=f"Verify: {contract.verification_strategy}",
             risk=(
-                contract.risk_level.name.lower()
-                if hasattr(contract, "risk_level")
-                else "medium"
+                contract.risk_level.name.lower() if hasattr(contract, "risk_level") else "medium"
             ),
             rollback_plan="Restore from checkpoint on failure",
         )

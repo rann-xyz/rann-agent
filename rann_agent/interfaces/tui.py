@@ -45,9 +45,7 @@ class ChatPanel:
         self._trim()
 
     def add_tool(self, content: str, tool_name: str) -> None:
-        self.messages.append(
-            ChatMessage(role="tool", content=content, tool_name=tool_name)
-        )
+        self.messages.append(ChatMessage(role="tool", content=content, tool_name=tool_name))
         self._trim()
 
     def add_system(self, content: str) -> None:
@@ -89,9 +87,7 @@ class ChatPanel:
             if msg.role == "tool" and msg.tool_name:
                 label = f"🔧 {msg.tool_name}"
             ts = msg.timestamp.strftime("%H:%M:%S")
-            content = (
-                msg.content[:500] + "..." if len(msg.content) > 500 else msg.content
-            )
+            content = msg.content[:500] + "..." if len(msg.content) > 500 else msg.content
             lines.append(f"[{color}]{label}[/{color}] [dim]{ts}[/dim]")
             lines.append(f"  {content}")
 
@@ -158,12 +154,8 @@ class ProgressPanel:
                 f"[bold]Tokens:[/bold] {total:,} ([green]in:{self.input_tokens:,}[/green] [blue]out:{self.output_tokens:,}[/blue])"
             )
         if self.max_turns:
-            lines.append(
-                f"[bold]Budget:[/bold] {(self.turn / self.max_turns) * 100:.1f}%"
-            )
-        return Panel(
-            "\n".join(lines), title="Progress", border_style="blue", padding=(1, 2)
-        )
+            lines.append(f"[bold]Budget:[/bold] {(self.turn / self.max_turns) * 100:.1f}%")
+        return Panel("\n".join(lines), title="Progress", border_style="blue", padding=(1, 2))
 
 
 class StatusBar:
@@ -184,11 +176,7 @@ class StatusBar:
 
     def render(self) -> Panel:
         now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
-        status = (
-            "[bold yellow]● RUNNING[/bold yellow]"
-            if self.running
-            else "[dim]○ IDLE[/dim]"
-        )
+        status = "[bold yellow]● RUNNING[/bold yellow]" if self.running else "[dim]○ IDLE[/dim]"
         parts = [
             f"[bold]⏱[/bold] {now}",
             f"[bold]📋[/bold] {self.session_id or 'No session'}",
@@ -233,9 +221,7 @@ class TUI:
     async def _execute(self, goal: str, context: str | None = None) -> None:
         """Execute task with streaming UI."""
         if not self.agent:
-            self.agent = Agent(
-                config=self.config, provider=self.provider, model=self.model
-            )
+            self.agent = Agent(config=self.config, provider=self.provider, model=self.model)
 
         self.status.set_running(True)
         self.progress.reset()
@@ -263,9 +249,7 @@ class TUI:
         finally:
             self.status.set_running(False)
             if self.agent.session_id:
-                self.status.set_session(
-                    self.agent.session_id, self.provider, self.model
-                )
+                self.status.set_session(self.agent.session_id, self.provider, self.model)
 
     async def _read_line(self) -> str | None:
         """Async line read from stdin."""

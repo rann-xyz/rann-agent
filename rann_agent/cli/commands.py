@@ -317,9 +317,7 @@ def register_session_commands(cli):
         try:
             db = Database()
             conn = db._get_conn()
-            row = conn.execute(
-                "SELECT * FROM runs WHERE run_id = ?", (session_id,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (session_id,)).fetchone()
             conn.close()
 
             if not row:
@@ -344,9 +342,7 @@ def register_session_commands(cli):
         try:
             db = Database()
             conn = db._get_conn()
-            row = conn.execute(
-                "SELECT * FROM runs WHERE run_id = ?", (session_id,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (session_id,)).fetchone()
             conn.close()
 
             if not row:
@@ -384,18 +380,14 @@ def register_project_commands(cli):
             proj_path = Path(path).resolve()
 
             if not proj_path.exists():
-                click.confirm(
-                    f"Directory {proj_path} does not exist. Create?", abort=True
-                )
+                click.confirm(f"Directory {proj_path} does not exist. Create?", abort=True)
                 proj_path.mkdir(parents=True)
 
             # Detect language if not provided
             if not language:
                 if (proj_path / "package.json").exists():
                     language = "javascript"
-                elif (proj_path / "requirements.txt").exists() or (
-                    proj_path / "setup.py"
-                ).exists():
+                elif (proj_path / "requirements.txt").exists() or (proj_path / "setup.py").exists():
                     language = "python"
                 elif (proj_path / "Cargo.toml").exists():
                     language = "rust"

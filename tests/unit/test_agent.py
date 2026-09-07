@@ -70,9 +70,7 @@ class TestAgentExecution:
                 }
             )
 
-            result = await agent.execute(
-                goal="test", context="additional info", max_turns=1
-            )
+            result = await agent.execute(goal="test", context="additional info", max_turns=1)
 
             assert result is not None
 
@@ -108,9 +106,7 @@ class TestAgentSelfHealing:
             with patch.object(agent, "_self_heal", new_callable=AsyncMock) as mock_heal:
                 mock_heal.return_value = True
 
-                with patch.object(
-                    agent, "_execute_turn", new_callable=AsyncMock
-                ) as mock_turn:
+                with patch.object(agent, "_execute_turn", new_callable=AsyncMock) as mock_turn:
                     mock_turn.side_effect = [
                         {"error": "test error", "done": False},
                         {"done": True, "output": "fixed"},
@@ -133,9 +129,7 @@ class TestAgentSelfHealing:
                 mock_heal.return_value = False  # Always fail
 
                 with pytest.raises(Exception, match="Failed to heal error"):
-                    with patch.object(
-                        agent, "_execute_turn", new_callable=AsyncMock
-                    ) as mock_turn:
+                    with patch.object(agent, "_execute_turn", new_callable=AsyncMock) as mock_turn:
                         mock_turn.return_value = {
                             "error": "persistent error",
                             "done": False,
@@ -154,9 +148,7 @@ class TestAgentContext:
             assert len(agent.context.messages) == 0
 
     @pytest.mark.asyncio
-    async def test_context_updated_during_execution(
-        self, mock_llm_provider, mock_config
-    ):
+    async def test_context_updated_during_execution(self, mock_llm_provider, mock_config):
         """Test context is updated during task execution"""
         with patch("rann_agent.core.agent.LLMProvider", return_value=mock_llm_provider):
             agent = Agent(config=mock_config)

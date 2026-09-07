@@ -91,9 +91,7 @@ class SkillRegistry:
                 # Don't overwrite programmatically registered skills
                 if sid not in self._skills:
                     self._skills[sid] = meta
-            self._logger.info(
-                "registry_loaded", path=str(path), count=len(self._skills)
-            )
+            self._logger.info("registry_loaded", path=str(path), count=len(self._skills))
         except (json.JSONDecodeError, TypeError) as exc:
             self._logger.error("registry_load_failed", path=str(path), error=str(exc))
 
@@ -168,9 +166,7 @@ class SkillRegistry:
     def search_by_tag(self, tag: str) -> list[SkillMetadata]:
         """Return skills that have the given tag."""
         lower = tag.lower()
-        return [
-            m for m in self._skills.values() if any(lower in t.lower() for t in m.tags)
-        ]
+        return [m for m in self._skills.values() if any(lower in t.lower() for t in m.tags)]
 
     # -------------------------------------------------------------------------
     # Enable / Disable

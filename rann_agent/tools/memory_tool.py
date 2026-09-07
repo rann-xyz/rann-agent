@@ -60,9 +60,7 @@ class MemoryTool:
             event_type = kwargs.get("event_type", "")
             content = kwargs.get("content", {})
             outcome = kwargs.get("outcome", "success")
-            episode_id = await self.episodic_memory.add_episode(
-                event_type, content, outcome
-            )
+            episode_id = await self.episodic_memory.add_episode(event_type, content, outcome)
             return {"success": True, "episode_id": episode_id}
 
         elif action == "get_recent_episodes":

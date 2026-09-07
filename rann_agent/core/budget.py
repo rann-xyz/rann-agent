@@ -92,8 +92,7 @@ class BudgetTracker:
                 "used_seconds": self.get_elapsed_seconds(),
                 "limit_seconds": self.budget.max_time_seconds,
                 "remaining_seconds": self.time_remaining_seconds(),
-                "pct": self.get_elapsed_seconds()
-                / max(1, self.budget.max_time_seconds),
+                "pct": self.get_elapsed_seconds() / max(1, self.budget.max_time_seconds),
             },
             "tool_calls": {
                 "used": self.tool_calls,
@@ -135,9 +134,7 @@ class BudgetTracker:
                     "limit",
                     data.get("limit_seconds", data.get("limit_usd", data["limit"])),
                 )
-                warnings.append(
-                    f"{key}: {data['pct']:.0%} used ({used_val} of {limit_val})"
-                )
+                warnings.append(f"{key}: {data['pct']:.0%} used ({used_val} of {limit_val})")
 
         return warnings
 
@@ -216,9 +213,7 @@ class BudgetEngine:
 
         return True, "OK"
 
-    def record_model_call(
-        self, input_tokens: int, output_tokens: int, cost_usd: float = 0
-    ) -> None:
+    def record_model_call(self, input_tokens: int, output_tokens: int, cost_usd: float = 0) -> None:
         """Record a model call"""
         self.tracker.model_calls += 1
         self.tracker.input_tokens += input_tokens

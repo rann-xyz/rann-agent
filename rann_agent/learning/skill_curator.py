@@ -96,9 +96,7 @@ class SkillCurator:
             "lessons_learned": skill["lessons_learned"],
         }
 
-    async def record_skill_outcome(
-        self, skill_id: str, success: bool, feedback: str | None = None
-    ):
+    async def record_skill_outcome(self, skill_id: str, success: bool, feedback: str | None = None):
         """Record outcome of skill usage."""
         if skill_id not in self.skills:
             return

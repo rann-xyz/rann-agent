@@ -67,9 +67,7 @@ class ContextWindowManager:
         for msg in messages:
             content = msg.get("content", "")
             # Rough: 4 chars/token, but code is ~3 chars/token
-            if any(
-                ck in content for ck in ["```", "def ", "class ", "import ", "//", "#"]
-            ):
+            if any(ck in content for ck in ["```", "def ", "class ", "import ", "//", "#"]):
                 total += len(content) // 3
             else:
                 total += len(content) // 4
@@ -103,9 +101,7 @@ class ContextWindowManager:
         else:
             return self._drop_oldest(messages, target)
 
-    def _truncate(
-        self, messages: list[dict[str, Any]], target: int
-    ) -> list[dict[str, Any]]:
+    def _truncate(self, messages: list[dict[str, Any]], target: int) -> list[dict[str, Any]]:
         """
         Remove middle messages, keeping head (system) and tail (recent).
         Binary search to find optimal split point.
@@ -123,9 +119,7 @@ class ContextWindowManager:
         # Fallback: simple drop
         return self._drop_oldest(messages, target)
 
-    def _drop_oldest(
-        self, messages: list[dict[str, Any]], target: int
-    ) -> list[dict[str, Any]]:
+    def _drop_oldest(self, messages: list[dict[str, Any]], target: int) -> list[dict[str, Any]]:
         """
         Drop oldest messages until it fits.
         Always keeps the system prompt.

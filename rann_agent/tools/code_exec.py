@@ -48,9 +48,7 @@ class CodeExecutionTool(Tool):
         timeout = timeout or self.timeout
 
         try:
-            logger.info(
-                "code_exec_start", language=language, lines=len(code.splitlines())
-            )
+            logger.info("code_exec_start", language=language, lines=len(code.splitlines()))
 
             if language == "python":
                 result = await self._execute_python(code, timeout)
@@ -89,9 +87,7 @@ class CodeExecutionTool(Tool):
             )
 
             try:
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(), timeout=timeout
-                )
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
 
                 output = stdout.decode() if stdout else ""
                 error = stderr.decode() if stderr else ""
@@ -132,9 +128,7 @@ class CodeExecutionTool(Tool):
             )
 
             try:
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(), timeout=timeout
-                )
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
 
                 output = stdout.decode() if stdout else ""
                 error = stderr.decode() if stderr else ""
@@ -170,9 +164,7 @@ class CodeExecutionTool(Tool):
         )
 
         try:
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(), timeout=timeout
-            )
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
 
             output = stdout.decode() if stdout else ""
             error = stderr.decode() if stderr else ""

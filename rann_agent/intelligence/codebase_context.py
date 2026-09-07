@@ -21,9 +21,7 @@ class CodebaseContext:
         self.dependency_graph = {}
         self.context_cache = {}
 
-    async def index_codebase(
-        self, extensions: list[str] | None = None
-    ) -> dict[str, Any]:
+    async def index_codebase(self, extensions: list[str] | None = None) -> dict[str, Any]:
         """
         Index entire codebase for quick access.
 
@@ -130,9 +128,7 @@ class CodebaseContext:
                             "name": node.name,
                             "line": node.lineno,
                             "methods": [
-                                n.name
-                                for n in node.body
-                                if isinstance(n, ast.FunctionDef)
+                                n.name for n in node.body if isinstance(n, ast.FunctionDef)
                             ],
                         }
                     )
@@ -198,8 +194,7 @@ class CodebaseContext:
             "functions": [f["name"] for f in symbols.get("functions", [])],
             "classes": [c["name"] for c in symbols.get("classes", [])],
             "imports": symbols.get("imports", []),
-            "symbols_count": len(symbols.get("functions", []))
-            + len(symbols.get("classes", [])),
+            "symbols_count": len(symbols.get("functions", [])) + len(symbols.get("classes", [])),
         }
 
         self.context_cache[file_path] = context

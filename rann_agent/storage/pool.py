@@ -38,9 +38,7 @@ class ConnectionPool:
     def __init__(self, db_path: Path | None = None, pool_size: int = DEFAULT_POOL_SIZE):
         self.db_path = db_path or get_db_path()
         self.pool_size = pool_size
-        self._pool: queue.Queue[sqlite3.Connection | None] = queue.Queue(
-            maxsize=pool_size
-        )
+        self._pool: queue.Queue[sqlite3.Connection | None] = queue.Queue(maxsize=pool_size)
         self._lock = threading.Lock()
         self._init_lock = threading.Lock()
         self._initialized = False

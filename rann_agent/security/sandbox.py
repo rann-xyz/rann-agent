@@ -54,9 +54,7 @@ class SandboxConfig:
     def __post_init__(self):
         """Validate configuration."""
         if self.timeout <= 0:
-            raise SecurityError(
-                "Timeout must be positive", details={"timeout": self.timeout}
-            )
+            raise SecurityError("Timeout must be positive", details={"timeout": self.timeout})
         if self.memory_limit <= 0:
             raise SecurityError(
                 "Memory limit must be positive",
@@ -353,9 +351,7 @@ class SandboxExecutor:
                     error="Timeout exceeded",
                 )
 
-    async def _execute_vm(
-        self, code: str, language: str, config: SandboxConfig
-    ) -> ExecutionResult:
+    async def _execute_vm(self, code: str, language: str, config: SandboxConfig) -> ExecutionResult:
         """Execute in a full VM - not yet implemented."""
         raise SecurityError(
             "VM sandbox is not yet implemented",
@@ -414,9 +410,7 @@ async def _run_process(
             # Limit number of processes
             resource.setrlimit(resource.RLIMIT_NPROC, (64, 64))
             # Limit file size to 10MB
-            resource.setrlimit(
-                resource.RLIMIT_FSIZE, (10 * 1024 * 1024, 10 * 1024 * 1024)
-            )
+            resource.setrlimit(resource.RLIMIT_FSIZE, (10 * 1024 * 1024, 10 * 1024 * 1024))
         except (ValueError, OSError) as e:
             log.warning("failed_to_set_resource_limits", error=str(e))
 

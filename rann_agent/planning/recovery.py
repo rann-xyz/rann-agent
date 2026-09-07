@@ -64,9 +64,7 @@ class PatchSyntax(RecoveryStrategy):
     failure_types = [FailureType.SYNTAX]
 
     def __call__(self, failure: FailureAnalysis) -> RecoveryResult:
-        logger.info(
-            "recovery_attempt", strategy="PatchSyntax", failure=failure.failure_type
-        )
+        logger.info("recovery_attempt", strategy="PatchSyntax", failure=failure.failure_type)
         return RecoveryResult(recovered=False, strategy_used="PatchSyntax")
 
 
@@ -74,9 +72,7 @@ class InstallDeps(RecoveryStrategy):
     failure_types = [FailureType.IMPORT, FailureType.DEPENDENCY]
 
     def __call__(self, failure: FailureAnalysis) -> RecoveryResult:
-        logger.info(
-            "recovery_attempt", strategy="InstallDeps", failure=failure.failure_type
-        )
+        logger.info("recovery_attempt", strategy="InstallDeps", failure=failure.failure_type)
         return RecoveryResult(recovered=False, strategy_used="InstallDeps")
 
 
@@ -96,9 +92,7 @@ class FixTest(RecoveryStrategy):
     failure_types = [FailureType.TEST]
 
     def __call__(self, failure: FailureAnalysis) -> RecoveryResult:
-        logger.info(
-            "recovery_attempt", strategy="FixTest", failure=failure.failure_type
-        )
+        logger.info("recovery_attempt", strategy="FixTest", failure=failure.failure_type)
         return RecoveryResult(recovered=False, strategy_used="FixTest")
 
 
@@ -106,9 +100,7 @@ class ReduceScope(RecoveryStrategy):
     failure_types = [FailureType.TIMEOUT, FailureType.RESOURCE]
 
     def __call__(self, failure: FailureAnalysis) -> RecoveryResult:
-        logger.info(
-            "recovery_attempt", strategy="ReduceScope", failure=failure.failure_type
-        )
+        logger.info("recovery_attempt", strategy="ReduceScope", failure=failure.failure_type)
         return RecoveryResult(recovered=False, strategy_used="ReduceScope")
 
 
@@ -163,9 +155,7 @@ class RecoveryEngine:
             ft = FailureType.NETWORK
         elif "test" in error_lower or "assertion" in error_lower:
             ft = FailureType.TEST
-        elif (
-            "memory" in error_lower or "cpu" in error_lower or "resource" in error_lower
-        ):
+        elif "memory" in error_lower or "cpu" in error_lower or "resource" in error_lower:
             ft = FailureType.RESOURCE
         elif "security" in error_lower or "injection" in error_lower:
             ft = FailureType.SECURITY
@@ -204,9 +194,7 @@ class RecoveryEngine:
                     error=str(e),
                 )
 
-        logger.warning(
-            "all_recovery_strategies_failed", failure_type=failure.failure_type
-        )
+        logger.warning("all_recovery_strategies_failed", failure_type=failure.failure_type)
         return RecoveryResult(
             recovered=False,
             strategy_used="exhausted",

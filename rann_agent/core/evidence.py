@@ -177,9 +177,7 @@ class EvidenceLedger:
             if substring_lower in evidence.claim.lower()
         ]
 
-        logger.debug(
-            "evidence_search", query=claim_substring, result_count=len(matches)
-        )
+        logger.debug("evidence_search", query=claim_substring, result_count=len(matches))
 
         return matches
 
@@ -307,9 +305,7 @@ class EvidenceLedger:
                 self._evidence[evidence.evidence_id] = evidence
                 loaded += 1
             except Exception as e:
-                logger.warning(
-                    "evidence_load_failed", file=str(evidence_file), error=str(e)
-                )
+                logger.warning("evidence_load_failed", file=str(evidence_file), error=str(e))
 
         logger.info("evidence_loaded", count=loaded, ledger_id=self.ledger_id)
         return loaded

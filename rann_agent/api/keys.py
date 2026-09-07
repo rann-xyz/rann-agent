@@ -73,9 +73,7 @@ class APIKeyManager:
                 "base_url": base_url or "",
                 "model": model or "",
                 "added_at": str(
-                    Path(__file__).stat().st_mtime
-                    if os.path.exists(__file__)
-                    else "unknown"
+                    Path(__file__).stat().st_mtime if os.path.exists(__file__) else "unknown"
                 ),
             }
 
@@ -369,9 +367,7 @@ def register_api_commands(cli):
         if result["success"]:
             click.echo(f"✅ {provider} API key works!")
         else:
-            click.echo(
-                f"❌ {provider} API key test failed: {result.get('error', 'Unknown error')}"
-            )
+            click.echo(f"❌ {provider} API key test failed: {result.get('error', 'Unknown error')}")
 
     @api_key_group.command("setup")
     @click.argument("provider")
@@ -402,9 +398,7 @@ def register_api_commands(cli):
             if result["success"]:
                 click.echo("✅ Connection test passed!")
             else:
-                click.echo(
-                    f"⚠️ Connection test failed: {result.get('error', 'Unknown')}"
-                )
+                click.echo(f"⚠️ Connection test failed: {result.get('error', 'Unknown')}")
         else:
             click.echo("❌ Failed to save API key")
 

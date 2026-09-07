@@ -69,12 +69,8 @@ class SemanticMemoryStore:
                 access_count INTEGER DEFAULT 0
             )
         """)
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_entity ON facts(entity_type, entity_name)"
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_source ON facts(source, source_id)"
-        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_entity ON facts(entity_type, entity_name)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_source ON facts(source, source_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_confidence ON facts(confidence)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_created ON facts(created_at)")
         conn.commit()
@@ -147,9 +143,7 @@ class SemanticMemoryStore:
         conn.close()
         return [self._row_to_fact(r) for r in rows]
 
-    def by_entity(
-        self, entity_name: str, entity_type: str | None = None
-    ) -> list[SemanticFact]:
+    def by_entity(self, entity_name: str, entity_type: str | None = None) -> list[SemanticFact]:
         conn = self._get_conn()
         params: list[Any] = [entity_name]
         type_filter = ""
@@ -216,13 +210,9 @@ class SemanticMemoryStore:
         conn = self._get_conn()
         total = conn.execute("SELECT COUNT(*) FROM facts").fetchone()[0]
         by_type = dict(
-            conn.execute(
-                "SELECT entity_type, COUNT(*) FROM facts GROUP BY entity_type"
-            ).fetchall()
+            conn.execute("SELECT entity_type, COUNT(*) FROM facts GROUP BY entity_type").fetchall()
         )
-        avg_confidence = (
-            conn.execute("SELECT AVG(confidence) FROM facts").fetchone()[0] or 0
-        )
+        avg_confidence = conn.execute("SELECT AVG(confidence) FROM facts").fetchone()[0] or 0
         conn.close()
         return {
             "total_facts": total,

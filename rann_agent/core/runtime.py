@@ -85,9 +85,7 @@ class RuntimeAgent:
         self.tools = ToolRegistry(self.config)
         self.memory = MemoryManager(self.config) if memory else None
         self.coordinator = (
-            Coordinator(self.config, self)
-            if self.config.agent.orchestration.enabled
-            else None
+            Coordinator(self.config, self) if self.config.agent.orchestration.enabled else None
         )
 
         # Enhanced brain: thinking, context, response formatting
@@ -226,9 +224,7 @@ class RuntimeAgent:
                 if self.memory:
                     memory_context = await self.memory.get_relevant_context(goal)
                     if memory_context:
-                        self.context.add_system_message(
-                            f"Relevant memory:\n{memory_context}"
-                        )
+                        self.context.add_system_message(f"Relevant memory:\n{memory_context}")
                         lifecycle.events.emit(
                             lifecycle.events.create_event(
                                 EventType.MEMORY_RETRIEVED,
@@ -243,17 +239,13 @@ class RuntimeAgent:
                 # PLANNING
                 self._set_state(AgentState.PLANNING)
                 lifecycle.events.emit(
-                    lifecycle.events.create_event(
-                        EventType.PLAN_CREATED, strategy="direct"
-                    )
+                    lifecycle.events.create_event(EventType.PLAN_CREATED, strategy="direct")
                 )
 
                 # EXECUTING
                 self._set_state(AgentState.EXECUTING)
                 lifecycle.events.emit(
-                    lifecycle.events.create_event(
-                        EventType.RUN_STARTED, status=EventStatus.SUCCESS
-                    )
+                    lifecycle.events.create_event(EventType.RUN_STARTED, status=EventStatus.SUCCESS)
                 )
 
                 final_result = await self._execute_loop(lifecycle)
@@ -294,9 +286,7 @@ class RuntimeAgent:
                 self.learning_engine.learn_from_success(
                     task=goal,
                     task_type=(
-                        self.thinking_engine.thought_chain[1].metadata.get(
-                            "task_type", "general"
-                        )
+                        self.thinking_engine.thought_chain[1].metadata.get("task_type", "general")
                         if len(self.thinking_engine.thought_chain) > 1
                         else "general"
                     ),
@@ -472,9 +462,7 @@ class RuntimeAgent:
                 )
 
                 try:
-                    result = await self.tools.execute(
-                        tool_name, tool_call.get("parameters") or {}
-                    )
+                    result = await self.tools.execute(tool_name, tool_call.get("parameters") or {})
                     lifecycle.record_tool_call()
 
                     lifecycle.events.emit(
@@ -568,11 +556,7 @@ class RuntimeAgent:
                 if ": " in line or ":" in line:
                     idx = line.index(": ") if ": " in line else line.index(":")
                     key = line[:idx].strip()
-                    val = (
-                        line[idx + 1 :].strip()
-                        if ": " in line
-                        else line[idx + 1 :].strip()
-                    )
+                    val = line[idx + 1 :].strip() if ": " in line else line[idx + 1 :].strip()
                     params[key] = val
             return [{"name": "write", "parameters": params}]
 
@@ -584,11 +568,7 @@ class RuntimeAgent:
                 if ": " in line or ":" in line:
                     idx = line.index(": ") if ": " in line else line.index(":")
                     key = line[:idx].strip()
-                    val = (
-                        line[idx + 1 :].strip()
-                        if ": " in line
-                        else line[idx + 1 :].strip()
-                    )
+                    val = line[idx + 1 :].strip() if ": " in line else line[idx + 1 :].strip()
                     params[key] = val
             return [{"name": "bash", "parameters": params}]
 
@@ -600,11 +580,7 @@ class RuntimeAgent:
                 if ": " in line or ":" in line:
                     idx = line.index(": ") if ": " in line else line.index(":")
                     key = line[:idx].strip()
-                    val = (
-                        line[idx + 1 :].strip()
-                        if ": " in line
-                        else line[idx + 1 :].strip()
-                    )
+                    val = line[idx + 1 :].strip() if ": " in line else line[idx + 1 :].strip()
                     params[key] = val
             return [{"name": "read", "parameters": params}]
 

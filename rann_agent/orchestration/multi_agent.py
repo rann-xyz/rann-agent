@@ -42,9 +42,7 @@ class AgentOrchestrator:
         self.tasks = {}
         self.task_queue = []
 
-    async def spawn_agent(
-        self, agent_type: str, name: str, capabilities: list[str]
-    ) -> str:
+    async def spawn_agent(self, agent_type: str, name: str, capabilities: list[str]) -> str:
         """Spawn a new agent."""
         agent_id = str(uuid.uuid4())[:8]
 
@@ -66,9 +64,7 @@ class AgentOrchestrator:
             raise ValueError(f"Agent {agent_id} not found")
 
         task_id = str(uuid.uuid4())[:8]
-        task = AgentTask(
-            task_id=task_id, description=task_description, agent_id=agent_id
-        )
+        task = AgentTask(task_id=task_id, description=task_description, agent_id=agent_id)
 
         self.tasks[task_id] = task
         self.task_queue.append(task_id)
@@ -87,18 +83,14 @@ class AgentOrchestrator:
                 if not required_capabilities:
                     suitable_agents.append(agent_id)
                 else:
-                    if all(
-                        cap in agent["capabilities"] for cap in required_capabilities
-                    ):
+                    if all(cap in agent["capabilities"] for cap in required_capabilities):
                         suitable_agents.append(agent_id)
 
         if not suitable_agents:
             raise ValueError("No suitable agent available")
 
         # Pick best agent (highest success rate)
-        best_agent = max(
-            suitable_agents, key=lambda aid: self.agents[aid]["success_rate"]
-        )
+        best_agent = max(suitable_agents, key=lambda aid: self.agents[aid]["success_rate"])
 
         return await self.assign_task(best_agent, task_description)
 

@@ -57,9 +57,7 @@ class Agent:
         self.tools = ToolRegistry(self.config)
         self.memory = MemoryManager(self.config) if memory else None
         self.coordinator = (
-            Coordinator(self.config, self)
-            if self.config.agent.orchestration.enabled
-            else None
+            Coordinator(self.config, self) if self.config.agent.orchestration.enabled else None
         )
 
         # Session state
@@ -202,10 +200,7 @@ class Agent:
         """Execute tool calls (parallel when possible)"""
         if self.config.advanced.parallel_tools:
             # Execute in parallel
-            tasks = [
-                self.tools.execute(call["name"], call["parameters"])
-                for call in tool_calls
-            ]
+            tasks = [self.tools.execute(call["name"], call["parameters"]) for call in tool_calls]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             # Handle exceptions
@@ -329,9 +324,7 @@ Respond concisely in JSON format as an array of objects."""
         """Apply a fix and verify"""
         try:
             if "command" in fix:
-                result = await self.tools.execute(
-                    "terminal", {"command": fix["command"]}
-                )
+                result = await self.tools.execute("terminal", {"command": fix["command"]})
                 return result.get("success", False)
             return False
         except Exception as e:

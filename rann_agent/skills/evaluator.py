@@ -77,9 +77,7 @@ class EvaluationResult:
     success_rate: float = 0.0
 
     def __post_init__(self) -> None:
-        self.success_rate = (
-            self.passed_count / self.total_count if self.total_count > 0 else 0.0
-        )
+        self.success_rate = self.passed_count / self.total_count if self.total_count > 0 else 0.0
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -113,9 +111,7 @@ class PerformanceLedger:
     """
 
     def __init__(self, ledger_path: Path | None = None) -> None:
-        self._ledger_path = ledger_path or Path(
-            "~/.rann-agent/data/skill_evaluations.json"
-        )
+        self._ledger_path = ledger_path or Path("~/.rann-agent/data/skill_evaluations.json")
         self._entries: list[dict] = []
         self._load()
 
@@ -136,9 +132,7 @@ class PerformanceLedger:
         with open(self._ledger_path, "w", encoding="utf-8") as fh:
             json.dump(self._entries, fh, indent=2)
 
-    def get_history(
-        self, skill_id: str | None = None, limit: int = 100
-    ) -> list[EvaluationResult]:
+    def get_history(self, skill_id: str | None = None, limit: int = 100) -> list[EvaluationResult]:
         entries = self._entries
         if skill_id is not None:
             entries = [e for e in entries if e.get("skill_id") == skill_id]
@@ -209,9 +203,7 @@ class SkillEvaluator:
 
         module_result = loader.load_skill(skill_id, source=skill_code)
         if not module_result.loaded:
-            return self._error_result(
-                skill_id, f"Load failed: {module_result.error}", test_cases
-            )
+            return self._error_result(skill_id, f"Load failed: {module_result.error}", test_cases)
 
         skill_module = module_result.module
         assert skill_module is not None
@@ -257,9 +249,7 @@ class SkillEvaluator:
         """Return aggregate metrics for a skill."""
         return self._ledger.get_metrics(skill_id)
 
-    def get_history(
-        self, skill_id: str | None = None, limit: int = 50
-    ) -> list[EvaluationResult]:
+    def get_history(self, skill_id: str | None = None, limit: int = 50) -> list[EvaluationResult]:
         """Return recent evaluation results, optionally filtered by skill."""
         return self._ledger.get_history(skill_id=skill_id, limit=limit)
 
@@ -332,8 +322,5 @@ class SkillEvaluator:
             passed_count=0,
             failed_count=len(test_cases),
             total_count=len(test_cases),
-            results=[
-                TestResult(test_name=tc.name, passed=False, error=error)
-                for tc in test_cases
-            ],
+            results=[TestResult(test_name=tc.name, passed=False, error=error) for tc in test_cases],
         )

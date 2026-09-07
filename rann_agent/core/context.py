@@ -33,9 +33,7 @@ class Context:
 
     def add_assistant_message(self, content: str, metadata: dict | None = None):
         """Add assistant message"""
-        self.messages.append(
-            Message(role="assistant", content=content, metadata=metadata or {})
-        )
+        self.messages.append(Message(role="assistant", content=content, metadata=metadata or {}))
 
     def add_system_message(self, content: str):
         """Add system message"""

@@ -108,9 +108,7 @@ class DebuggerTool(Tool):
             logger.error("debugger_error", error=str(e))
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
 
-    async def _analyze_error(
-        self, error: str, language: str, context: str
-    ) -> dict[str, Any]:
+    async def _analyze_error(self, error: str, language: str, context: str) -> dict[str, Any]:
         """Analyze error and provide insights"""
 
         patterns = self.error_patterns.get(language, [])
@@ -174,9 +172,7 @@ class DebuggerTool(Tool):
             )
 
         if "memory" in error.lower():
-            suggestions.append(
-                "• Memory issue - reduce data size or increase available memory"
-            )
+            suggestions.append("• Memory issue - reduce data size or increase available memory")
 
         if suggestions:
             return "💡 Suggestions:\n" + "\n".join(suggestions)
@@ -210,9 +206,7 @@ class DebuggerTool(Tool):
             metadata={"stack_frames": stack_frames},
         ).to_dict()
 
-    async def _suggest_fix(
-        self, error: str, language: str, context: str
-    ) -> dict[str, Any]:
+    async def _suggest_fix(self, error: str, language: str, context: str) -> dict[str, Any]:
         """Suggest fixes for the error"""
 
         analysis = await self._analyze_error(error, language, context)
@@ -233,9 +227,7 @@ class DebuggerTool(Tool):
             output += "4. Test with simpler inputs\n"
             output += "5. Review recent changes\n"
 
-        return ToolResult(
-            tool=self.name, success=True, output=output, metadata=matches
-        ).to_dict()
+        return ToolResult(tool=self.name, success=True, output=output, metadata=matches).to_dict()
 
 
 class PerformanceProfilerTool(Tool):
@@ -313,9 +305,7 @@ class SecurityScannerTool(Tool):
     def __init__(self, config):
         self.config = config
 
-    async def execute(
-        self, path: str, scan_type: str = "all", **kwargs
-    ) -> dict[str, Any]:
+    async def execute(self, path: str, scan_type: str = "all", **kwargs) -> dict[str, Any]:
         """Run security scan"""
 
         import subprocess
@@ -326,25 +316,19 @@ class SecurityScannerTool(Tool):
             if scan_type in ["all", "dependencies"]:
                 # Scan dependencies
                 cmd = "safety check --json || pip-audit || true"
-                result = subprocess.run(
-                    cmd, shell=True, capture_output=True, text=True, timeout=60
-                )
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
                 results.append(("Dependencies", result.stdout or result.stderr))
 
             if scan_type in ["all", "code"]:
                 # Scan code
                 cmd = f"bandit -r {path} || true"
-                result = subprocess.run(
-                    cmd, shell=True, capture_output=True, text=True, timeout=60
-                )
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
                 results.append(("Code", result.stdout or result.stderr))
 
             if scan_type in ["all", "secrets"]:
                 # Scan for secrets
                 cmd = f"gitleaks detect --source {path} --verbose || true"
-                result = subprocess.run(
-                    cmd, shell=True, capture_output=True, text=True, timeout=60
-                )
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
                 results.append(("Secrets", result.stdout or result.stderr))
 
             output = "🔒 Security Scan Results\n"

@@ -79,9 +79,7 @@ class TestRecentMessagesAlwaysKept:
 
     def test_trim_within_tail_count(self):
         """If total messages <= tail_count + system, nothing is trimmed."""
-        messages = [make_msg("system", "System")] + [
-            make_msg("user", f"msg{i}") for i in range(9)
-        ]
+        messages = [make_msg("system", "System")] + [make_msg("user", f"msg{i}") for i in range(9)]
         result = trim_context(messages, SMALL_MODEL)
         assert len(result) == len(messages)
 

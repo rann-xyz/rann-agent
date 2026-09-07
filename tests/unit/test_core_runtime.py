@@ -341,9 +341,7 @@ class TestExceptions:
         assert "tokens" in err.to_dict()["details"]
 
     def test_tool_policy_denied(self):
-        err = ToolPolicyDeniedError(
-            "Tool execution denied", tool="shell", policy="DANGEROUS"
-        )
+        err = ToolPolicyDeniedError("Tool execution denied", tool="shell", policy="DANGEROUS")
         assert err.tool == "shell"
         assert err.policy == "DANGEROUS"
 
@@ -358,9 +356,7 @@ class TestVerificationResult:
         assert result.all_checks_passed
 
     def test_failed_status(self):
-        result = VerificationResult(
-            status=VerificationStatus.FAILED, errors=["Check 1 failed"]
-        )
+        result = VerificationResult(status=VerificationStatus.FAILED, errors=["Check 1 failed"])
         assert not result.passed
 
     def test_to_dict(self):
@@ -390,9 +386,7 @@ class TestVerificationEngine:
 
         engine = VerificationEngine()
         engine.add_check(
-            VerificationCheck(
-                name="my_check", description="My test check", verify=my_check
-            )
+            VerificationCheck(name="my_check", description="My test check", verify=my_check)
         )
 
         assert len(engine._checks) == 1
@@ -414,9 +408,7 @@ class TestVerificationEngine:
 
         engine = VerificationEngine(VerificationLevel.MODERATE)
         engine.add_check(
-            VerificationCheck(
-                name="passing", description="Should pass", verify=passing_check
-            )
+            VerificationCheck(name="passing", description="Should pass", verify=passing_check)
         )
 
         result = await engine.verify("test task", "test output")

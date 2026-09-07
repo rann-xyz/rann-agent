@@ -49,9 +49,7 @@ class UserModel:
         # Analyze and update model
         await self._analyze_interaction(message, response, metadata)
 
-    async def _analyze_interaction(
-        self, message: str, response: str, metadata: dict | None = None
-    ):
+    async def _analyze_interaction(self, message: str, response: str, metadata: dict | None = None):
         """Analyze interaction to update user model."""
         # Detect preferences
         if "prefer" in message.lower() or "like" in message.lower():

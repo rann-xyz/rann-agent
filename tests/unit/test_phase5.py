@@ -13,9 +13,7 @@ class TestEvaluator:
         ev = Evaluator()
 
         result = asyncio.run(
-            ev.evaluate(
-                goal="Add two numbers", plan="Use + operator", output="The sum is 7"
-            )
+            ev.evaluate(goal="Add two numbers", plan="Use + operator", output="The sum is 7")
         )
 
         assert result.passed
@@ -73,9 +71,7 @@ class TestStrategySelector:
 
     def test_multi_agent_strategy(self):
         selector = StrategySelector()
-        strategy, _reason = selector.select(
-            "Build a full application with frontend and backend"
-        )
+        strategy, _reason = selector.select("Build a full application with frontend and backend")
 
         assert strategy in {StrategyType.MULTI_AGENT, StrategyType.PLANNER}
 
@@ -96,9 +92,7 @@ class TestStrategySelector:
 
     def test_context_affects_selection(self):
         selector = StrategySelector()
-        strategy, _ = selector.select(
-            "Write a hello world", context={"agents": 3, "mode": "multi"}
-        )
+        strategy, _ = selector.select("Write a hello world", context={"agents": 3, "mode": "multi"})
         assert isinstance(strategy, StrategyType)
 
     def test_empty_goal_raises(self):

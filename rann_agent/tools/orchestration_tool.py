@@ -32,9 +32,7 @@ class OrchestrationTool:
             name = kwargs.get("name", "Agent")
             capabilities = kwargs.get("capabilities", [])
 
-            agent_id = await self.orchestrator.spawn_agent(
-                agent_type, name, capabilities
-            )
+            agent_id = await self.orchestrator.spawn_agent(agent_type, name, capabilities)
             return {"success": True, "agent_id": agent_id}
 
         elif action == "assign_task":

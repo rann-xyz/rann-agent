@@ -231,10 +231,7 @@ class SecretDetector:
                     continue
 
                 secret_value = match.group(0)
-                if (
-                    secret_type == SecretType.PASSWORD
-                    and pattern_name == "url_password"
-                ):
+                if secret_type == SecretType.PASSWORD and pattern_name == "url_password":
                     # For URL passwords, group 1 is the actual password
                     secret_value = match.group(1)
 
@@ -364,11 +361,7 @@ class SecretScrubber:
         if matches:
             secret_types = list({m.secret_type for m in matches})
             raise SecretLeakError(
-                (
-                    f"Secret detected in {context}"
-                    if context
-                    else "Secret detected in output"
-                ),
+                (f"Secret detected in {context}" if context else "Secret detected in output"),
                 details={
                     "secret_types": [t.value for t in secret_types],
                     "count": len(matches),

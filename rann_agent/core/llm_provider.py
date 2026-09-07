@@ -174,14 +174,17 @@ class CustomProvider(BaseLLMProvider):
         if tools:
             payload["tools"] = tools
 
-        async with aiohttp.ClientSession() as session, session.post(
-            f"{self.base_url}/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-        ) as resp:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.post(
+                f"{self.base_url}/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            ) as resp,
+        ):
             if resp.status != 200:
                 text = await resp.text()
                 raise RuntimeError(f"Custom API error {resp.status}: {text}")
@@ -239,14 +242,17 @@ class CustomProvider(BaseLLMProvider):
         if tools:
             payload["tools"] = tools
 
-        async with aiohttp.ClientSession() as session, session.post(
-            f"{self.base_url}/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-        ) as resp:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.post(
+                f"{self.base_url}/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            ) as resp,
+        ):
             async for line in resp.content:
                 if line:
                     import json
@@ -273,15 +279,18 @@ class OllamaProvider(BaseLLMProvider):
         """Generate completion with Ollama"""
         import aiohttp
 
-        async with aiohttp.ClientSession() as session, session.post(
-            f"{self.host}/api/chat",
-            json={
-                "model": self.model,
-                "messages": messages,
-                "stream": False,
-                "options": {"temperature": self.temperature},
-            },
-        ) as resp:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.post(
+                f"{self.host}/api/chat",
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "stream": False,
+                    "options": {"temperature": self.temperature},
+                },
+            ) as resp,
+        ):
             result = await resp.json()
             return {
                 "content": result["message"]["content"],
@@ -293,14 +302,17 @@ class OllamaProvider(BaseLLMProvider):
         """Stream tokens from Ollama"""
         import aiohttp
 
-        async with aiohttp.ClientSession() as session, session.post(
-            f"{self.host}/api/chat",
-            json={
-                "model": self.model,
-                "messages": messages,
-                "stream": True,
-            },
-        ) as resp:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.post(
+                f"{self.host}/api/chat",
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "stream": True,
+                },
+            ) as resp,
+        ):
             async for line in resp.content:
                 import json
 
@@ -339,9 +351,7 @@ class LLMProvider:
             fallbacks=len(self.fallbacks),
         )
 
-    def _create_provider(
-        self, provider: str, model: str, api_key: str | None
-    ) -> BaseLLMProvider:
+    def _create_provider(self, provider: str, model: str, api_key: str | None) -> BaseLLMProvider:
         """Create provider instance"""
         kwargs = {
             "temperature": self.config.agent.llm.temperature,

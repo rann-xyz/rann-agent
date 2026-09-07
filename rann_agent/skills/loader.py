@@ -147,17 +147,13 @@ class SkillLoader:
         try:
             exec(compiled, ns)
         except ExecutionTimeoutError:
-            self._logger.warning(
-                "skill_timeout", skill_id=skill_id, timeout=self.timeout
-            )
+            self._logger.warning("skill_timeout", skill_id=skill_id, timeout=self.timeout)
             return LoaderResult(
                 module=None, error=f"Execution timeout ({self.timeout}s)", loaded=False
             )
         except Exception as exc:  # noqa: BLE001
             self._logger.error("skill_exec_error", skill_id=skill_id, error=str(exc))
-            return LoaderResult(
-                module=None, error=f"{type(exc).__name__}: {exc}", loaded=False
-            )
+            return LoaderResult(module=None, error=f"{type(exc).__name__}: {exc}", loaded=False)
         finally:
             timeout.stop()
 
@@ -211,9 +207,7 @@ class SkillLoader:
             func(*args, **kwargs)
             return LoaderResult(module=skill_module, error=None, loaded=True)
         except ExecutionTimeoutError:
-            self._logger.warning(
-                "skill_timeout", skill_id=skill_id, function=function_name
-            )
+            self._logger.warning("skill_timeout", skill_id=skill_id, function=function_name)
             return LoaderResult(
                 module=None, error=f"Execution timeout ({self.timeout}s)", loaded=False
             )
@@ -224,9 +218,7 @@ class SkillLoader:
                 function=function_name,
                 error=str(exc),
             )
-            return LoaderResult(
-                module=None, error=f"{type(exc).__name__}: {exc}", loaded=False
-            )
+            return LoaderResult(module=None, error=f"{type(exc).__name__}: {exc}", loaded=False)
         finally:
             timeout.stop()
 
@@ -244,9 +236,7 @@ class SkillLoader:
                 try:
                     return path.read_text(encoding="utf-8")
                 except OSError as exc:
-                    self._logger.warning(
-                        "skill_file_read_error", path=str(path), error=str(exc)
-                    )
+                    self._logger.warning("skill_file_read_error", path=str(path), error=str(exc))
                     return None
         self._logger.debug(
             "skill_file_not_found",

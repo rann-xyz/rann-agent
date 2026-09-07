@@ -17,7 +17,6 @@ from rann_agent.intelligence.fix_strategies import (
 )
 from rann_agent.intelligence.self_improvement import SelfCorrection
 
-
 # ─────────────────────────────────────────────────────────────
 # fix_strategies.py tests
 # ─────────────────────────────────────────────────────────────
@@ -81,8 +80,6 @@ class TestClassifyError:
         error = "FAILED tests/unit/test_core.py::TestAgent::test_execute - AssertionError: assert 1 == 2"
         fixes = classify_error(error)
         assert len(fixes) > 0
-        # Should match pytest/test failure strategy
-        strategies = [f.strategy for f in fixes]
         # Any strategy is valid — verify fixes are actionable
         for f in fixes:
             assert len(f.action) > 0
@@ -92,8 +89,6 @@ class TestClassifyError:
         error = "TypeError: foo() missing 1 required positional argument: 'name'"
         fixes = classify_error(error)
         assert len(fixes) > 0
-        # Should suggest something actionable for missing args
-        strategies = [f.strategy for f in fixes]
         # Verify fixes exist and are reasonable
         for f in fixes:
             assert len(f.action) > 0
@@ -152,8 +147,6 @@ class TestClassifyError:
         error = "rann_agent/core/agent.py:42:5: E501 line too long (120 > 100)"
         fixes = classify_error(error)
         assert len(fixes) > 0
-        # Should match ruff or lint-related strategy
-        strategies = [f.strategy for f in fixes]
         # Verify fixes are actionable and relevant
         for f in fixes:
             assert len(f.action) > 0

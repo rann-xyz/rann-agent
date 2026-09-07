@@ -130,9 +130,7 @@ class ShellProvider(ABC):
                 cmd_list,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                stdin=(
-                    subprocess.PIPE if (input_data and self._supports_input()) else None
-                ),
+                stdin=(subprocess.PIPE if (input_data and self._supports_input()) else None),
                 cwd=cwd,
                 env=env,
                 shell=False,  # Security: never enable shell=True
@@ -273,10 +271,7 @@ class ShellProvider(ABC):
                 label=label,
                 original_size=len(text),
             )
-            return (
-                text[:MAX_OUTPUT_SIZE]
-                + f"\n... [{label} truncated, was {len(text)} bytes]"
-            )
+            return text[:MAX_OUTPUT_SIZE] + f"\n... [{label} truncated, was {len(text)} bytes]"
         return text
 
     def _make_result(
@@ -391,9 +386,7 @@ class PythonProvider(ShellProvider):
 
     @property
     def available(self) -> bool:
-        return os.path.isfile("/usr/bin/python3") and os.access(
-            "/usr/bin/python3", os.X_OK
-        )
+        return os.path.isfile("/usr/bin/python3") and os.access("/usr/bin/python3", os.X_OK)
 
 
 # ---------------------------------------------------------------------------
@@ -517,9 +510,7 @@ class PTYProvider(ShellProvider):
             if remaining <= 0:
                 break
             try:
-                rd, _, _ = _select.select(
-                    [self._master_fd], [], [], min(0.1, remaining)
-                )
+                rd, _, _ = _select.select([self._master_fd], [], [], min(0.1, remaining))
                 if rd:
                     chunk = os.read(self._master_fd, 4096)
                     if not chunk:
@@ -781,9 +772,7 @@ class RealTerminalExecutor:
         allowed_shells: list[str] | None = None,
         pty_enabled: bool = False,
     ) -> None:
-        self.workspace_root = (
-            os.path.abspath(workspace_root) if workspace_root else os.getcwd()
-        )
+        self.workspace_root = os.path.abspath(workspace_root) if workspace_root else os.getcwd()
         self.allowed_env_vars = allowed_env_vars or []
         self.forbidden_env_patterns = forbidden_env_patterns or [
             "API_KEY",

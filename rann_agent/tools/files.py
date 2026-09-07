@@ -58,8 +58,7 @@ class FileReadTool(Tool):
 
             # Format with line numbers
             content = "\n".join(
-                f"{i + offset + 1}|{line.rstrip()}"
-                for i, line in enumerate(selected_lines)
+                f"{i + offset + 1}|{line.rstrip()}" for i, line in enumerate(selected_lines)
             )
 
             return ToolResult(
@@ -146,16 +145,12 @@ class FileSearchTool(Tool):
 
             if target == "files":
                 # Search filenames with find
-                cmd = (
-                    f"find {search_path} -name '*{pattern}*' -type f | head -n {limit}"
-                )
+                cmd = f"find {search_path} -name '*{pattern}*' -type f | head -n {limit}"
             else:
                 # Search content with grep
                 cmd = f"grep -r '{pattern}' {search_path} | head -n {limit}"
 
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, timeout=30
-            )
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
 
             return ToolResult(
                 tool=self.name,

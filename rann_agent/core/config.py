@@ -115,9 +115,7 @@ class Config(BaseSettings):
     # Environment variables
     anthropic_api_key: str | None = Field(None, alias="ANTHROPIC_API_KEY")
     openai_api_key: str | None = Field(None, alias="OPENAI_API_KEY")
-    database_url: str = Field(
-        "sqlite:///~/.rann-agent/data/sessions.db", alias="DATABASE_URL"
-    )
+    database_url: str = Field("sqlite:///~/.rann-agent/data/sessions.db", alias="DATABASE_URL")
 
     class Config:
         env_file = ".env"
@@ -155,9 +153,7 @@ class Config(BaseSettings):
         elif provider == "xkiro":
             return os.getenv("HERMES_CUSTOM_API_XKIRO_COM_API_KEY")
         elif provider == "custom":
-            return os.getenv("CUSTOM_API_KEY") or os.getenv(
-                "HERMES_CUSTOM_SEEKAI_CC_API_KEY"
-            )
+            return os.getenv("CUSTOM_API_KEY") or os.getenv("HERMES_CUSTOM_SEEKAI_CC_API_KEY")
         return None
 
     def validate_config(self) -> list[str]:

@@ -75,14 +75,10 @@ class AutonomyGuard:
         self.current_level = level
         logger.info("autonomy_level_set", level=level.name, value=int(level))
 
-    def can_execute(
-        self, action: str, required_level: AutonomyLevel | None = None
-    ) -> bool:
+    def can_execute(self, action: str, required_level: AutonomyLevel | None = None) -> bool:
         """Check if current autonomy level allows the action."""
         if required_level is None:
-            required_level = ACTION_REQUIREMENTS.get(
-                action, AutonomyLevel.LEVEL_2_MODIFY_TEST
-            )
+            required_level = ACTION_REQUIREMENTS.get(action, AutonomyLevel.LEVEL_2_MODIFY_TEST)
 
         allowed = int(self.current_level) >= int(required_level)
         if not allowed:

@@ -65,9 +65,7 @@ class DatabaseTool(Tool):
             logger.error("database_error", action=action, error=str(e))
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
 
-    async def _execute_query(
-        self, database: str, sql: str, params: dict
-    ) -> dict[str, Any]:
+    async def _execute_query(self, database: str, sql: str, params: dict) -> dict[str, Any]:
         """Execute SQL query"""
         # TODO: Implement actual database connection
         return ToolResult(
@@ -98,9 +96,7 @@ class DatabaseTool(Tool):
             suggestions.append("Add WHERE clause to limit results")
 
         if sql.upper().count("JOIN") > 3:
-            suggestions.append(
-                "Consider breaking into smaller queries or using subqueries"
-            )
+            suggestions.append("Consider breaking into smaller queries or using subqueries")
 
         output = "🔍 Query Optimization:\n\n"
         output += f"Original:\n{sql}\n\n"
@@ -254,9 +250,7 @@ class DockerTool(Tool):
                     tool=self.name, success=False, error=f"Unknown action: {action}"
                 ).to_dict()
 
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, timeout=60
-            )
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
 
             return ToolResult(
                 tool=self.name,
@@ -323,9 +317,7 @@ class KubernetesTool(Tool):
                     tool=self.name, success=False, error=f"Unknown action: {action}"
                 ).to_dict()
 
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, timeout=30
-            )
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
 
             return ToolResult(
                 tool=self.name,

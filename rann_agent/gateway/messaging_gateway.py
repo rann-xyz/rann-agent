@@ -42,9 +42,7 @@ class MessagingGateway:
         self.handlers = {}
         self.running = False
 
-    async def register_platform(
-        self, platform: Platform, config: dict[str, Any], handler: Any
-    ):
+    async def register_platform(self, platform: Platform, config: dict[str, Any], handler: Any):
         """
         Register a messaging platform.
 
@@ -175,9 +173,7 @@ class MessagingGateway:
                 chat_id = config.get("default_chat_id")
 
                 if chat_id:
-                    success = await self.send_message(
-                        platform, chat_id, content, metadata
-                    )
+                    success = await self.send_message(platform, chat_id, content, metadata)
                     results[platform] = success
 
         return results
@@ -200,9 +196,7 @@ class MessagingGateway:
 
     def get_connected_platforms(self) -> list[Platform]:
         """Get list of connected platforms."""
-        return [
-            platform for platform, data in self.platforms.items() if data["connected"]
-        ]
+        return [platform for platform, data in self.platforms.items() if data["connected"]]
 
     def get_status(self) -> dict[str, Any]:
         """Get gateway status."""
@@ -211,7 +205,6 @@ class MessagingGateway:
             "total_platforms": len(self.platforms),
             "connected_platforms": len(self.get_connected_platforms()),
             "platforms": {
-                platform.value: data["connected"]
-                for platform, data in self.platforms.items()
+                platform.value: data["connected"] for platform, data in self.platforms.items()
             },
         }

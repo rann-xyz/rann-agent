@@ -64,9 +64,7 @@ class MemoryManager:
 
             conn.commit()
 
-    async def save_session(
-        self, session_id: str, goal: str, result: dict[str, Any], turns: int
-    ):
+    async def save_session(self, session_id: str, goal: str, result: dict[str, Any], turns: int):
         """Save session to memory"""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -110,7 +108,9 @@ class MemoryManager:
                 context = "Relevant past sessions:\n\n"
                 for session_id, past_goal, result_json in rows:
                     result = json.loads(result_json)
-                    context += f"- {past_goal[:100]}\n  Result: {result.get('output', '')[:200]}\n\n"
+                    context += (
+                        f"- {past_goal[:100]}\n  Result: {result.get('output', '')[:200]}\n\n"
+                    )
 
                 return context
 
@@ -133,9 +133,7 @@ class MemoryManager:
         except Exception as e:
             logger.error("save_error_resolution_error", error=str(e))
 
-    async def search_similar_errors(
-        self, error: str, limit: int = 3
-    ) -> list[dict[str, Any]]:
+    async def search_similar_errors(self, error: str, limit: int = 3) -> list[dict[str, Any]]:
         """Search for similar past errors and their fixes"""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -164,9 +162,7 @@ class MemoryManager:
             logger.error("search_errors_error", error=str(e))
             return []
 
-    async def save_pattern(
-        self, pattern_type: str, pattern: str, metadata: dict[str, Any]
-    ):
+    async def save_pattern(self, pattern_type: str, pattern: str, metadata: dict[str, Any]):
         """Save learned pattern"""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -190,9 +186,7 @@ class MemoryManager:
                 cursor = conn.execute("SELECT COUNT(*) FROM sessions")
                 stats["sessions"] = cursor.fetchone()[0]
 
-                cursor = conn.execute(
-                    "SELECT COUNT(*) FROM error_resolutions WHERE success = 1"
-                )
+                cursor = conn.execute("SELECT COUNT(*) FROM error_resolutions WHERE success = 1")
                 stats["successful_fixes"] = cursor.fetchone()[0]
 
                 cursor = conn.execute("SELECT COUNT(*) FROM learned_patterns")

@@ -77,9 +77,7 @@ class ProjectMemoryStore:
                 session_count INTEGER DEFAULT 0
             )
         """)
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_workspace ON projects(workspace_root)"
-        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_workspace ON projects(workspace_root)")
         conn.commit()
         conn.close()
 
@@ -148,17 +146,13 @@ class ProjectMemoryStore:
 
     def list_projects(self) -> list[ProjectContext]:
         conn = self._get_conn()
-        rows = conn.execute(
-            "SELECT * FROM projects ORDER BY updated_at DESC"
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM projects ORDER BY updated_at DESC").fetchall()
         conn.close()
         return [self._row_to_context(r) for r in rows]
 
     def delete(self, workspace_root: str) -> bool:
         conn = self._get_conn()
-        n = conn.execute(
-            "DELETE FROM projects WHERE workspace_root=?", (workspace_root,)
-        ).rowcount
+        n = conn.execute("DELETE FROM projects WHERE workspace_root=?", (workspace_root,)).rowcount
         conn.commit()
         conn.close()
         return n > 0

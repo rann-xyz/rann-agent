@@ -30,9 +30,7 @@ class Skill:
     updated_at: datetime = field(default_factory=datetime.now)
     author: str = "system"
     tags: list[str] = field(default_factory=list)
-    parameters: list[dict[str, str]] = field(
-        default_factory=list
-    )  # [{name, type, description}]
+    parameters: list[dict[str, str]] = field(default_factory=list)  # [{name, type, description}]
     success_count: int = 0
     failure_count: int = 0
     avg_execution_time_ms: float = 0
@@ -131,13 +129,9 @@ class ProceduralMemory:
         )
 
     def get_by_category(self, category: str) -> list[Skill]:
-        return [
-            s for s in self._skills.values() if s.category == category and s.enabled
-        ]
+        return [s for s in self._skills.values() if s.category == category and s.enabled]
 
-    def record_execution(
-        self, skill_id: str, success: bool, execution_time_ms: float
-    ) -> None:
+    def record_execution(self, skill_id: str, success: bool, execution_time_ms: float) -> None:
         """Record skill execution result"""
         skill = self._skills.get(skill_id)
         if not skill:

@@ -82,9 +82,7 @@ class FilesystemEngine:
 
         file_size = os.path.getsize(canonical)
         if file_size > self.max_file_size:
-            raise ValueError(
-                f"File too large: {file_size} bytes (max: {self.max_file_size})"
-            )
+            raise ValueError(f"File too large: {file_size} bytes (max: {self.max_file_size})")
 
         with open(canonical, "rb") as f:
             raw = f.read()

@@ -87,9 +87,7 @@ class WorkspaceLock:
         """Context manager to hold workspace lock."""
         lock = FileLock(str(self._lock_path()), timeout=timeout)
         if not lock.acquire():
-            raise RuntimeError(
-                f"Could not acquire workspace lock: {self.workspace_root}"
-            )
+            raise RuntimeError(f"Could not acquire workspace lock: {self.workspace_root}")
         try:
             yield
         finally:
@@ -144,9 +142,7 @@ class _FileLockContext:
         self._lock.release()
 
 
-def with_lock(
-    lock_type: str = "workspace", path: str | None = None, workspace: str | None = None
-):
+def with_lock(lock_type: str = "workspace", path: str | None = None, workspace: str | None = None):
     """Decorator to hold a lock during a function call.
 
     Usage:

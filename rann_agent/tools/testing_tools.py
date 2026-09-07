@@ -102,9 +102,7 @@ class LinterTool(Tool):
     def __init__(self, config):
         self.config = config
 
-    async def execute(
-        self, tool: str, path: str, fix: bool = False, **kwargs
-    ) -> dict[str, Any]:
+    async def execute(self, tool: str, path: str, fix: bool = False, **kwargs) -> dict[str, Any]:
         """Run linter"""
 
         import subprocess
@@ -201,9 +199,7 @@ class BenchmarkTool(Tool):
                     error=f"Unknown benchmark type: {type}",
                 ).to_dict()
 
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, timeout=120
-            )
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
 
             return ToolResult(
                 tool=self.name,

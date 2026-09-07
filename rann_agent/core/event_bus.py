@@ -86,16 +86,12 @@ class EventBus:
         }
         logger.info("event_bus_initialized")
 
-    def subscribe(
-        self, event_type: EventType, handler: Callable[[Event], None]
-    ) -> None:
+    def subscribe(self, event_type: EventType, handler: Callable[[Event], None]) -> None:
         if handler not in self._handlers[event_type]:
             self._handlers[event_type].append(handler)
             logger.debug("event_subscribed", event_type=event_type.value)
 
-    def unsubscribe(
-        self, event_type: EventType, handler: Callable[[Event], None]
-    ) -> None:
+    def unsubscribe(self, event_type: EventType, handler: Callable[[Event], None]) -> None:
         if handler in self._handlers[event_type]:
             self._handlers[event_type].remove(handler)
             logger.debug("event_unsubscribed", event_type=event_type.value)

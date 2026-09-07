@@ -64,9 +64,7 @@ class ToolExecutor:
         # Execute with timeout
         try:
             if asyncio.iscoroutinefunction(tool_func):
-                result = await asyncio.wait_for(
-                    tool_func(**parameters), timeout=timeout_seconds
-                )
+                result = await asyncio.wait_for(tool_func(**parameters), timeout=timeout_seconds)
             else:
                 result = tool_func(**parameters)
 

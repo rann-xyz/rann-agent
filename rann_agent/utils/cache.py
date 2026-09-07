@@ -26,9 +26,7 @@ class CacheManager:
 
     def __init__(self, config):
         self.config = config
-        self.enabled = (
-            config.advanced.cache_llm_responses or config.advanced.cache_tool_results
-        )
+        self.enabled = config.advanced.cache_llm_responses or config.advanced.cache_tool_results
         self.ttl = config.advanced.get("cache_ttl", 3600)  # 1 hour default
 
         if self.enabled and REDIS_AVAILABLE:
@@ -142,9 +140,7 @@ class CacheManager:
             if self.client:
                 cursor = 0
                 while True:
-                    cursor, keys = await self.client.scan(
-                        cursor, match=pattern, count=100
-                    )
+                    cursor, keys = await self.client.scan(cursor, match=pattern, count=100)
                     if keys:
                         await self.client.delete(*keys)
                     if cursor == 0:
@@ -187,9 +183,7 @@ class CacheManager:
                     "hits": info.get("keyspace_hits", 0),
                     "misses": info.get("keyspace_misses", 0),
                     "hit_rate": info.get("keyspace_hits", 0)
-                    / max(
-                        1, info.get("keyspace_hits", 0) + info.get("keyspace_misses", 0)
-                    ),
+                    / max(1, info.get("keyspace_hits", 0) + info.get("keyspace_misses", 0)),
                 }
             else:
                 return {

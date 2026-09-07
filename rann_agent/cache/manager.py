@@ -60,9 +60,7 @@ def reset_cache() -> None:
             try:
                 loop = asyncio.get_running_loop()
                 loop.create_task(
-                    _cache.backend.close()
-                    if hasattr(_cache.backend, "close")
-                    else asyncio.sleep(0)
+                    _cache.backend.close() if hasattr(_cache.backend, "close") else asyncio.sleep(0)
                 )
             except RuntimeError:
                 pass

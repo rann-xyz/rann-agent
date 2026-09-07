@@ -118,9 +118,7 @@ class ProgressEngine:
         # Check for oscillation (alternating positive/negative)
         if len(recent) >= 4:
             signs = [1 if d > 0 else -1 if d < 0 else 0 for d in recent_deltas]
-            if signs[0] != 0 and all(
-                signs[i] == -signs[i - 1] for i in range(1, len(signs))
-            ):
+            if signs[0] != 0 and all(signs[i] == -signs[i - 1] for i in range(1, len(signs))):
                 return StallReport(
                     stall_type="oscillation",
                     iterations_affected=len(recent),

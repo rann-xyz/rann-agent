@@ -148,9 +148,7 @@ class PathValidator:
                     # Resolve the full path, following symlinks
                     resolved_path = os.path.abspath(os.path.normpath(path))
                     if not os.path.isabs(resolved_path):
-                        resolved_path = os.path.abspath(
-                            os.path.join(base_dir, resolved_path)
-                        )
+                        resolved_path = os.path.abspath(os.path.join(base_dir, resolved_path))
                 else:
                     # Just join and normalize without following symlinks
                     if os.path.isabs(path):
@@ -162,10 +160,7 @@ class PathValidator:
                 return False
 
             # Check that resolved path is within base_dir
-            if (
-                not resolved_path.startswith(base_dir + os.sep)
-                and resolved_path != base_dir
-            ):
+            if not resolved_path.startswith(base_dir + os.sep) and resolved_path != base_dir:
                 logger.warning(
                     "path_escapes_base_directory",
                     path=original_path,

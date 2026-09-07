@@ -74,16 +74,10 @@ class ToolPolicyEngine:
             "file_read": ToolPolicy(
                 "file_read", RiskLevel.SAFE, PolicyAction.ALLOW, log_parameters=True
             ),
-            "file_search": ToolPolicy(
-                "file_search", RiskLevel.SAFE, PolicyAction.ALLOW
-            ),
+            "file_search": ToolPolicy("file_search", RiskLevel.SAFE, PolicyAction.ALLOW),
             "web_search": ToolPolicy("web_search", RiskLevel.SAFE, PolicyAction.ALLOW),
-            "web_extract": ToolPolicy(
-                "web_extract", RiskLevel.SAFE, PolicyAction.ALLOW
-            ),
-            "memory_search": ToolPolicy(
-                "memory_search", RiskLevel.SAFE, PolicyAction.ALLOW
-            ),
+            "web_extract": ToolPolicy("web_extract", RiskLevel.SAFE, PolicyAction.ALLOW),
+            "memory_search": ToolPolicy("memory_search", RiskLevel.SAFE, PolicyAction.ALLOW),
             "file_write": ToolPolicy(
                 "file_write",
                 RiskLevel.LOW,
@@ -91,9 +85,7 @@ class ToolPolicyEngine:
                 audit_all_calls=True,
                 log_parameters=True,
             ),
-            "git": ToolPolicy(
-                "git", RiskLevel.LOW, PolicyAction.ALLOW, audit_all_calls=True
-            ),
+            "git": ToolPolicy("git", RiskLevel.LOW, PolicyAction.ALLOW, audit_all_calls=True),
             "terminal": ToolPolicy(
                 "terminal",
                 RiskLevel.MEDIUM,

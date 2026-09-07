@@ -57,9 +57,7 @@ class TestToolExecutor:
             await asyncio.sleep(5)
             return "done"
 
-        result = asyncio.run(
-            executor.execute("slow", {}, slow_tool, timeout_seconds=0.1)
-        )
+        result = asyncio.run(executor.execute("slow", {}, slow_tool, timeout_seconds=0.1))
 
         assert not result.success
         assert "Timeout" in result.error

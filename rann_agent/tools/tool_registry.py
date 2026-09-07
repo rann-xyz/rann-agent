@@ -124,9 +124,7 @@ class ToolRegistry:
         if name in self._tools:
             raise ValueError(f"Tool already registered: {name}")
 
-        metadata = ToolMetadata(
-            name=name, description=description, category=category, **kwargs
-        )
+        metadata = ToolMetadata(name=name, description=description, category=category, **kwargs)
         self._tools[name] = ToolRegistration(metadata=metadata, handler=handler)
         self._save()
         logger.info("tool_registered", name=name, category=category)
@@ -170,33 +168,21 @@ class ToolRegistry:
 
     def list_enabled(self) -> list[ToolMetadata]:
         """List enabled tools."""
-        return [
-            r.metadata
-            for r in self._tools.values()
-            if r.metadata.status == ToolStatus.ENABLED
-        ]
+        return [r.metadata for r in self._tools.values() if r.metadata.status == ToolStatus.ENABLED]
 
     def list_disabled(self) -> list[ToolMetadata]:
         """List disabled tools."""
         return [
-            r.metadata
-            for r in self._tools.values()
-            if r.metadata.status == ToolStatus.DISABLED
+            r.metadata for r in self._tools.values() if r.metadata.status == ToolStatus.DISABLED
         ]
 
     def list_by_category(self, category: str) -> list[ToolMetadata]:
         """List tools by category."""
-        return [
-            r.metadata for r in self._tools.values() if r.metadata.category == category
-        ]
+        return [r.metadata for r in self._tools.values() if r.metadata.category == category]
 
     def list_beta(self) -> list[ToolMetadata]:
         """List beta tools."""
-        return [
-            r.metadata
-            for r in self._tools.values()
-            if r.metadata.status == ToolStatus.BETA
-        ]
+        return [r.metadata for r in self._tools.values() if r.metadata.status == ToolStatus.BETA]
 
     # === Status Management ===
 
@@ -265,9 +251,7 @@ class ToolRegistry:
         meta = self.get(name)
         if not meta:
             return None
-        failure_rate = (
-            meta.failure_count / meta.call_count if meta.call_count > 0 else 0.0
-        )
+        failure_rate = meta.failure_count / meta.call_count if meta.call_count > 0 else 0.0
         return {
             "name": meta.name,
             "call_count": meta.call_count,

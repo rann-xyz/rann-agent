@@ -115,20 +115,14 @@ class SemanticDiff:
             summary_parts.append(f"{len(result.class_changes)} class(es) changed")
         if result.import_changes:
             summary_parts.append(f"{len(result.import_changes)} import(s) changed")
-        result.summary = (
-            ", ".join(summary_parts) if summary_parts else "No semantic changes"
-        )
+        result.summary = ", ".join(summary_parts) if summary_parts else "No semantic changes"
 
         return result
 
     def _diff_functions(self, before: ast.AST, after: ast.AST) -> list[FunctionChange]:
         changes = []
-        before_funcs = {
-            n.name: n for n in ast.walk(before) if isinstance(n, ast.FunctionDef)
-        }
-        after_funcs = {
-            n.name: n for n in ast.walk(after) if isinstance(n, ast.FunctionDef)
-        }
+        before_funcs = {n.name: n for n in ast.walk(before) if isinstance(n, ast.FunctionDef)}
+        after_funcs = {n.name: n for n in ast.walk(after) if isinstance(n, ast.FunctionDef)}
 
         all_names = set(before_funcs.keys()) | set(after_funcs.keys())
         for name in all_names:
@@ -170,12 +164,8 @@ class SemanticDiff:
 
     def _diff_classes(self, before: ast.AST, after: ast.AST) -> list[ClassChange]:
         changes = []
-        before_classes = {
-            n.name: n for n in ast.walk(before) if isinstance(n, ast.ClassDef)
-        }
-        after_classes = {
-            n.name: n for n in ast.walk(after) if isinstance(n, ast.ClassDef)
-        }
+        before_classes = {n.name: n for n in ast.walk(before) if isinstance(n, ast.ClassDef)}
+        after_classes = {n.name: n for n in ast.walk(after) if isinstance(n, ast.ClassDef)}
 
         all_names = set(before_classes.keys()) | set(after_classes.keys())
         for name in all_names:
@@ -204,15 +194,11 @@ class SemanticDiff:
             a_names = after_imports.get(mod, [])
             if b_names and not a_names:
                 changes.append(
-                    ImportChange(
-                        change_type=ChangeType.REMOVED, module=mod, names=b_names
-                    )
+                    ImportChange(change_type=ChangeType.REMOVED, module=mod, names=b_names)
                 )
             elif a_names and not b_names:
                 changes.append(
-                    ImportChange(
-                        change_type=ChangeType.ADDED, module=mod, names=a_names
-                    )
+                    ImportChange(change_type=ChangeType.ADDED, module=mod, names=a_names)
                 )
             elif set(b_names) != set(a_names):
                 changes.append(
@@ -229,14 +215,10 @@ class SemanticDiff:
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    imports.setdefault(alias.name, []).append(
-                        alias.asname or alias.name
-                    )
+                    imports.setdefault(alias.name, []).append(alias.asname or alias.name)
             elif isinstance(node, ast.ImportFrom):
                 for alias in node.names:
-                    imports.setdefault(node.module or "", []).append(
-                        alias.asname or alias.name
-                    )
+                    imports.setdefault(node.module or "", []).append(alias.asname or alias.name)
         return imports
 
     def _diff_config(self, before: ast.AST, after: ast.AST) -> list[str]:
@@ -287,14 +269,10 @@ class ImpactAnalyzer:
     def __init__(self, codebase_index: dict[str, Any] | None = None):
         self.codebase_index = codebase_index or {}
 
-    def analyze(
-        self, diff: SemanticDiffResult, callers: list[str] | None = None
-    ) -> ImpactReport:
+    def analyze(self, diff: SemanticDiffResult, callers: list[str] | None = None) -> ImpactReport:
         """Analyze impact of a diff on callers."""
         affected_functions = [
-            c.name
-            for c in diff.function_changes
-            if c.change_type == ChangeType.MODIFIED
+            c.name for c in diff.function_changes if c.change_type == ChangeType.MODIFIED
         ]
         affected_classes = [
             c.name for c in diff.class_changes if c.change_type == ChangeType.MODIFIED

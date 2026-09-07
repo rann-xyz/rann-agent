@@ -53,9 +53,7 @@ class ReasoningTool:
             success = kwargs.get("success", True)
             lessons = kwargs.get("lessons_learned", [])
 
-            reflection = await self.reflection.reflect(
-                action_taken, outcome, success, lessons
-            )
+            reflection = await self.reflection.reflect(action_taken, outcome, success, lessons)
             return {"success": True, "reflection": reflection}
 
         elif action == "critique":

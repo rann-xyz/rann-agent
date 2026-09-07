@@ -55,9 +55,7 @@ class InMemoryCache(CacheBackend, TTLCacheMixin):
                 self._evict_stale(1)
                 if len(self._store) >= self._max_size:
                     # Still full — remove oldest entries
-                    oldest_keys = list(self._store.keys())[
-                        : max(1, self._max_size // 10)
-                    ]
+                    oldest_keys = list(self._store.keys())[: max(1, self._max_size // 10)]
                     for k in oldest_keys:
                         self._store.pop(k, None)
                         self._evictions += 1

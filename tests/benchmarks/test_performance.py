@@ -52,9 +52,7 @@ class TestPerformanceBenchmarks:
         avg = sum(times) / len(times)
         p95 = sorted(times)[int(len(times) * 0.95)]
         # Relaxed for mobile/slow env
-        assert (
-            avg < 0.1
-        ), f"DB connection avg {avg:.3f}s (SLO: <0.05s, got {p95:.3f}s p95)"
+        assert avg < 0.1, f"DB connection avg {avg:.3f}s (SLO: <0.05s, got {p95:.3f}s p95)"
         assert result[0] == 1
 
     @pytest.mark.benchmark
@@ -77,9 +75,7 @@ class TestPerformanceBenchmarks:
         elapsed = time.perf_counter() - start
 
         assert elapsed < 0.05, f"Context trim took {elapsed:.3f}s (SLO: <0.05s)"
-        assert len(result) < len(
-            messages
-        ), f"Expected trim but got same length: {len(result)}"
+        assert len(result) < len(messages), f"Expected trim but got same length: {len(result)}"
         assert result[0]["role"] == "system"
 
     @pytest.mark.benchmark
@@ -141,9 +137,7 @@ class TestPerformanceBenchmarks:
 
         def write_task(i):
             with get_db_connection() as conn:
-                conn.execute(
-                    "CREATE TABLE IF NOT EXISTS perf_test (id INTEGER, val TEXT)"
-                )
+                conn.execute("CREATE TABLE IF NOT EXISTS perf_test (id INTEGER, val TEXT)")
                 conn.execute(
                     "INSERT OR REPLACE INTO perf_test (id, val) VALUES (?, ?)",
                     (i, f"value_{i}"),

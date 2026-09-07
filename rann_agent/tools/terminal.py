@@ -80,9 +80,7 @@ class TerminalTool(Tool):
                 )
 
                 try:
-                    stdout, stderr = await asyncio.wait_for(
-                        process.communicate(), timeout=timeout
-                    )
+                    stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
 
                     output = stdout.decode() if stdout else ""
                     error = stderr.decode() if stderr else ""

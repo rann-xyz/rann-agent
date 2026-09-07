@@ -26,9 +26,7 @@ def chat(
     ),
     model: str = typer.Option(None, "--model", "-m", help="Model name"),
     stream: bool = typer.Option(False, "--stream", "-s", help="Stream response"),
-    background: bool = typer.Option(
-        False, "--background", "-b", help="Run in background"
-    ),
+    background: bool = typer.Option(False, "--background", "-b", help="Run in background"),
 ):
     """Execute a task with the agent"""
 
@@ -162,9 +160,7 @@ def tools_list():
 
     tools = agent.tools.list_tools()
 
-    console.print(
-        Panel.fit("[bold cyan]🛠️  Available Tools[/bold cyan]", border_style="cyan")
-    )
+    console.print(Panel.fit("[bold cyan]🛠️  Available Tools[/bold cyan]", border_style="cyan"))
     console.print()
 
     for tool in tools:

@@ -146,9 +146,7 @@ class StrategySelector:
                                   to suggest PLANNER or higher strategy.
         """
         self.complexity_threshold = complexity_threshold
-        logger.info(
-            "strategy_selector_initialized", complexity_threshold=complexity_threshold
-        )
+        logger.info("strategy_selector_initialized", complexity_threshold=complexity_threshold)
 
     def select(
         self,
@@ -185,9 +183,7 @@ class StrategySelector:
 
             # Factor in context if provided
             if context:
-                strategy_scores = self._apply_context(
-                    strategy_scores, context, goal_lower
-                )
+                strategy_scores = self._apply_context(strategy_scores, context, goal_lower)
 
             # Boost complexity-influenced strategies
             if complexity >= self.complexity_threshold:
@@ -199,9 +195,7 @@ class StrategySelector:
 
             # Select highest scoring strategy
             selected = max(strategy_scores, key=strategy_scores.get)
-            reasoning = self._build_reasoning(
-                selected, goal, complexity, strategy_scores
-            )
+            reasoning = self._build_reasoning(selected, goal, complexity, strategy_scores)
 
             logger.info(
                 "strategy_selected",
@@ -287,9 +281,7 @@ class StrategySelector:
 
         # Explicit multi-agent indicator in goal
         if any(p in goal for p in ["parallel", "concurrent", "simultaneously"]):
-            scores[StrategyType.MULTI_AGENT] = max(
-                scores[StrategyType.MULTI_AGENT], 0.7
-            )
+            scores[StrategyType.MULTI_AGENT] = max(scores[StrategyType.MULTI_AGENT], 0.7)
 
         return scores
 

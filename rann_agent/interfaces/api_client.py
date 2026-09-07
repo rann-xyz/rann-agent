@@ -144,9 +144,7 @@ class APIClient:
                     await asyncio.sleep(delay)
                     delay *= 1.5
                     continue
-                raise APIClientError(
-                    f"HTTP {e.response.status_code}: {e.response.text}"
-                )
+                raise APIClientError(f"HTTP {e.response.status_code}: {e.response.text}")
             except httpx.RequestError as e:
                 if attempt < self.max_retries:
                     await asyncio.sleep(delay)
@@ -196,13 +194,9 @@ class APIClient:
             )
         except Exception as e:
             logger.error("api_execute_failed", error=str(e))
-            return RunResult(
-                run_id="error", status=RunStatus.FAILED, success=False, error=str(e)
-            )
+            return RunResult(run_id="error", status=RunStatus.FAILED, success=False, error=str(e))
 
-    async def stream(
-        self, task: str, context: str | None = None
-    ) -> AsyncIterator[StreamEvent]:
+    async def stream(self, task: str, context: str | None = None) -> AsyncIterator[StreamEvent]:
         """Execute with streaming. Yields StreamEvent objects."""
         logger.info("api_stream", task=task[:100])
         # Fallback: polling-based streaming simulation
@@ -234,9 +228,7 @@ class APIClient:
             )
         except Exception as e:
             logger.error("api_get_status_failed", run_id=run_id, error=str(e))
-            return RunResult(
-                run_id=run_id, status=RunStatus.UNKNOWN, success=False, error=str(e)
-            )
+            return RunResult(run_id=run_id, status=RunStatus.UNKNOWN, success=False, error=str(e))
 
     async def cancel(self, run_id: str) -> RunResult:
         """Cancel a running task."""
@@ -251,9 +243,7 @@ class APIClient:
             )
         except Exception as e:
             logger.error("api_cancel_failed", run_id=run_id, error=str(e))
-            return RunResult(
-                run_id=run_id, status=RunStatus.UNKNOWN, success=False, error=str(e)
-            )
+            return RunResult(run_id=run_id, status=RunStatus.UNKNOWN, success=False, error=str(e))
 
     async def __aenter__(self) -> Self:
         await self._get_client()

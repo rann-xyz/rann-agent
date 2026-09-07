@@ -117,13 +117,9 @@ class ApprovalSystem:
         req.rejection_reason = reason
 
         if self.storage:
-            self.storage.update_approval_status(
-                request_id, "rejected", reviewed_by, reason
-            )
+            self.storage.update_approval_status(request_id, "rejected", reviewed_by, reason)
 
-        logger.info(
-            "approval_rejected", request_id=request_id, by=reviewed_by, reason=reason
-        )
+        logger.info("approval_rejected", request_id=request_id, by=reviewed_by, reason=reason)
         return True
 
     def requires_approval(self, action: str) -> bool:

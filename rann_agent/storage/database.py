@@ -249,9 +249,7 @@ class Database:
 
     def get_task(self, task_id: str) -> dict[str, Any] | None:
         with self._get_conn() as conn:
-            row = conn.execute(
-                "SELECT * FROM tasks WHERE task_id = ?", (task_id,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
             return dict(row) if row else None
 
     def list_tasks(self, limit: int = 50) -> list[dict[str, Any]]:
@@ -280,9 +278,7 @@ class Database:
 
     def get_run(self, run_id: str) -> dict[str, Any] | None:
         with self._get_conn() as conn:
-            row = conn.execute(
-                "SELECT * FROM runs WHERE run_id = ?", (run_id,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
             return dict(row) if row else None
 
     def get_incomplete_runs(self) -> list[dict[str, Any]]:
@@ -381,9 +377,7 @@ class Database:
 
     def get_evidence(self, evidence_id: str) -> dict[str, Any] | None:
         with self._get_conn() as conn:
-            row = conn.execute(
-                "SELECT * FROM evidence WHERE id = ?", (evidence_id,)
-            ).fetchone()
+            row = conn.execute("SELECT * FROM evidence WHERE id = ?", (evidence_id,)).fetchone()
             return dict(row) if row else None
 
     def search_evidence(self, claim_substring: str) -> list[dict[str, Any]]:
@@ -518,9 +512,7 @@ class Database:
             ).fetchone()
             return row is not None
 
-    def record_operation(
-        self, operation_id: str, result_json: str | None = None
-    ) -> None:
+    def record_operation(self, operation_id: str, result_json: str | None = None) -> None:
         import datetime
 
         now = datetime.datetime.now(datetime.UTC).isoformat()
@@ -533,9 +525,7 @@ class Database:
     def clear_old_operations(self, older_than_hours: int = 24) -> int:
         import datetime
 
-        cutoff = datetime.datetime.now(datetime.UTC) - datetime.timedelta(
-            hours=older_than_hours
-        )
+        cutoff = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=older_than_hours)
         with self._get_conn() as conn:
             cursor = conn.execute(
                 "DELETE FROM operations WHERE created_at < ?", (cutoff.isoformat(),)

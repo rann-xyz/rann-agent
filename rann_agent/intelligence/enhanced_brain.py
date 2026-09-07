@@ -156,11 +156,14 @@ class ThinkingEngine:
             import aiohttp
 
             url = "https://html.duckduckgo.com/html/"
-            async with aiohttp.ClientSession() as session, session.post(
-                url,
-                data={"q": query},
-                headers={"User-Agent": "Mozilla/5.0 RANN-Agent/1.0"},
-            ) as resp:
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
+                    url,
+                    data={"q": query},
+                    headers={"User-Agent": "Mozilla/5.0 RANN-Agent/1.0"},
+                ) as resp,
+            ):
                 html = await resp.text()
 
             from bs4 import BeautifulSoup
@@ -177,11 +180,7 @@ class ThinkingEngine:
                         {
                             "title": title_elem.get_text(strip=True),
                             "url": title_elem.get("href", ""),
-                            "snippet": (
-                                snippet_elem.get_text(strip=True)
-                                if snippet_elem
-                                else ""
-                            ),
+                            "snippet": (snippet_elem.get_text(strip=True) if snippet_elem else ""),
                         }
                     )
 
@@ -218,10 +217,7 @@ class ThinkingEngine:
         if any(k in task_lower for k in ["fix", "bug", "error", "crash"]):
             return "bug_fixing"
 
-        if any(
-            k in task_lower
-            for k in ["search", "find", "look up", "apa", "siapa", "dimana"]
-        ):
+        if any(k in task_lower for k in ["search", "find", "look up", "apa", "siapa", "dimana"]):
             return "information_query"
 
         if any(k in task_lower for k in ["explain", "jelaskan", "terangkan"]):
@@ -396,11 +392,7 @@ class ContextManager:
         """Create new conversation context"""
         self.current_context = AgentContext(
             conversation_id=conversation_id,
-            **{
-                k: v
-                for k, v in kwargs.items()
-                if k in AgentContext.__dataclass_fields__
-            },
+            **{k: v for k, v in kwargs.items() if k in AgentContext.__dataclass_fields__},
         )
         return self.current_context
 

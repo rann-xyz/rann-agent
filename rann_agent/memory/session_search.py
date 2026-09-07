@@ -171,9 +171,7 @@ class SessionSearch:
             print(f"Search failed: {e}")
             return []
 
-    async def get_session_history(
-        self, session_id: str, limit: int = 100
-    ) -> list[dict[str, Any]]:
+    async def get_session_history(self, session_id: str, limit: int = 100) -> list[dict[str, Any]]:
         """Get all messages from a session."""
         try:
             cursor = self.conn.execute(
@@ -234,12 +232,8 @@ class SessionSearch:
     async def delete_session(self, session_id: str) -> bool:
         """Delete a session and all its messages."""
         try:
-            self.conn.execute(
-                "DELETE FROM messages WHERE session_id = ?", (session_id,)
-            )
-            self.conn.execute(
-                "DELETE FROM messages_fts WHERE session_id = ?", (session_id,)
-            )
+            self.conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+            self.conn.execute("DELETE FROM messages_fts WHERE session_id = ?", (session_id,))
             self.conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
             self.conn.commit()
             return True

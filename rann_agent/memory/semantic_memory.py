@@ -21,22 +21,16 @@ class SemanticMemory:
         """Retrieve a fact."""
         return self.facts.get(key, {}).get("value")
 
-    async def add_concept(
-        self, name: str, definition: str, attributes: dict | None = None
-    ):
+    async def add_concept(self, name: str, definition: str, attributes: dict | None = None):
         """Store a concept."""
         self.concepts[name] = {"definition": definition, "attributes": attributes or {}}
 
     async def link(self, entity1: str, relationship: str, entity2: str):
         """Create relationship between entities."""
-        self.relationships.append(
-            {"from": entity1, "relationship": relationship, "to": entity2}
-        )
+        self.relationships.append({"from": entity1, "relationship": relationship, "to": entity2})
 
     async def query(self, category: str | None = None) -> dict:
         """Query semantic memory."""
         if category:
-            return {
-                k: v for k, v in self.facts.items() if v.get("category") == category
-            }
+            return {k: v for k, v in self.facts.items() if v.get("category") == category}
         return self.facts

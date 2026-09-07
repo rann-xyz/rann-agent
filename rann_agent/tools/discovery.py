@@ -105,8 +105,7 @@ class ToolDiscovery:
         return [
             t
             for t in self._tools.values()
-            if query in t.get("name", "").lower()
-            or query in t.get("description", "").lower()
+            if query in t.get("name", "").lower() or query in t.get("description", "").lower()
         ]
 
     def get_catalog(self) -> dict[str, Any]:
@@ -114,9 +113,7 @@ class ToolDiscovery:
             "total": len(self._tools),
             "enabled": len([t for t in self._tools.values() if t.get("enabled")]),
             "by_risk": {
-                risk: len(
-                    [t for t in self._tools.values() if t.get("risk_level") == risk]
-                )
+                risk: len([t for t in self._tools.values() if t.get("risk_level") == risk])
                 for risk in ["safe", "low", "medium", "high", "critical", "unknown"]
             },
             "tools": [

@@ -124,15 +124,11 @@ class ToolRegistry:
         """
         tool = self.get(name)
         if not tool:
-            return ToolResult(
-                tool=name, success=False, error=f"Tool not found: {name}"
-            ).to_dict()
+            return ToolResult(tool=name, success=False, error=f"Tool not found: {name}").to_dict()
 
         # Check if tool is enabled
         if name not in self.config.tools.enabled:
-            return ToolResult(
-                tool=name, success=False, error=f"Tool not enabled: {name}"
-            ).to_dict()
+            return ToolResult(tool=name, success=False, error=f"Tool not enabled: {name}").to_dict()
 
         try:
             # Validate parameters
@@ -141,9 +137,7 @@ class ToolRegistry:
             # Execute
             logger.debug("tool_execute_start", tool=name, params=parameters)
             result = await tool.execute(**parameters)
-            logger.debug(
-                "tool_execute_complete", tool=name, success=result.get("success")
-            )
+            logger.debug("tool_execute_complete", tool=name, success=result.get("success"))
 
             return result
 
@@ -178,11 +172,7 @@ class ToolRegistry:
                             "type": "object",
                             "properties": tool.parameters,
                             "required": (
-                                [
-                                    k
-                                    for k, v in tool.parameters.items()
-                                    if v.get("required", False)
-                                ]
+                                [k for k, v in tool.parameters.items() if v.get("required", False)]
                                 if tool.parameters
                                 else []
                             ),

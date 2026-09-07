@@ -138,9 +138,7 @@ class LearningEngine:
         self.solutions: dict[str, LearnedSolution] = {}
         self.lesson_history: list[dict[str, Any]] = []
 
-    def learn_from_success(
-        self, task: str, task_type: str, solution: str, verification: str
-    ):
+    def learn_from_success(self, task: str, task_type: str, solution: str, verification: str):
         """Learn from successful task completion"""
         # Create or update solution
         solution_key = f"{task_type}:{task[:30].lower()}"

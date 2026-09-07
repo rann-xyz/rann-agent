@@ -99,9 +99,7 @@ class TestToolPolicyEngine:
     def test_rate_limit(self):
         engine = ToolPolicyEngine()
         engine.set_policy(
-            ToolPolicy(
-                "test_tool", RiskLevel.LOW, PolicyAction.ALLOW, max_calls_per_run=2
-            )
+            ToolPolicy("test_tool", RiskLevel.LOW, PolicyAction.ALLOW, max_calls_per_run=2)
         )
         engine.record_call("test_tool")
         engine.record_call("test_tool")

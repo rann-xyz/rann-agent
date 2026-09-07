@@ -8,9 +8,7 @@ from rann_agent.skills.registry import SkillMetadata, SkillRegistry
 class TestSkillRegistry:
     def test_register_and_get(self):
         registry = SkillRegistry()
-        meta = SkillMetadata(
-            name="test_skill", description="A test", category="testing"
-        )
+        meta = SkillMetadata(name="test_skill", description="A test", category="testing")
         registry.register("test_skill", meta)
 
         skill = registry.get("test_skill")
@@ -21,9 +19,7 @@ class TestSkillRegistry:
         registry = SkillRegistry()
         registry.register(
             "analyze_code",
-            SkillMetadata(
-                name="analyze_code", description="Analyze code quality", category="dev"
-            ),
+            SkillMetadata(name="analyze_code", description="Analyze code quality", category="dev"),
         )
 
         results = registry.search("analyze")
@@ -31,12 +27,8 @@ class TestSkillRegistry:
 
     def test_list_enabled(self):
         registry = SkillRegistry()
-        registry.register(
-            "s1", SkillMetadata(name="s1", description="", category="dev")
-        )
-        registry.register(
-            "s2", SkillMetadata(name="s2", description="", category="dev")
-        )
+        registry.register("s1", SkillMetadata(name="s1", description="", category="dev"))
+        registry.register("s2", SkillMetadata(name="s2", description="", category="dev"))
 
         enabled = registry.list_enabled()
         assert len(enabled) >= 2

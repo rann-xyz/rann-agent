@@ -59,9 +59,7 @@ class OperationTracker:
         if self.storage:
             import json
 
-            result_json = (
-                json.dumps({"result": str(result)}) if result is not None else None
-            )
+            result_json = json.dumps({"result": str(result)}) if result is not None else None
             self.storage.record_operation(operation_id, result_json)
         logger.debug("operation_recorded", operation_id=operation_id)
 

@@ -180,8 +180,7 @@ class CodeAnalyzer:
             if isinstance(node, ast.ClassDef):
                 # Check for singleton indicators
                 has_instance = any(
-                    isinstance(n, ast.Name) and n.id == "_instance"
-                    for n in ast.walk(node)
+                    isinstance(n, ast.Name) and n.id == "_instance" for n in ast.walk(node)
                 )
                 if has_instance:
                     patterns["design_patterns"].append(f"Singleton: {node.name}")

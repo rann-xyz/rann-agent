@@ -92,9 +92,7 @@ class TaskGraph:
         self.tasks: dict[str, TaskNode] = {}
         self.root_task_id = root_task_id
         self._execution_order: list[str] = []
-        self._log = structlog.get_logger().bind(
-            component="task_graph", graph_id=graph_id
-        )
+        self._log = structlog.get_logger().bind(component="task_graph", graph_id=graph_id)
 
         # Create root task
         self.add_task(
@@ -134,14 +132,10 @@ class TaskGraph:
             if dep_id in self.tasks:
                 self.tasks[dep_id].dependents.add(task_id)
             else:
-                self._log.warning(
-                    "dependency_not_found", task_id=task_id, dep_id=dep_id
-                )
+                self._log.warning("dependency_not_found", task_id=task_id, dep_id=dep_id)
 
         self._update_task_status(task_id)
-        self._log.info(
-            "task_added", task_id=task_id, dependencies=list(dependencies or [])
-        )
+        self._log.info("task_added", task_id=task_id, dependencies=list(dependencies or []))
 
         return task
 
@@ -196,9 +190,7 @@ class TaskGraph:
         task.started_at = self._now()
         self._log.info("task_started", task_id=task_id)
 
-    def mark_completed(
-        self, task_id: str, output_data: dict[str, Any] | None = None
-    ) -> None:
+    def mark_completed(self, task_id: str, output_data: dict[str, Any] | None = None) -> None:
         """Mark a task as completed"""
         task = self.tasks.get(task_id)
         if not task:
@@ -220,9 +212,7 @@ class TaskGraph:
             try:
                 task.on_complete(task)
             except Exception as e:
-                self._log.error(
-                    "task_complete_callback_failed", task_id=task_id, error=str(e)
-                )
+                self._log.error("task_complete_callback_failed", task_id=task_id, error=str(e))
 
     def mark_failed(self, task_id: str, error: str) -> None:
         """Mark a task as failed"""
@@ -239,9 +229,7 @@ class TaskGraph:
         else:
             task.status = TaskStatus.FAILED
             task.completed_at = self._now()
-            self._log.error(
-                "task_failed", task_id=task_id, error=error, retries=task.retry_count
-            )
+            self._log.error("task_failed", task_id=task_id, error=error, retries=task.retry_count)
 
             # Mark dependents as blocked/failed
             for dep_id in task.dependents:
@@ -265,10 +253,7 @@ class TaskGraph:
 
     def is_complete(self) -> bool:
         """Check if the graph is complete"""
-        return (
-            self.root_task_id in self.tasks
-            and self.tasks[self.root_task_id].is_terminal()
-        )
+        return self.root_task_id in self.tasks and self.tasks[self.root_task_id].is_terminal()
 
     def get_progress(self) -> dict[str, Any]:
         """Get progress summary"""

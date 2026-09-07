@@ -53,9 +53,7 @@ class TestSLOBenchmarks:
 
         avg_ms = (sum(times) / len(times)) * 1000
         slo_ms = SLOs["tool_registry_init_ms"]
-        assert (
-            avg_ms < slo_ms
-        ), f"SLO FAIL: ToolRegistry init {avg_ms:.1f}ms > {slo_ms}ms"
+        assert avg_ms < slo_ms, f"SLO FAIL: ToolRegistry init {avg_ms:.1f}ms > {slo_ms}ms"
 
     def test_slo_state_transitions(self, config):
         from rann_agent.core.state import VALID_TRANSITIONS, AgentState

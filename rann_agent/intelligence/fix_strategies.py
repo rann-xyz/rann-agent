@@ -199,7 +199,6 @@ def _attribute_error_strategy(error_msg: str, context: dict) -> list[FixSuggesti
         # Common typos
         common_misspellings = {
             "lenght": "length",
-            "lenght": "length",
             "widht": "width",
             "heigth": "height",
             "attribte": "attribute",
@@ -300,6 +299,7 @@ def _test_failure_strategy(error_msg: str, context: dict) -> list[FixSuggestion]
 def _type_error_strategy(error_msg: str, context: dict) -> list[FixSuggestion]:
     """Handle TypeError — wrong argument types."""
     import re
+
     suggestions = []
 
     # Extract expected vs actual
@@ -329,7 +329,11 @@ def _type_error_strategy(error_msg: str, context: dict) -> list[FixSuggestion]:
         )
 
     # Missing argument — match "missing N required argument" without complex quotes
-    if "missing" in error_msg.lower() and "required" in error_msg.lower() and "argument" in error_msg.lower():
+    if (
+        "missing" in error_msg.lower()
+        and "required" in error_msg.lower()
+        and "argument" in error_msg.lower()
+    ):
         suggestions.append(
             FixSuggestion(
                 strategy="add_argument",
@@ -463,6 +467,7 @@ def _timeout_error_strategy(error_msg: str, context: dict) -> list[FixSuggestion
 def _api_error_strategy(error_msg: str, context: dict) -> list[FixSuggestion]:
     """Handle LLM/API provider errors (rate limit, auth, etc.)."""
     import re
+
     suggestions = []
     error_lower = error_msg.lower()
 
@@ -673,7 +678,10 @@ ERROR_TYPE_STRATEGIES: list[tuple[re.Pattern, list]] = [
     # Attribute/method errors
     (re.compile(r"\battributeerror\b", re.IGNORECASE), [_attribute_error_strategy]),
     # Test failures — match FAILED/pytest/assertionerror in context
-    (re.compile(r"\bfailed\b.*\bpytest\b|\bpytest\b.*\bfailed\b", re.IGNORECASE), [_test_failure_strategy]),
+    (
+        re.compile(r"\bfailed\b.*\bpytest\b|\bpytest\b.*\bfailed\b", re.IGNORECASE),
+        [_test_failure_strategy],
+    ),
     (re.compile(r"\bassertionerror\b", re.IGNORECASE), [_test_failure_strategy]),
     (re.compile(r"\bpytest\b", re.IGNORECASE), [_test_failure_strategy]),
     # Type errors — specific class name
@@ -688,9 +696,18 @@ ERROR_TYPE_STRATEGIES: list[tuple[re.Pattern, list]] = [
     (re.compile(r"\b429\b|\b401\b|\b403\b"), [_api_error_strategy]),
     # API errors — keyword phrases
     (re.compile(r"\brate.limit\b|\brate limit\b", re.IGNORECASE), [_api_error_strategy]),
-    (re.compile(r"\bauthentication\b|\bapi.key\b|\bapikey\b|\bcredential\b|\bunauthorized\b|\bforbidden\b", re.IGNORECASE), [_api_error_strategy]),
+    (
+        re.compile(
+            r"\bauthentication\b|\bapi.key\b|\bapikey\b|\bcredential\b|\bunauthorized\b|\bforbidden\b",
+            re.IGNORECASE,
+        ),
+        [_api_error_strategy],
+    ),
     # Linter errors
-    (re.compile(r"\bruff\b|\bblack\b|\bmypy\b|\bpylint\b|\bflake8\b", re.IGNORECASE), [_linter_error_strategy]),
+    (
+        re.compile(r"\bruff\b|\bblack\b|\bmypy\b|\bpylint\b|\bflake8\b", re.IGNORECASE),
+        [_linter_error_strategy],
+    ),
     # Generic runtime — LAST RESORT only
     (re.compile(r"\bruntimeerror\b", re.IGNORECASE), [_runtime_error_strategy]),
     (re.compile(r"\bexception\b", re.IGNORECASE), [_runtime_error_strategy]),

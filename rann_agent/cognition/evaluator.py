@@ -333,11 +333,7 @@ class Evaluator:
 
         # Check for missing documentation in code
         if "def " in output_str or "class " in output_str:
-            if (
-                "# " not in output_str
-                and '"""' not in output_str
-                and "'''" not in output_str
-            ):
+            if "# " not in output_str and '"""' not in output_str and "'''" not in output_str:
                 issues.append("code lacks documentation/comments")
 
         # Check for overly long lines (simplistic check)

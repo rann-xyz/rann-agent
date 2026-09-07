@@ -137,9 +137,7 @@ class EventEmitter:
         event.run_id = self.run_id
 
         # Count
-        self._event_counts[event.event_type] = (
-            self._event_counts.get(event.event_type, 0) + 1
-        )
+        self._event_counts[event.event_type] = self._event_counts.get(event.event_type, 0) + 1
 
         # Store
         if self.store_events:
@@ -168,7 +166,7 @@ class EventEmitter:
         component: str = "agent",
         task_id: str | None = None,
         status: EventStatus = EventStatus.STARTED,
-        **metadata
+        **metadata,
     ) -> Event:
         """Create and emit an event in one call"""
         event = Event(
@@ -225,46 +223,36 @@ def emit_run_created(emitter: EventEmitter, goal: str, **metadata) -> Event:
 
 
 def emit_run_started(emitter: EventEmitter, **metadata) -> Event:
-    return emitter.create_event(
-        EventType.RUN_STARTED, status=EventStatus.SUCCESS, **metadata
-    )
+    return emitter.create_event(EventType.RUN_STARTED, status=EventStatus.SUCCESS, **metadata)
 
 
 def emit_model_requested(emitter: EventEmitter, model: str, **metadata) -> Event:
-    return emitter.create_event(
-        EventType.MODEL_REQUESTED, component="llm", model=model, **metadata
-    )
+    return emitter.create_event(EventType.MODEL_REQUESTED, component="llm", model=model, **metadata)
 
 
-def emit_model_responded(
-    emitter: EventEmitter, model: str, tokens: int, **metadata
-) -> Event:
+def emit_model_responded(emitter: EventEmitter, model: str, tokens: int, **metadata) -> Event:
     return emitter.create_event(
         EventType.MODEL_RESPONDED,
         component="llm",
         status=EventStatus.SUCCESS,
         model=model,
         tokens=tokens,
-        **metadata
+        **metadata,
     )
 
 
 def emit_tool_started(emitter: EventEmitter, tool: str, **metadata) -> Event:
-    return emitter.create_event(
-        EventType.TOOL_STARTED, component="tools", tool=tool, **metadata
-    )
+    return emitter.create_event(EventType.TOOL_STARTED, component="tools", tool=tool, **metadata)
 
 
-def emit_tool_completed(
-    emitter: EventEmitter, tool: str, duration_ms: float, **metadata
-) -> Event:
+def emit_tool_completed(emitter: EventEmitter, tool: str, duration_ms: float, **metadata) -> Event:
     return emitter.create_event(
         EventType.TOOL_COMPLETED,
         component="tools",
         status=EventStatus.SUCCESS,
         tool=tool,
         duration_ms=duration_ms,
-        **metadata
+        **metadata,
     )
 
 
@@ -275,7 +263,7 @@ def emit_tool_failed(emitter: EventEmitter, tool: str, error: str, **metadata) -
         status=EventStatus.FAILURE,
         tool=tool,
         error=error,
-        **metadata
+        **metadata,
     )
 
 
@@ -287,32 +275,25 @@ def emit_verification_passed(emitter: EventEmitter, **metadata) -> Event:
 
 def emit_verification_failed(emitter: EventEmitter, reason: str, **metadata) -> Event:
     return emitter.create_event(
-        EventType.VERIFICATION_FAILED,
-        status=EventStatus.FAILURE,
-        reason=reason,
-        **metadata
+        EventType.VERIFICATION_FAILED, status=EventStatus.FAILURE, reason=reason, **metadata
     )
 
 
-def emit_run_completed(
-    emitter: EventEmitter, output: str, turns: int, **metadata
-) -> Event:
+def emit_run_completed(emitter: EventEmitter, output: str, turns: int, **metadata) -> Event:
     return emitter.create_event(
         EventType.RUN_COMPLETED,
         status=EventStatus.SUCCESS,
         output_length=len(output),
         turns=turns,
-        **metadata
+        **metadata,
     )
 
 
-def emit_error(
-    emitter: EventEmitter, error: str, component: str = "agent", **metadata
-) -> Event:
+def emit_error(emitter: EventEmitter, error: str, component: str = "agent", **metadata) -> Event:
     return emitter.create_event(
         EventType.ERROR_OCCURRED,
         component=component,
         status=EventStatus.FAILURE,
         error=error,
-        **metadata
+        **metadata,
     )

@@ -97,9 +97,7 @@ class WorkingMemory:
 
     def get_recent(self, n: int = 10) -> list[Any]:
         """Get n most recently accessed items"""
-        sorted_items = sorted(
-            self._items.values(), key=lambda x: x.last_accessed, reverse=True
-        )
+        sorted_items = sorted(self._items.values(), key=lambda x: x.last_accessed, reverse=True)
         return [item.value for item in sorted_items[:n]]
 
     def search(self, query: str) -> list[Any]:
@@ -120,9 +118,7 @@ class WorkingMemory:
             "total_items": len(self._items),
             "max_items": self._max_items,
             "total_accesses": sum(i.access_count for i in self._items.values()),
-            "oldest_item": min(
-                (i.created_at for i in self._items.values()), default=None
-            ),
+            "oldest_item": min((i.created_at for i in self._items.values()), default=None),
             "most_accessed": max(
                 [(k, v.access_count) for k, v in self._items.items()],
                 default=(None, 0),

@@ -188,9 +188,7 @@ class VerificationEngine:
             "verification_completed",
             status=result.status.value,
             checks_passed=sum(1 for c in result.checks if c["passed"]),
-            checks_failed=sum(
-                1 for c in result.checks if not c["passed"] and c["required"]
-            ),
+            checks_failed=sum(1 for c in result.checks if not c["passed"] and c["required"]),
             duration_ms=result.duration_ms,
         )
 

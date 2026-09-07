@@ -42,9 +42,7 @@ class Coordinator:
 
         logger.info("coordinator_init", max_concurrent=self.max_concurrent)
 
-    async def execute_parallel(
-        self, tasks: list[dict[str, str]]
-    ) -> list[dict[str, Any]]:
+    async def execute_parallel(self, tasks: list[dict[str, str]]) -> list[dict[str, Any]]:
         """
         Execute multiple tasks in parallel
 
@@ -116,9 +114,7 @@ class Coordinator:
             """Execute one task after its dependencies"""
             # Wait for dependencies
             if task.dependencies:
-                await asyncio.gather(
-                    *[wait_for_completion(dep) for dep in task.dependencies]
-                )
+                await asyncio.gather(*[wait_for_completion(dep) for dep in task.dependencies])
 
             # Execute
             agent = await self._spawn_agent(task_id)
@@ -134,9 +130,7 @@ class Coordinator:
                 await asyncio.sleep(0.1)
 
         # Execute all tasks (will respect dependencies)
-        await asyncio.gather(
-            *[execute_task(tid, task) for tid, task in task_map.items()]
-        )
+        await asyncio.gather(*[execute_task(tid, task) for tid, task in task_map.items()])
 
         logger.info("execute_graph_complete", completed=len(results))
         return list(results.values())

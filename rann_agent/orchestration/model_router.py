@@ -142,9 +142,7 @@ class ModelRouter:
         candidates = {
             name: cap
             for name, cap in self.MODELS.items()
-            if self._model_satisfies(
-                cap, requires_vision, requires_functions, context_length
-            )
+            if self._model_satisfies(cap, requires_vision, requires_functions, context_length)
         }
 
         if budget:

@@ -110,9 +110,7 @@ class TaskContract:
     def is_action_prohibited(self, action: str) -> bool:
         """Check if an action is prohibited"""
         action_lower = action.lower()
-        return any(
-            prohibited.lower() in action_lower for prohibited in self.prohibited_actions
-        )
+        return any(prohibited.lower() in action_lower for prohibited in self.prohibited_actions)
 
     def get_risk_description(self) -> str:
         """Get human-readable risk description"""

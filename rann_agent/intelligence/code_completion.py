@@ -114,9 +114,7 @@ class CodeCompletion:
 
         return suggestions
 
-    def _suggest_imports(
-        self, context: dict[str, Any], language: str
-    ) -> list[dict[str, Any]]:
+    def _suggest_imports(self, context: dict[str, Any], language: str) -> list[dict[str, Any]]:
         """Suggest import statements."""
         suggestions = []
 
@@ -131,9 +129,7 @@ class CodeCompletion:
             ]
 
             for imp in common_imports[:3]:
-                suggestions.append(
-                    {"code": imp, "description": "Common import", "confidence": 0.7}
-                )
+                suggestions.append({"code": imp, "description": "Common import", "confidence": 0.7})
 
         return suggestions
 
@@ -170,15 +166,11 @@ class CodeCompletion:
                 )
 
             elif "list" in name or "items" in name:
-                suggestions.append(
-                    {"code": " []", "description": "Empty list", "confidence": 0.7}
-                )
+                suggestions.append({"code": " []", "description": "Empty list", "confidence": 0.7})
 
         return suggestions
 
-    def _suggest_control_flow(
-        self, context: dict[str, Any], language: str
-    ) -> list[dict[str, Any]]:
+    def _suggest_control_flow(self, context: dict[str, Any], language: str) -> list[dict[str, Any]]:
         """Suggest control flow body."""
         suggestions = []
         indent = " " * (context["indentation"] + 4)

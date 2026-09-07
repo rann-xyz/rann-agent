@@ -170,9 +170,7 @@ class SelfCodingExecutor:
                 "file_path": file_path,
                 "change_type": change_type,
                 "backup_path": (
-                    str(self.backup_dir / f"{change_id}.backup")
-                    if old_content
-                    else None
+                    str(self.backup_dir / f"{change_id}.backup") if old_content else None
                 ),
                 "message": f"Successfully applied {change_type} to {file_path}",
             }

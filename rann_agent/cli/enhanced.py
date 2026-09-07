@@ -32,9 +32,7 @@ def chat(
     provider: str = typer.Option(None, "--provider", "-p", help="LLM provider"),
     model: str = typer.Option(None, "--model", "-m", help="Model name"),
     stream: bool = typer.Option(False, "--stream", "-s", help="Stream response"),
-    interactive: bool = typer.Option(
-        False, "--interactive", "-i", help="Interactive mode"
-    ),
+    interactive: bool = typer.Option(False, "--interactive", "-i", help="Interactive mode"),
 ):
     """Execute a task with the agent (enhanced UX)"""
 
@@ -70,9 +68,7 @@ def chat(
         asyncio.run(_execute_with_progress(agent, goal, context, interactive))
 
 
-async def _execute_with_progress(
-    agent: Agent, goal: str, context: str, interactive: bool
-):
+async def _execute_with_progress(agent: Agent, goal: str, context: str, interactive: bool):
     """Execute with rich progress bar"""
 
     with Progress(
@@ -202,9 +198,7 @@ def workflows():
         },
     ]
 
-    console.print(
-        Panel.fit("[bold cyan]📋 Pre-built Workflows[/bold cyan]", border_style="cyan")
-    )
+    console.print(Panel.fit("[bold cyan]📋 Pre-built Workflows[/bold cyan]", border_style="cyan"))
     console.print()
 
     table = Table(show_header=True, header_style="bold cyan")

@@ -69,12 +69,8 @@ class BenchmarkMetrics:
     def finalize(self):
         total = len(self.metrics["task_success"])
         if total > 0:
-            self.metrics["task_success_rate"] = (
-                sum(self.metrics["task_success"]) / total
-            )
-            self.metrics["first_attempt_rate"] = (
-                sum(self.metrics["first_attempt_success"]) / total
-            )
+            self.metrics["task_success_rate"] = sum(self.metrics["task_success"]) / total
+            self.metrics["first_attempt_rate"] = sum(self.metrics["first_attempt_success"]) / total
             self.metrics["avg_latency"] = sum(self.metrics["latency"]) / total
         else:
             self.metrics["task_success_rate"] = 0

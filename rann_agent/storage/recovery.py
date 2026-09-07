@@ -58,9 +58,7 @@ class CrashRecovery:
             incomplete_run = IncompleteRun(
                 run_id=run["run_id"],
                 task_id=run["task_id"],
-                last_state=(
-                    last_transition["to_state"] if last_transition else "UNKNOWN"
-                ),
+                last_state=(last_transition["to_state"] if last_transition else "UNKNOWN"),
                 last_tool_call=None,
                 start_time=run["start_time"],
             )

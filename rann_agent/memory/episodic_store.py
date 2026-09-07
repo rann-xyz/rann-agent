@@ -68,9 +68,7 @@ class EpisodicMemoryStore:
             )
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_outcome ON episodes(outcome)")
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_category ON episodes(task_category)"
-        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_category ON episodes(task_category)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_created ON episodes(created_at)")
         conn.commit()
         conn.close()
@@ -100,15 +98,11 @@ class EpisodicMemoryStore:
         )
         conn.commit()
         conn.close()
-        logger.info(
-            "episode_stored", episode_id=episode.episode_id, outcome=episode.outcome
-        )
+        logger.info("episode_stored", episode_id=episode.episode_id, outcome=episode.outcome)
 
     def get(self, episode_id: str) -> EpisodicEpisode | None:
         conn = self._get_conn()
-        row = conn.execute(
-            "SELECT * FROM episodes WHERE episode_id=?", (episode_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM episodes WHERE episode_id=?", (episode_id,)).fetchone()
         conn.close()
         return self._row_to_episode(row) if row else None
 
@@ -171,14 +165,10 @@ class EpisodicMemoryStore:
         conn = self._get_conn()
         total = conn.execute("SELECT COUNT(*) FROM episodes").fetchone()[0]
         by_outcome = dict(
-            conn.execute(
-                "SELECT outcome, COUNT(*) FROM episodes GROUP BY outcome"
-            ).fetchall()
+            conn.execute("SELECT outcome, COUNT(*) FROM episodes GROUP BY outcome").fetchall()
         )
         avg_turns = conn.execute("SELECT AVG(turns) FROM episodes").fetchone()[0] or 0
-        avg_tokens = (
-            conn.execute("SELECT AVG(tokens_used) FROM episodes").fetchone()[0] or 0
-        )
+        avg_tokens = conn.execute("SELECT AVG(tokens_used) FROM episodes").fetchone()[0] or 0
         conn.close()
         return {
             "total_episodes": total,

@@ -28,9 +28,7 @@ class VectorMemory:
 
             # Use persistent storage
             self.client = chromadb.Client(
-                Settings(
-                    chroma_db_impl="duckdb+parquet", persist_directory="./.chroma_db"
-                )
+                Settings(chroma_db_impl="duckdb+parquet", persist_directory="./.chroma_db")
             )
 
             # Get or create collection
@@ -127,9 +125,7 @@ class VectorMemory:
                             "content": doc,
                             "metadata": results["metadatas"][0][i],
                             "distance": (
-                                results["distances"][0][i]
-                                if "distances" in results
-                                else None
+                                results["distances"][0][i] if "distances" in results else None
                             ),
                         }
                     )
@@ -148,9 +144,7 @@ class VectorMemory:
             meta = metadata or {}
             meta["updated_at"] = datetime.now(UTC).isoformat()
 
-            self.collection.update(
-                ids=[memory_id], documents=[content], metadatas=[meta]
-            )
+            self.collection.update(ids=[memory_id], documents=[content], metadatas=[meta])
             return True
         except Exception as e:
             print(f"Failed to update memory: {e}")
@@ -194,9 +188,7 @@ class VectorMemory:
             print(f"Failed to search by metadata: {e}")
             return []
 
-    async def get_recent(
-        self, n_results: int = 10, category: str | None = None
-    ) -> list[dict]:
+    async def get_recent(self, n_results: int = 10, category: str | None = None) -> list[dict]:
         """Get most recent memories."""
         if not self.collection:
             await self.initialize()
@@ -217,9 +209,7 @@ class VectorMemory:
                     )
 
             # Sort by timestamp
-            memories.sort(
-                key=lambda x: x["metadata"].get("timestamp", ""), reverse=True
-            )
+            memories.sort(key=lambda x: x["metadata"].get("timestamp", ""), reverse=True)
 
             return memories
         except Exception as e:
@@ -270,9 +260,7 @@ class VectorMemory:
             if total_length + length > max_tokens:
                 break
 
-            context_parts.append(
-                f"[{mem['metadata'].get('category', 'general')}] {content}"
-            )
+            context_parts.append(f"[{mem['metadata'].get('category', 'general')}] {content}")
             total_length += length
 
         return "\n\n".join(context_parts)

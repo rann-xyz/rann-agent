@@ -37,9 +37,7 @@ class EpisodicMemory:
         """Get recent episodes."""
         return self.episodes[-n:]
 
-    async def search(
-        self, event_type: str | None = None, outcome: str | None = None
-    ) -> list[dict]:
+    async def search(self, event_type: str | None = None, outcome: str | None = None) -> list[dict]:
         """Search episodes by criteria."""
         results = self.episodes
 

@@ -48,11 +48,14 @@ class DuckDuckGoProvider(SearchProvider):
         from bs4 import BeautifulSoup
 
         url = "https://html.duckduckgo.com/html/"
-        async with aiohttp.ClientSession() as session, session.post(
-            url,
-            data={"q": query},
-            headers={"User-Agent": "Rann-Agent/1.0"},
-        ) as resp:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.post(
+                url,
+                data={"q": query},
+                headers={"User-Agent": "Rann-Agent/1.0"},
+            ) as resp,
+        ):
             html = await resp.text()
 
         soup = BeautifulSoup(html, "html.parser")
@@ -65,9 +68,7 @@ class DuckDuckGoProvider(SearchProvider):
                     {
                         "title": title_elem.get_text(strip=True),
                         "url": title_elem.get("href", ""),
-                        "snippet": (
-                            snippet_elem.get_text(strip=True) if snippet_elem else ""
-                        ),
+                        "snippet": (snippet_elem.get_text(strip=True) if snippet_elem else ""),
                     }
                 )
         return results
@@ -245,9 +246,7 @@ class ExtractProvider(ABC):
         ...
 
     @abstractmethod
-    async def extract(
-        self, urls: list[str], char_limit: int = 15000
-    ) -> list[dict[str, Any]]:
+    async def extract(self, urls: list[str], char_limit: int = 15000) -> list[dict[str, Any]]:
         """
         Extract content from URLs.
 
@@ -263,9 +262,7 @@ class AioHTTPProvider(ExtractProvider):
 
     name = "aiohttp"
 
-    async def extract(
-        self, urls: list[str], char_limit: int = 15000
-    ) -> list[dict[str, Any]]:
+    async def extract(self, urls: list[str], char_limit: int = 15000) -> list[dict[str, Any]]:
         import aiohttp
         from bs4 import BeautifulSoup
         from markdownify import markdownify as md
@@ -318,9 +315,7 @@ class TrafilaturaProvider(ExtractProvider):
     def __init__(self):
         self._aiohttp = AioHTTPProvider()
 
-    async def extract(
-        self, urls: list[str], char_limit: int = 15000
-    ) -> list[dict[str, Any]]:
+    async def extract(self, urls: list[str], char_limit: int = 15000) -> list[dict[str, Any]]:
         try:
             import trafilatura
         except ImportError:
@@ -366,9 +361,7 @@ class PlaywrightProvider(ExtractProvider):
     def __init__(self):
         self._aiohttp = AioHTTPProvider()
 
-    async def extract(
-        self, urls: list[str], char_limit: int = 15000
-    ) -> list[dict[str, Any]]:
+    async def extract(self, urls: list[str], char_limit: int = 15000) -> list[dict[str, Any]]:
         try:
             from playwright.async_api import async_playwright
         except ImportError:
@@ -463,9 +456,7 @@ class WebSearchTool(Tool):
             searcher = get_search_provider(provider_name)
             results = await searcher.search(query, limit)
 
-            output = "\n\n".join(
-                f"**{r['title']}**\n{r['url']}\n{r['snippet']}" for r in results
-            )
+            output = "\n\n".join(f"**{r['title']}**\n{r['url']}\n{r['snippet']}" for r in results)
             return ToolResult(
                 tool=self.name,
                 success=True,

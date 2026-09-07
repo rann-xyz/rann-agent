@@ -32,9 +32,7 @@ class ChainOfThought:
 
     async def add_step(self, thought: str, reasoning: str):
         """Add reasoning step."""
-        self.steps.append(
-            {"step": len(self.steps) + 1, "thought": thought, "reasoning": reasoning}
-        )
+        self.steps.append({"step": len(self.steps) + 1, "thought": thought, "reasoning": reasoning})
 
     async def get_chain(self) -> list[dict]:
         """Get full reasoning chain."""
@@ -66,9 +64,7 @@ class TreeOfThought:
         self.all_nodes.append(self.root)
         return self.root
 
-    async def expand_node(
-        self, node: ThoughtNode, thoughts: list[str]
-    ) -> list[ThoughtNode]:
+    async def expand_node(self, node: ThoughtNode, thoughts: list[str]) -> list[ThoughtNode]:
         """Expand a node with child thoughts."""
         if node.depth >= self.max_depth:
             return []

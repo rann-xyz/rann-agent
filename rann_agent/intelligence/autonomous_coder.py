@@ -228,9 +228,7 @@ class AutonomousCoder:
 
         if "nameerror" in error_lower or "not defined" in error_lower:
             analysis["root_cause"] = "Variable or function not defined"
-            analysis["fix_suggestions"].append(
-                "Check if variable is imported or defined"
-            )
+            analysis["fix_suggestions"].append("Check if variable is imported or defined")
             analysis["fix_suggestions"].append("Verify spelling of variable name")
 
         elif "typeerror" in error_lower:
@@ -359,9 +357,7 @@ def test_{function_name}_error_handling():
             # Check line length
             long_lines = [l for l in code.split("\n") if len(l) > 100]
             if long_lines:
-                review["issues"].append(
-                    f"{len(long_lines)} lines exceed 100 characters"
-                )
+                review["issues"].append(f"{len(long_lines)} lines exceed 100 characters")
                 score -= 5
 
         review["quality_score"] = max(0, score)
@@ -370,21 +366,15 @@ def test_{function_name}_error_handling():
 
     async def get_task_summary(self) -> dict[str, Any]:
         """Get summary of all tasks."""
-        completed = sum(
-            1 for t in self.task_history if t.status == TaskStatus.COMPLETED
-        )
+        completed = sum(1 for t in self.task_history if t.status == TaskStatus.COMPLETED)
         failed = sum(1 for t in self.task_history if t.status == TaskStatus.FAILED)
 
         return {
             "total_tasks": len(self.task_history),
             "completed": completed,
             "failed": failed,
-            "success_rate": (
-                completed / len(self.task_history) if self.task_history else 0
-            ),
-            "total_files_modified": sum(
-                len(t.files_modified) for t in self.task_history
-            ),
+            "success_rate": (completed / len(self.task_history) if self.task_history else 0),
+            "total_files_modified": sum(len(t.files_modified) for t in self.task_history),
             "total_tests_written": sum(t.tests_written for t in self.task_history),
             "total_bugs_fixed": sum(t.bugs_fixed for t in self.task_history),
         }

@@ -73,9 +73,7 @@ class CodeIntelligenceTool(Tool):
         # Format output
         output = self._format_analysis(analysis)
 
-        return ToolResult(
-            tool=self.name, success=True, output=output, metadata=analysis
-        ).to_dict()
+        return ToolResult(tool=self.name, success=True, output=output, metadata=analysis).to_dict()
 
     def _format_analysis(self, analysis: dict) -> str:
         """Format analysis results"""
@@ -105,15 +103,11 @@ class CodeIntelligenceTool(Tool):
         lines.append(f"  Max: {complexity.get('max', 0)}")
 
         # High complexity functions
-        high_complexity = [
-            f for f in complexity.get("functions", []) if f["complexity"] > 10
-        ]
+        high_complexity = [f for f in complexity.get("functions", []) if f["complexity"] > 10]
         if high_complexity:
             lines.append("\n  ⚠️  High complexity functions:")
             for func in high_complexity[:5]:
-                lines.append(
-                    f"    • {func['function']}() - complexity {func['complexity']}"
-                )
+                lines.append(f"    • {func['function']}() - complexity {func['complexity']}")
 
         # Issues
         issues = analysis.get("issues", [])
