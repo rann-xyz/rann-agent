@@ -1527,7 +1527,8 @@
     async function sendMessage() {
       const input = document.getElementById('chat-input');
       const msg = input.value.trim();
-      if (!msg || isStreaming) return;
+      if (!msg) return;
+      if (isStreaming) return;
       input.value = '';
       await doSend(msg);
     }
@@ -1537,80 +1538,126 @@
       const input = document.getElementById('chat-input');
       input.value = msg;
       input.focus();
-      // Small delay so user can see the command — auto-send after 300ms
       setTimeout(() => {
-        if (input.value === msg) {
+        if (!isStreaming && input.value === msg) {
+          input.value = '';
           doSend(msg);
         }
-      }, 300);
+      }, 400);
     }
 
     async function doSend(msg) {
+      // Guard: prevent double-send
+      if (isStreaming) return;
       isStreaming = true;
-      document.getElementById('send-btn').disabled = true;
 
-      // Remove welcome
+      // UI: disable send button immediately
+      const sendBtn = document.getElementById('send-btn');
+      if (sendBtn) sendBtn.disabled = true;
+
+      // Remove welcome screen if present
       const welcome = document.getElementById('welcome');
       if (welcome) welcome.remove();
 
-      // Add user message
-      appendMessage('user', msg);
-      pushToHistory('user', msg);
+      // Get messages container
+      const messagesEl = document.getElementById('messages');
 
-      // Add thinking
-      const thinkingId = addThinking();
+      // Add user message to chat
+      const userDiv = document.createElement('div');
+      userDiv.className = 'message user';
+      userDiv.innerHTML = `<div class="message-avatar">You</div><div class="message-content">${escapeHtml(msg)}</div>`;
+      messagesEl.appendChild(userDiv);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+
+      // Add thinking indicator
+      const thinkingDiv = document.createElement('div');
+      thinkingDiv.className = 'message assistant';
+      thinkingDiv.id = 'thinking-indicator';
+      thinkingDiv.innerHTML = `
+        <div class="message-avatar">RA</div>
+        <div class="message-content">
+          <div class="thinking">
+            <div class="thinking-dots"><span></span><span></span><span></span></div>
+            <span>Thinking...</span>
+          </div>
+        </div>`;
+      messagesEl.appendChild(thinkingDiv);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+
+      // Push to history (without the thinking message)
+      chatHistory.push({ role: 'user', content: msg });
+      if (chatHistory.length > 100) chatHistory = chatHistory.slice(-100);
+      saveChatHistory();
+      renderChatHistory();
+
+      // Make API call
+      const startTime = Date.now();
+      let apiKey = '';
+      if (currentProvider !== 'ollama') {
+        apiKey = localStorage.getItem('rann_api_key_' + currentProvider) || '';
+      }
 
       try {
-        const startTime = Date.now();
-        currentAbortController = new AbortController();
-
-        const chatPayload = {
-          provider: currentProvider,
-          message: msg,
-          history: chatHistory.slice(0, -1)
-        };
-        if (currentProvider !== 'ollama') {
-          chatPayload.api_key = localStorage.getItem('rann_api_key_' + currentProvider) || '';
-        }
-
         const resp = await fetch(API + '/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(chatPayload),
-          signal: currentAbortController.signal
+          body: JSON.stringify({
+            provider: currentProvider,
+            message: msg,
+            history: chatHistory.slice(0, -1),
+            api_key: apiKey
+          })
         });
 
         const elapsed = Date.now() - startTime;
-        removeThinking(thinkingId);
 
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data.error) {
-            appendMessage('assistant', 'Error: ' + data.error, null, elapsed);
-          } else {
-            // Support both 'content' and 'response' fields
-            const text = data.response || data.content || '';
-            appendMessage('assistant', text, data.tokens, elapsed, data.model);
-            pushToHistory('assistant', text);
-          }
-        } else {
-          let errMsg = 'Request failed';
+        // Remove thinking indicator
+        const thinkEl = document.getElementById('thinking-indicator');
+        if (thinkEl) thinkEl.remove();
+
+        if (!resp.ok) {
+          // HTTP error — try to parse error JSON
+          let errMsg = 'Request failed (HTTP ' + resp.status + ')';
           try {
             const errData = await resp.json();
             errMsg = errData.error || errMsg;
           } catch(e) {}
-          appendMessage('assistant', 'Error: ' + errMsg, null, elapsed);
+          const errDiv = document.createElement('div');
+          errDiv.className = 'message assistant';
+          errDiv.innerHTML = `<div class="message-avatar">RA</div><div class="message-content" style="color:var(--error)">${escapeHtml(errMsg)}</div>`;
+          messagesEl.appendChild(errDiv);
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+          chatHistory.push({ role: 'assistant', content: errMsg });
+        } else {
+          // Success
+          const data = await resp.json();
+          const text = data.response || data.content || '(no response)';
+          const metaDiv = document.createElement('div');
+          metaDiv.className = 'message assistant';
+          const meta = data.model ? ` <span style="font-size:11px;color:var(--text4)">· ${data.model}</span>` : '';
+          const timeDiv = elapsed ? ` <span style="font-size:11px;color:var(--text4)">· ${elapsed}ms</span>` : '';
+          metaDiv.innerHTML = `<div class="message-avatar">RA</div><div class="message-content">${renderMarkdown(text)}<div style="margin-top:4px;font-size:11px;color:var(--text4)">${meta}${timeDiv}</div></div>`;
+          messagesEl.appendChild(metaDiv);
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+          chatHistory.push({ role: 'assistant', content: text });
         }
-      } catch (e) {
-        removeThinking(thinkingId);
-        if (e.name !== 'AbortError') {
-          appendMessage('assistant', 'Connection error. Please check your network and try again.');
-        }
-      } finally {
-        isStreaming = false;
-        document.getElementById('send-btn').disabled = false;
-        currentAbortController = null;
+
+      } catch(e) {
+        // Network error — remove thinking and show error
+        const thinkEl = document.getElementById('thinking-indicator');
+        if (thinkEl) thinkEl.remove();
+        const errDiv = document.createElement('div');
+        errDiv.className = 'message assistant';
+        errDiv.innerHTML = `<div class="message-avatar">RA</div><div class="message-content" style="color:var(--error)">Connection error: ${escapeHtml(e.message)}. Check your network.</div>`;
+        messagesEl.appendChild(errDiv);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        chatHistory.push({ role: 'assistant', content: 'Connection error: ' + e.message });
       }
+
+      // Save history and cleanup
+      saveChatHistory();
+      isStreaming = false;
+      if (sendBtn) sendBtn.disabled = false;
     }
 
     function cancelStream() {
