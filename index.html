@@ -1556,7 +1556,8 @@
           body: JSON.stringify({
             provider: currentProvider,
             message: msg,
-            history: chatHistory.slice(0, -1) // exclude the message just added
+            history: chatHistory.slice(0, -1), // exclude the message just added
+            api_key: localStorage.getItem('rann_api_key_' + currentProvider) || ''
           }),
           signal: currentAbortController.signal
         });
