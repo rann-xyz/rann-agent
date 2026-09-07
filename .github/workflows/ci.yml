@@ -17,6 +17,7 @@ jobs:
   quality:
     name: Quality
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,6 +25,8 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python --version
+      - run: pip list | head -5
       - run: ruff check .
       - run: black --check .
       - run: mypy rann_agent
@@ -31,6 +34,7 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,11 +42,14 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -e . -r requirements.txt -r requirements-dev.txt
+      - run: python --version
+      - run: pip list | head -5
       - run: pytest tests/ -v --cov=rann_agent --cov-report=xml --cov-fail-under=15
 
   benchmark:
     name: Benchmarks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -50,6 +57,8 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -e . -r requirements.txt -r requirements-dev.txt
+      - run: python --version
+      - run: pip list | head -5
       - run: python -m pytest tests/benchmarks/ -v --benchmark-disable-gc
       - name: Compare with baseline
         run: |
