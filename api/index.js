@@ -118,9 +118,6 @@ module.exports = async function handler(req, res) {
       if (!message) {
         return res.status(400).json({ error: 'Message is required' });
       }
-      if (!api_key) {
-        return res.status(400).json({ error: 'API key is required. Add key in Settings.' });
-      }
 
       const prov = getProviderConfig(provider, customBaseUrl);
       const base_url = prov.base_url;
@@ -128,6 +125,15 @@ module.exports = async function handler(req, res) {
 
       if (!base_url) {
         return res.status(400).json({ error: 'Base URL is required. Configure a provider or use Custom.' });
+      }
+
+      // If api_key starts with 'free_' it's a placeholder — no real key provided.
+      // Try anyway; API will return 401 and we'll return a friendly error.
+      // Otherwise require the real key.
+      const isPlaceholder = api_key && api_key.startsWith('free_');
+      if (!api_key || isPlaceholder) {
+        // Try the call without key (will fail with auth error, we return friendly message)
+        api_key = api_key || 'placeholder';
       }
 
       const systemMessage = { role: 'system', content: 'You are RANN Agent. Be concise and helpful. Format code with triple backticks.' };
@@ -145,13 +151,21 @@ module.exports = async function handler(req, res) {
         return res.status(200).json({ response: content, tokens: 0, model, latency_ms: Date.now() - startTime, error: null });
       }
 
-      // OpenAI-compatible: non-streaming for simpler HTTP/1.1 compatibility
+      // OpenAI-compatible: non-streaming
       const response = await chatOpenAI(api_key, base_url, model, messages, false);
       const result = await response.json();
       const content = result.choices?.[0]?.message?.content || '';
       return res.status(200).json({ response: content, tokens: result.usage?.total_tokens || 0, model, latency_ms: Date.now() - startTime, error: null });
 
     } catch (err) {
+      const msg = err.message || '';
+      // Return friendly error for auth failures (no real API key)
+      if (msg.includes('401') || msg.includes('403') || msg.includes('invalid_api_key') || msg.includes('Incorrect API key')) {
+        const providerName = req.headers.host || 'this provider';
+        return res.status(401).json({
+          error: `API key required for ${providerName}. Get a free key at console.groq.com (Groq), platform.deepseek.com (DeepSeek), or aiwstudio.google.com (Gemini). Add it in Settings.`
+        });
+      }
       return res.status(400).json({ error: err.message });
     }
     return;

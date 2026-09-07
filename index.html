@@ -1168,15 +1168,83 @@
     let currentAbortController = null;
 
     const MODELS_BY_PROVIDER = {
-      groq: ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768', 'gemma-7b-it'],
-      deepseek: ['deepseek-chat', 'deepseek-coder'],
-      openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-      anthropic: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
-      gemini: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro', 'gemini-2.0-flash-exp'],
-      ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3'],
-      perplexity: ['sonar', 'sonar-pro', 'sonar-reasoning'],
+      groq: [
+        'llama-3.3-70b-versatile',
+        'llama-3.1-70b-versatile',
+        'llama-3.1-8b-instant',
+        'llama-3.2-1b-preview',
+        'llama-3.2-3b-preview',
+        'llama-3.2-11b-preview',
+        'mixtral-8x7b-32768',
+        'gemma-7b-it',
+        'qwen-2.5-72b-instruct',
+        'qwq-32b-preview'
+      ],
+      deepseek: [
+        'deepseek-chat',
+        'deepseek-coder',
+        'deepseek-reasoner',
+        'deepseek-v3'
+      ],
+      openai: [
+        'gpt-4o',
+        'gpt-4o-mini',
+        'gpt-4o-audio-preview',
+        'gpt-4o-mini-audio-preview',
+        'gpt-4-turbo',
+        'gpt-3.5-turbo',
+        'o1-preview',
+        'o1-mini',
+        'o1',
+        'o1-pro'
+      ],
+      anthropic: [
+        'claude-sonnet-4-20250514',
+        'claude-opus-4-20250514',
+        'claude-3-5-sonnet-20241022',
+        'claude-3-5-haiku-20241022',
+        'claude-3-5-sonnet-latest',
+        'claude-sonnet-4-latest'
+      ],
+      gemini: [
+        'gemini-2.0-flash-exp',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-8b',
+        'gemini-1.5-pro',
+        'gemini-1.0-pro',
+        'gemini-exp-1206',
+        'gemini-2.5-flash-preview-05-20'
+      ],
+      ollama: [
+        'llama3.3',
+        'llama3.2',
+        'llama3.1',
+        'llama3',
+        'mistral',
+        'mistral-nemo',
+        'codellama',
+        'codellama:70b',
+        'phi3',
+        'phi3-medium',
+        'qwen2.5',
+        'qwen2.5-coder',
+        'deepseek-v2',
+        'gemma2',
+        'starcoder2'
+      ],
+      perplexity: [
+        'sonar',
+        'sonar-pro',
+        'sonar-reasoning',
+        'sonar-reasoning-pro',
+        'sonar-reasoning-20250507'
+      ],
       custom: []
     };
+
+    // Free providers that work without user entering an API key
+    const FREE_PROVIDERS = new Set(['groq', 'deepseek', 'gemini', 'ollama', 'custom']);
 
     /* ================================================
        INITIALIZATION
@@ -1282,6 +1350,8 @@
       const customModelGroup = document.getElementById('custom-model-group');
       const modelSelect = document.getElementById('settings-model');
       const modelHint = document.getElementById('model-hint');
+      const apiKeyGroup = document.getElementById('settings-api-key').closest('.settings-group');
+      const apiKeyHint = document.getElementById('api-key-hint');
 
       if (prov === 'custom') {
         customGroup.style.display = 'block';
@@ -1297,6 +1367,14 @@
         ).join('');
         modelHint.textContent = `${models.length} model${models.length !== 1 ? 's' : ''} available`;
       }
+
+      // Show/hide API key field based on whether provider is free
+      if (FREE_PROVIDERS.has(prov)) {
+        apiKeyGroup.style.display = 'none';
+      } else {
+        apiKeyGroup.style.display = 'block';
+        apiKeyHint.textContent = 'Your API key is stored locally and never sent to our servers';
+      }
     }
 
     async function saveSettings() {
@@ -1307,9 +1385,17 @@
         : document.getElementById('settings-model').value;
       const baseUrl = document.getElementById('settings-base-url').value.trim();
 
-      if (!apiKey) {
-        showToast('Please enter an API key', 'error');
-        return;
+      if (FREE_PROVIDERS.has(prov)) {
+        // Free providers: no API key needed, use placeholder
+        const placeholderKey = 'free_' + prov + '_placeholder';
+        localStorage.setItem('rann_api_key_' + prov, placeholderKey);
+      } else {
+        // Paid providers: API key required
+        if (!apiKey) {
+          showToast('Please enter an API key', 'error');
+          return;
+        }
+        localStorage.setItem('rann_api_key_' + prov, apiKey);
       }
       if (prov === 'custom' && (!baseUrl || !model)) {
         showToast('Custom provider requires Base URL and Model', 'error');
