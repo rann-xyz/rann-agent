@@ -26,7 +26,7 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt -r requirements-dev.txt
       - run: python --version
-      - run: pip list | head -5
+      - run: pip list | head -10
       - run: ruff check .
       - run: black --check .
       - run: mypy rann_agent
@@ -43,9 +43,11 @@ jobs:
           cache: pip
       - run: pip install -e . -r requirements.txt -r requirements-dev.txt
       - run: python --version
-      - run: pip list | head -5
-      - run: python -m pytest tests/ -v --cov=rann_agent --cov-report=xml --cov-fail-under=15
-      - run: cat pytest_output.txt || true
+      - run: pip list | head -10
+      - run: pytest tests/ -v --cov=rann_agent --cov-report=xml --cov-fail-under=15 2>&1 | tee pytest.log
+      - run: |
+          echo "=== PYTEST LOG ===" && cat pytest.log && echo "=== PYTEST LOG END ==="
+        if: failure()
 
   benchmark:
     name: Benchmarks
@@ -59,8 +61,11 @@ jobs:
           cache: pip
       - run: pip install -e . -r requirements.txt -r requirements-dev.txt
       - run: python --version
-      - run: pip list | head -5
-      - run: python -m pytest tests/benchmarks/ -v --benchmark-disable-gc
+      - run: pip list | head -10
+      - run: python -m pytest tests/benchmarks/ -v --benchmark-disable-gc 2>&1 | tee benchmark.log
+      - run: |
+          echo "=== BENCHMARK LOG ===" && cat benchmark.log && echo "=== BENCHMARK LOG END ==="
+        if: failure()
       - name: Compare with baseline
         run: |
           python << 'PYEOF'
