@@ -265,6 +265,9 @@ async function chatAnthropic(api_key, base_url, model, messages) {
   }
 
   const result = await response.json();
+  if (!result.content || !result.content[0] || result.content[0].type !== 'text') {
+    throw new Error('Unexpected Anthropic response format: ' + JSON.stringify(result).slice(0, 100));
+  }
   return result.content[0].text;
 }
 
@@ -286,5 +289,10 @@ async function chatGemini(api_key, base_url, model, messages) {
   }
 
   const result = await response.json();
-  return result.candidates[0].content.parts[0].text;
+  const candidate = result.candidates && result.candidates[0];
+  const part = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0];
+  if (!part || part.text === undefined) {
+    throw new Error('Unexpected Gemini response format: ' + JSON.stringify(result).slice(0, 100));
+  }
+  return part.text;
 }

@@ -1545,114 +1545,115 @@
       if (sendBtn) sendBtn.disabled = true;
 
       try {
-        // Remove welcome screen if present
-        const welcome = document.getElementById('welcome');
-        if (welcome) welcome.remove();
+              // Remove welcome screen if present
+              const welcome = document.getElementById('welcome');
+              if (welcome) welcome.remove();
 
-        // Get messages container
-        const messagesEl = document.getElementById('messages');
+              // Get messages container
+              const messagesEl = document.getElementById('messages');
 
-        // Add user message to chat
-        const userDiv = document.createElement('div');
-        userDiv.className = 'message user';
-        userDiv.innerHTML = '<div class="message-avatar">You</div><div class="message-content">' + escapeHtml(msg) + '</div>';
-        messagesEl.appendChild(userDiv);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+              // Add user message to chat
+              const userDiv = document.createElement('div');
+              userDiv.className = 'message user';
+              userDiv.innerHTML = '<div class="message-avatar">You</div><div class="message-content">' + escapeHtml(msg) + '</div>';
+              messagesEl.appendChild(userDiv);
+              messagesEl.scrollTop = messagesEl.scrollHeight;
 
-        // Add thinking indicator
-        const thinkingDiv = document.createElement('div');
-        thinkingDiv.className = 'message assistant';
-        thinkingDiv.id = 'thinking-indicator';
-        thinkingDiv.innerHTML = `
-          <div class="message-avatar">RA</div>
-          <div class="message-content">
-            <div class="thinking">
-              <div class="thinking-dots"><span></span><span></span><span></span></div>
-              <span>Thinking...</span>
-            </div>
-          </div>`;
-        messagesEl.appendChild(thinkingDiv);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+              // Add thinking indicator
+              const thinkingDiv = document.createElement('div');
+              thinkingDiv.className = 'message assistant';
+              thinkingDiv.id = 'thinking-indicator';
+              thinkingDiv.innerHTML = '<div class="message-avatar">RA</div><div class="message-content"><div class="thinking"><div class="thinking-dots"><span></span><span></span><span></span></div><span>Thinking...</span></div></div>';
+              messagesEl.appendChild(thinkingDiv);
+              messagesEl.scrollTop = messagesEl.scrollHeight;
 
-        // Push to history (without the thinking message)
-        chatHistory.push({ role: 'user', content: msg });
-        if (chatHistory.length > 100) chatHistory = chatHistory.slice(-100);
-        saveChatHistory();
-        renderChatHistory();
+              // Push to history
+              chatHistory.push({ role: 'user', content: msg });
+              if (chatHistory.length > 100) chatHistory = chatHistory.slice(-100);
 
-        // Make API call
-        const startTime = Date.now();
-        let apiKey = '';
-        if (currentProvider !== 'ollama') {
-          apiKey = localStorage.getItem('rann_api_key_' + currentProvider) || '';
-        }
+              // Make API call
+              const startTime = Date.now();
+              let apiKey = '';
+              if (currentProvider !== 'ollama') {
+                apiKey = localStorage.getItem('rann_api_key_' + currentProvider) || '';
+              }
 
-        const resp = await fetch(API + '/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            provider: currentProvider,
-            message: msg,
-            history: chatHistory.slice(0, -1),
-            api_key: apiKey
-          })
-        });
+              const resp = await fetch(API + '/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  provider: currentProvider,
+                  message: msg,
+                  history: chatHistory.slice(0, -1),
+                  api_key: apiKey
+                })
+              });
 
-        const elapsed = Date.now() - startTime;
+              const elapsed = Date.now() - startTime;
 
-        // Remove thinking indicator
-        const thinkEl = document.getElementById('thinking-indicator');
-        if (thinkEl) thinkEl.remove();
+              // Remove thinking indicator
+              const thinkEl = document.getElementById('thinking-indicator');
+              if (thinkEl) thinkEl.remove();
 
-        let responseText = '';
-        let errMsg = '';
-        let responseData = null;
+              // Parse response
+              let responseText = '';
+              let errMsg = '';
+              let responseData = null;
 
-        if (!resp.ok) {
-          // HTTP error — try to parse error JSON
-          errMsg = 'Request failed (HTTP ' + resp.status + ')';
-          try {
-            const errData = await resp.json();
-            errMsg = errData.error || errMsg;
-          } catch(e) { /* ignore parse errors */ }
-        } else {
-          // Success
-          responseData = await resp.json();
-          responseText = responseData.response || responseData.content || '';
-        }
+              if (!resp.ok) {
+                errMsg = 'Request failed (HTTP ' + resp.status + ')';
+                try {
+                  const errData = await resp.json();
+                  errMsg = errData.error || errMsg;
+                } catch(e) { /* ignore parse errors */ }
+              } else {
+                try {
+                  responseData = await resp.json();
+                  responseText = responseData.response || responseData.content || '';
+                } catch(e) {
+                  errMsg = 'Failed to parse response';
+                }
+              }
 
-        // Add assistant message to chat
-        const assDiv = document.createElement('div');
-        assDiv.className = 'message assistant';
-        if (errMsg) {
-          assDiv.innerHTML = '<div class="message-avatar">RA</div><div class="message-content" style="color:var(--error)">' + escapeHtml(errMsg) + '</div>';
-          chatHistory.push({ role: 'assistant', content: errMsg });
-        } else {
-          const modelName = responseData && responseData.model ? responseData.model : '';
-          const meta = modelName ? ' <span style="font-size:11px;color:var(--text4)">· ' + escapeHtml(modelName) + '</span>' : '';
-          const timeDiv = elapsed ? ' <span style="font-size:11px;color:var(--text4)">· ' + elapsed + 'ms</span>' : '';
-          assDiv.innerHTML = '<div class="message-avatar">RA</div><div class="message-content">' + renderMarkdown(responseText) + '<div style="margin-top:4px;font-size:11px;color:var(--text4)">' + meta + timeDiv + '</div></div>';
-          chatHistory.push({ role: 'assistant', content: responseText });
-        }
-        messagesEl.appendChild(assDiv);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+              // Add assistant message to chat
+              const assDiv = document.createElement('div');
+              assDiv.className = 'message assistant';
+              if (errMsg) {
+                assDiv.innerHTML = '<div class="message-avatar">RA</div><div class="message-content" style="color:var(--error)">' + escapeHtml(errMsg) + '</div>';
+                chatHistory.push({ role: 'assistant', content: errMsg });
+              } else {
+                const modelName = (responseData && responseData.model) ? responseData.model : '';
+                const safeText = responseText || '';
+                const safeModel = escapeHtml(modelName);
+                assDiv.innerHTML = '<div class="message-avatar">RA</div><div class="message-content">' + (safeText ? renderMarkdown(safeText) : '<em style="color:var(--text4)">(empty response)</em>') + '<div style="margin-top:4px;font-size:11px;color:var(--text4)">' + (safeModel ? '· ' + safeModel : '') + (elapsed ? ' · ' + elapsed + 'ms' : '') + '</div></div>';
+                chatHistory.push({ role: 'assistant', content: safeText });
+              }
+              messagesEl.appendChild(assDiv);
+              messagesEl.scrollTop = messagesEl.scrollHeight;
 
+              saveChatHistory();
+              renderChatHistory();
       } catch(e) {
-        // Network error — remove thinking and show error
+        // Network / JS error — remove thinking and show error
         const thinkEl = document.getElementById('thinking-indicator');
         if (thinkEl) thinkEl.remove();
-        const messagesEl = document.getElementById('messages');
-        const errDiv = document.createElement('div');
-        errDiv.className = 'message assistant';
-        errDiv.innerHTML = '<div class="message-avatar">RA</div><div class="message-content" style="color:var(--error)">Connection error: ' + escapeHtml(e.message) + '. Check your network.</div>';
-        messagesEl.appendChild(errDiv);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-        chatHistory.push({ role: 'assistant', content: 'Connection error: ' + e.message });
+        try {
+          const messagesEl = document.getElementById('messages');
+          const errDiv = document.createElement('div');
+          errDiv.className = 'message assistant';
+          errDiv.innerHTML = '<div class="message-avatar">RA</div><div class="message-content" style="color:var(--error)">Error: ' + escapeHtml(e.message || String(e)) + '</div>';
+          messagesEl.appendChild(errDiv);
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+        } catch(e2) { /* messages container missing */ }
+        chatHistory.push({ role: 'assistant', content: 'Error: ' + (e.message || String(e)) });
       } finally {
         // ALWAYS run: re-enable button and reset state
-        saveChatHistory();
+        try { saveChatHistory(); } catch(e) {}
         isStreaming = false;
-        if (sendBtn) sendBtn.disabled = false;
+        try {
+          const sb = document.getElementById('send-btn');
+          if (sb) sb.disabled = false;
+        } catch(e) {}
       }
     }
 
