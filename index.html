@@ -1606,6 +1606,7 @@
 
         let responseText = '';
         let errMsg = '';
+        let responseData = null;
 
         if (!resp.ok) {
           // HTTP error — try to parse error JSON
@@ -1616,8 +1617,8 @@
           } catch(e) { /* ignore parse errors */ }
         } else {
           // Success
-          const data = await resp.json();
-          responseText = data.response || data.content || '';
+          responseData = await resp.json();
+          responseText = responseData.response || responseData.content || '';
         }
 
         // Add assistant message to chat
@@ -1627,7 +1628,8 @@
           assDiv.innerHTML = '<div class="message-avatar">RA</div><div class="message-content" style="color:var(--error)">' + escapeHtml(errMsg) + '</div>';
           chatHistory.push({ role: 'assistant', content: errMsg });
         } else {
-          const meta = resp.ok && data.model ? ' <span style="font-size:11px;color:var(--text4)">· ' + data.model + '</span>' : '';
+          const modelName = responseData && responseData.model ? responseData.model : '';
+          const meta = modelName ? ' <span style="font-size:11px;color:var(--text4)">· ' + escapeHtml(modelName) + '</span>' : '';
           const timeDiv = elapsed ? ' <span style="font-size:11px;color:var(--text4)">· ' + elapsed + 'ms</span>' : '';
           assDiv.innerHTML = '<div class="message-avatar">RA</div><div class="message-content">' + renderMarkdown(responseText) + '<div style="margin-top:4px;font-size:11px;color:var(--text4)">' + meta + timeDiv + '</div></div>';
           chatHistory.push({ role: 'assistant', content: responseText });
