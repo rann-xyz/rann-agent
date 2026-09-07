@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from rann_agent.intelligence.fix_strategies import generate_fixes as _generate_fix_suggestions
+
 
 @dataclass
 class Correction:
@@ -68,16 +70,43 @@ class SelfCorrection:
             "file_not_found": "Check if file exists before modifying. Use 'ls' to verify path.",
             "syntax_error": "Review code syntax. Check for missing brackets, quotes, or semicolons.",
             "permission_denied": "Check file permissions. Try changing to writable directory.",
-            "timeout": "Reduce scope of task. Break into smaller steps.",
+            "timeout": "Reduce scope of task. Break into smaller steps or increase timeout.",
+            "timed out": "Reduce scope of task. Break into smaller steps or increase timeout.",
             "tool_not_found": "Verify tool is enabled in config. Use 'rann doctor' to check.",
             "verification_failed": "Review task requirements. Ensure output matches spec exactly.",
+            "rate_limit": "Wait before retrying. Use exponential backoff between attempts.",
+            "import_error": "Check that required packages are installed. Run 'pip install' for missing modules.",
         }
 
+        reason_lower = failure_reason.lower()
         for key, strategy in strategies.items():
-            if key in failure_reason.lower():
+            if key in reason_lower:
                 return strategy
 
         return "Re-analyze task requirements and try a different approach."
+
+    def generate_fixes(self, error: str, max_fixes: int = 5) -> list[dict]:
+        """
+        Generate targeted fix suggestions for an error.
+
+        Uses fix_strategies.py registry to classify error type and return
+        actionable fixes. Falls back to retry strategy if no match.
+
+        Args:
+            error: Full error message / traceback
+            max_fixes: Maximum number of suggestions to return
+
+        Returns:
+            List of fix dicts with keys: strategy, action, command, confidence
+        """
+        fixes = _generate_fix_suggestions(error, max_fixes=max_fixes)
+
+        # If no fixes found, fall back to generic retry strategy
+        if not fixes:
+            retry = self.get_retry_strategy("", error)
+            fixes = [{"strategy": "fallback", "action": retry, "confidence": 0.3}]
+
+        return fixes
 
     def create_correction(
         self,

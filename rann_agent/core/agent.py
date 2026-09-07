@@ -11,6 +11,7 @@ import structlog
 from rann_agent.core.config import Config
 from rann_agent.core.context import Context
 from rann_agent.core.llm_provider import LLMProvider
+from rann_agent.intelligence.self_improvement import SelfCorrection
 from rann_agent.memory.manager import MemoryManager
 from rann_agent.orchestration.coordinator import Coordinator
 from rann_agent.tools.registry import ToolRegistry
@@ -64,6 +65,7 @@ class Agent:
         # Session state
         self.context = Context()
         self.session_id = None
+        self.self_correction = SelfCorrection()
 
         logger.info(
             "agent_initialized",
@@ -287,22 +289,41 @@ Respond in JSON format."""
         return {"analysis": response.get("content")}
 
     async def _generate_fixes(self, error: str, analysis: dict) -> list[dict]:
-        """Generate potential fixes using LLM"""
-        prompt = f"""Given this error and analysis, generate 3 fix strategies:
+        """Generate potential fixes using strategy registry + LLM analysis."""
+        # Use fix_strategies.py for targeted, rule-based fixes
+        fixes = self.self_correction.generate_fixes(error, max_fixes=5)
+
+        # Optionally enhance with LLM analysis for complex errors
+        if len(fixes) < 3 and self.llm:
+            prompt = f"""Given this error and analysis, suggest additional fix strategies:
 
 Error: {error}
 Analysis: {analysis}
+Existing fixes: {fixes}
 
-For each fix, provide:
-- strategy: brief name
-- action: what to do
-- command: executable command if applicable
+For each fix, provide: strategy name, action, command (if applicable).
+Respond concisely in JSON format as an array of objects."""
+            try:
+                response = await self.llm.complete([{"role": "user", "content": prompt}])
+                # Merge LLM suggestions with strategy-based ones
+                content = response.get("content", "")
+                if content:
+                    import json as _json
 
-Respond in JSON format as array."""
+                    try:
+                        llm_fixes = _json.loads(content)
+                        if isinstance(llm_fixes, list):
+                            for f in llm_fixes:
+                                if isinstance(f, dict) and f.get("strategy") not in [
+                                    x["strategy"] for x in fixes
+                                ]:
+                                    fixes.append(f)
+                    except Exception:
+                        pass  # Ignore parse errors
+            except Exception:
+                pass  # Keep strategy-based fixes if LLM fails
 
-        await self.llm.complete([{"role": "user", "content": prompt}])
-        # Parse and return fixes
-        return [{"strategy": "retry", "action": "simple retry"}]  # Simplified
+        return fixes
 
     async def _apply_fix(self, fix: dict) -> bool:
         """Apply a fix and verify"""

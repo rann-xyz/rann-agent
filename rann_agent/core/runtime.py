@@ -386,7 +386,36 @@ class RuntimeAgent:
                         error=str(e),
                     )
                 )
-                raise
+                # Self-healing: generate and apply fixes
+                self.self_correction.record_attempt(
+                    str(self.context.messages[-1])[:50], success=False
+                )
+                error_msg = str(e)
+                fixes = self.self_correction.generate_fixes(error_msg)
+                logger.warning(
+                    "llm_error_with_fixes",
+                    error=error_msg[:200],
+                    fix_count=len(fixes),
+                    top_fix=fixes[0] if fixes else None,
+                )
+                # Store fixes in context for the next attempt
+                if fixes:
+                    fix_summary = "## Previous attempt failed with error:\n"
+                    fix_summary += f"{error_msg}\n\n## Suggested fixes:\n"
+                    for i, f in enumerate(fixes, 1):
+                        fix_summary += f"{i}. [{f['strategy']}] {f['action']}"
+                        if f.get("command"):
+                            fix_summary += f"\n   Command: `{f['command']}`"
+                        fix_summary += "\n"
+                    self.context.add_system_message(fix_summary)
+
+                # Retry once with fix context, then raise if it fails again
+                try:
+                    response = await self.llm.complete_with_retry(
+                        messages, tools=self.tools.get_definitions()
+                    )
+                except Exception:
+                    raise  # Give up on second failure
 
             # Record model call
             usage = response.get("usage", {})
