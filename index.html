@@ -1386,17 +1386,23 @@
       const baseUrl = document.getElementById('settings-base-url').value.trim();
 
       if (FREE_PROVIDERS.has(prov)) {
-        // Free providers: no API key needed, use placeholder
-        const placeholderKey = 'free_' + prov + '_placeholder';
-        localStorage.setItem('rann_api_key_' + prov, placeholderKey);
-      } else {
-        // Paid providers: API key required
-        if (!apiKey) {
-          showToast('Please enter an API key', 'error');
-          return;
-        }
-        localStorage.setItem('rann_api_key_' + prov, apiKey);
+        // Free providers: save locally, skip server call
+        currentProvider = prov;
+        localStorage.setItem('rann_provider', prov);
+        localStorage.setItem('rann_api_key_' + prov, prov === 'ollama' ? '' : 'free_' + prov + '_placeholder');
+        if (model) localStorage.setItem('rann_model', model);
+        showToast('Settings saved (free provider — no API key needed)', 'success');
+        closeSettings();
+        return;
       }
+
+      // Paid providers: API key required
+      if (!apiKey) {
+        showToast('Please enter an API key', 'error');
+        return;
+      }
+      localStorage.setItem('rann_api_key_' + prov, apiKey);
+
       if (prov === 'custom' && (!baseUrl || !model)) {
         showToast('Custom provider requires Base URL and Model', 'error');
         return;
@@ -1550,15 +1556,19 @@
         const startTime = Date.now();
         currentAbortController = new AbortController();
 
+        const chatPayload = {
+          provider: currentProvider,
+          message: msg,
+          history: chatHistory.slice(0, -1)
+        };
+        if (currentProvider !== 'ollama') {
+          chatPayload.api_key = localStorage.getItem('rann_api_key_' + currentProvider) || '';
+        }
+
         const resp = await fetch(API + '/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            provider: currentProvider,
-            message: msg,
-            history: chatHistory.slice(0, -1), // exclude the message just added
-            api_key: localStorage.getItem('rann_api_key_' + currentProvider) || ''
-          }),
+          body: JSON.stringify(chatPayload),
           signal: currentAbortController.signal
         });
 
