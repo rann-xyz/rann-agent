@@ -1243,8 +1243,8 @@
       custom: []
     };
 
-    // Free providers that work without user entering an API key
-    const FREE_PROVIDERS = new Set(['groq', 'deepseek', 'gemini', 'ollama', 'custom']);
+    // All providers require an API key — only Ollama (localhost, no auth) is truly free
+    const FREE_PROVIDERS = new Set(['ollama']);
 
     /* ================================================
        INITIALIZATION
