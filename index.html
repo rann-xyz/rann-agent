@@ -1385,61 +1385,42 @@
         : document.getElementById('settings-model').value;
       const baseUrl = document.getElementById('settings-base-url').value.trim();
 
-      if (FREE_PROVIDERS.has(prov)) {
-        // Free providers: save locally, skip server call
-        currentProvider = prov;
-        localStorage.setItem('rann_provider', prov);
-        localStorage.setItem('rann_api_key_' + prov, prov === 'ollama' ? '' : 'free_' + prov + '_placeholder');
-        if (model) localStorage.setItem('rann_model', model);
-        showToast('Settings saved (free provider — no API key needed)', 'success');
-        closeSettings();
-        return;
-      }
+      // Validate
+      if (!prov) { showToast('Select a provider', 'error'); return; }
 
-      // Paid providers: API key required
-      if (!apiKey) {
-        showToast('Please enter an API key', 'error');
-        return;
-      }
-      localStorage.setItem('rann_api_key_' + prov, apiKey);
-
+      // Custom provider needs base URL and model
       if (prov === 'custom' && (!baseUrl || !model)) {
-        showToast('Custom provider requires Base URL and Model', 'error');
+        showToast('Custom provider needs Base URL and Model', 'error');
         return;
       }
 
-      const body = { api_key: apiKey };
-      if (model) body.model = model;
-      if (baseUrl) body.base_url = baseUrl;
+      // Free providers: groq, deepseek, gemini, ollama
+      const freeProviders = new Set(['groq', 'deepseek', 'gemini', 'ollama']);
+      const paidProviders = new Set(['openai', 'anthropic', 'perplexity']);
 
-      try {
-        const resp = await fetch(API + '/key/' + prov, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-
-        if (resp.ok) {
-          currentProvider = prov;
-          localStorage.setItem('rann_provider', prov);
-          localStorage.setItem('rann_api_key', apiKey);
-          if (model) localStorage.setItem('rann_model', model);
-          showToast('Settings saved successfully', 'success');
-          loadProviders();
-          closeSettings();
-        } else {
-          const errData = await resp.json().catch(() => ({}));
-          showToast(errData.error || 'Failed to save settings', 'error');
-        }
-      } catch (e) {
-        // Fallback: save locally
-        currentProvider = prov;
-        localStorage.setItem('rann_provider', prov);
-        localStorage.setItem('rann_api_key', apiKey);
-        if (model) localStorage.setItem('rann_model', model);
-        showToast('Saved locally (offline mode)', 'warning');
-        closeSettings();
+      // Paid providers need API key
+      if (paidProviders.has(prov) && !apiKey) {
+        showToast('API key required for this provider', 'error');
+        return;
       }
+
+      // Save all settings to localStorage
+      currentProvider = prov;
+      localStorage.setItem('rann_provider', prov);
+      localStorage.setItem('rann_api_key_' + prov, apiKey || '');
+      if (model) localStorage.setItem('rann_model_' + prov, model);
+      if (baseUrl) localStorage.setItem('rann_base_url_' + prov, baseUrl);
+
+      // Reload providers from server
+      try {
+        const resp = await fetch(API + '/providers');
+        if (resp.ok) providerList = await resp.json();
+      } catch (e) { /* ignore */ }
+
+      onProviderChange();
+      updateSendButton();
+      closeSettings();
+      showToast('Settings saved', 'success');
     }
 
     /* ================================================
