@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Python 3.11+ (tested on 3.14)
+- Python 3.11+
 - pip or uv package manager
 - Git
 

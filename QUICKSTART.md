@@ -40,8 +40,8 @@ rann config set agent.llm.provider anthropic
 rann config set agent.llm.model claude-sonnet-4-20250514
 
 # Back to free tier
-rann config set agent.llm.provider xkiro
-rann config set agent.llm.model minimax/minimax-m2.7-highspeed:free
+rann config set agent.llm.provider openai
+rann config set agent.llm.model openai/gpt-4o-mini
 ```
 
 ## Python API

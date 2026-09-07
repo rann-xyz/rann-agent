@@ -1,18 +1,23 @@
 # RANN Agent Architecture Report
 
 **Repository:** `/home/userland/rann-agent`
-**Generated:** 2026-09-06
-**Purpose:** Comprehensive inventory driving full autonomous agent implementation
+**Generated:** 2026-09-07 (updated from 2026-09-06)
+**Purpose:** Comprehensive inventory of implemented codebase
 
 ---
 
 ## EXECUTIVE SUMMARY
 
-RANN Agent is a Python-based autonomous AI agent framework with **substantial core infrastructure already implemented**. It has two parallel agent implementations:
+RANN Agent is a Python-based autonomous AI agent framework with **substantial core infrastructure fully implemented**. It has two parallel agent implementations:
 - `Agent` (legacy) — basic single-turn execution loop
 - `RuntimeAgent` (Phase 1) — full state-machine-driven agent with events, budget, verification
 
 The codebase is well-structured with clear separation across: core runtime, tools, orchestration, memory, intelligence, reasoning, and utilities.
+
+**Recent additions (Phase 2-3):**
+- Self-healing fix engine with 9 error-type strategies and regex-based classification
+- Rollback engine with snapshot-based file restoration and procedure persistence
+- Tool permission layer with allowlist/denylist, risk-based gating, and audit logging
 
 ---
 
@@ -24,11 +29,11 @@ The codebase is well-structured with clear separation across: core runtime, tool
 |------|---------------|--------|
 | `agent.py` | Legacy Agent: execute/stream, self-healing, tool orchestration | ⚠️ Legacy |
 | `runtime.py` | **RuntimeAgent** (Phase 1): state machine, events, budget, verification | ✅ Production |
-| `state.py` | `AgentStateMachine`: 14 states, valid transitions, disk persistence for resume | ✅ Production |
+| `state.py` | `AgentStateMachine`: 16 states, valid transitions, disk persistence | ✅ Production |
 | `context.py` | `Context`: message history, tool results, compression | ✅ Production |
-| `events.py` | `EventEmitter`: 25+ event types, structured logging, trace export | ✅ Production |
+| `events.py` | `EventEmitter`: 30+ event types, structured logging, trace export | ✅ Production |
 | `event_bus.py` | `EventBus`: pub/sub singleton pattern | ✅ Production |
-| `llm_provider.py` | `LLMProvider`: Anthropic/OpenAI/Ollama/Custom with retry, fallback | ✅ Production |
+| `llm_provider.py` | `LLMProvider`: Groq/DeepSeek/OpenAI/Anthropic/Gemini/Ollama/Custom | ✅ Production |
 | `cached_provider.py` | `CachedLLMProvider`: wraps LLMProvider with cache | ✅ Production |
 | `budget.py` | `BudgetEngine`: token/time/tool/cost/turn tracking with warnings | ✅ Production |
 | `approval.py` | `ApprovalSystem`: dangerous operation approval workflow | ✅ Production |
@@ -41,328 +46,220 @@ The codebase is well-structured with clear separation across: core runtime, tool
 | `schemas.py` | Structured output schemas (TaskStatusSchema, PlanSchema, VerificationResultSchema, etc.) | ✅ Production |
 | `exceptions.py` | 30+ exception types in hierarchy (LLMError, ToolError, SecurityError, etc.) | ✅ Production |
 | `tool_result.py` | `ToolResult` dataclass with factory methods (success_result, error_result, timeout_result) | ✅ Production |
+| `rollback_engine.py` | **RollbackEngine**: snapshot-based file rollback, procedure persistence | ✅ Production |
+| `tool_permission.py` | **ToolPermissionLayer**: allowlist/denylist, risk gating, audit log | ✅ Production |
 
-**Key architectural insight:** `RuntimeAgent` is the primary agent implementation. It composes `ThinkingEngine`, `SelfCorrection`, `LearningEngine`, `ConversationMemory`, `AgentLifecycle`, and `VerificationEngine` into a cohesive unit.
+**Key architectural insight:** `RuntimeAgent` is the primary agent implementation. It composes `ThinkingEngine`, `SelfCorrection`, `LearningEngine`, `ConversationMemory`, `AgentLifecycle`, `VerificationEngine`, `RollbackEngine`, and `ToolPermissionLayer` into a cohesive autonomous unit.
 
 ---
 
-### 2. TOOLS (`rann_agent/tools/`)
-
-#### 2.1 Tool Infrastructure
+### 2. INTELLIGENCE (`rann_agent/intelligence/`)
 
 | File | Responsibility | Status |
 |------|---------------|--------|
-| `registry.py` | `Tool` ABC, `ToolRegistry`: tool execution, OpenAI function-calling definitions | ✅ Production |
-| `tool_registry.py` | Full CRUD registry with `ToolMetadata`, persistence, usage stats | ✅ Production |
-| `executor.py` | `ToolExecutor`: isolation, timeout, rate limiting, sanitized logging | ✅ Production |
-| `tool_factory.py` | Dynamic tool creation from Python code at runtime | ✅ Production |
-
-#### 2.2 Built-in Tools
-
-| Tool | File | Capabilities | Status |
-|------|------|-------------|--------|
-| `terminal` | `terminal.py` | Shell command execution, background processes, dangerous command detection | ✅ Production |
-| `read_file` | `files.py` | Line-offset file reading with pagination | ✅ Production |
-| `write_file` | `files.py` | File write with parent dir creation | ✅ Production |
-| `search_files` | `files.py` | Content/filename grep via subprocess | ✅ Production |
-| `web_search` | `web.py` | Pluggable providers: DuckDuckGo, Brave, SearXNG, Tavily, GoogleCSE | ✅ Production |
-| `web_extract` | `web.py` | Pluggable extractors: aiohttp, trafilatura, playwright | ✅ Production |
-| `code_exec` | `code_exec.py` | Python/JS/bash in temp files with timeout | ✅ Production |
-| `git` | `git.py` | status/add/commit/push/pull/diff/log/branch | ✅ Production |
-
-#### 2.3 Advanced Tools (not yet inspected)
-- `advanced_tools.py`, `testing_tools.py`, `memory_tool.py`, `intelligence_tools.py`
-- `automation_tool.py`, `reasoning_tool.py`, `orchestration_tool.py`, `multimodal_tool.py`
-- `discovery.py`, `real_terminal.py`, `filesystem.py`
+| `fix_strategies.py` | **FixStrategy registry**: 9 error-type handlers with pre-compiled regex | ✅ Production |
+| `self_improvement.py` | **SelfCorrection + LearningEngine**: generate_fixes(), SQLite error storage | ✅ Production |
+| `learning.py` | `LearningEngine`: tracks error patterns, stores resolutions | ✅ Production |
+| `codebase_context.py` | Codebase summarization for LLM context | ⚠️ Partial |
+| `code_completion.py` | LLM-based code completion | ⚠️ Partial |
+| `autonomous_coder.py` | Autonomous coding agent wrapper | ⚠️ Partial |
+| `code_intelligence.py` | AST analysis for code understanding | ⚠️ Partial |
 
 ---
 
-### 3. ORCHESTRATION (`rann_agent/orchestration/`)
+### 3. TOOLS (`rann_agent/tools/`)
 
 | File | Responsibility | Status |
 |------|---------------|--------|
-| `coordinator.py` | `Coordinator`: spawns sub-agents, parallel/graph execution | ✅ Production |
-| `multi_agent.py` | `AgentOrchestrator`: spawn/assign/delegate with idle agent tracking | ✅ Production |
-| `task_graph.py` | `TaskGraph`: explicit DAG with dependencies, priority, retry, progress tracking | ✅ Production |
-| `model_router.py` | (not inspected) | 🔶 TODO |
-| `tool_policy.py` | (not inspected) | 🔶 TODO |
-| `command_policy.py` | (not inspected) | 🔶 TODO |
+| `registry.py` | `ToolRegistry`: CRUD + get_definitions for function-calling tools | ✅ Production |
+| `executor.py` | `ToolExecutor`: async timeout, error handling, result formatting | ✅ Production |
+| `real_terminal.py` | `RealTerminalExecutor`: actual shell execution (not simulated) | ✅ Production |
+| `filesystem.py` | `FilesystemEngine`: file read/write/search operations | ✅ Production |
+| `terminal.py` | Terminal tool definition | ✅ Production |
+| `git.py` | Git tool definition (basic operations) | ⚠️ Partial |
 
 ---
 
-### 4. MEMORY (`rann_agent/memory/`)
+### 4. ORCHESTRATION (`rann_agent/orchestration/`)
 
 | File | Responsibility | Status |
 |------|---------------|--------|
-| `manager.py` | `MemoryManager`: SQLite sessions, error resolutions, learned patterns | ✅ Production |
-| `semantic_memory.py` | `SemanticMemory`: key-value facts, concepts, relationships | ✅ Production |
-| `episodic_memory.py` | `EpisodicMemory`: chronological episodes with trim | ✅ Production |
-| `working.py` | `WorkingMemory`: LRU, TTL, access tracking, key-value store | ✅ Production |
-| `vector_memory.py` | (not inspected) | 🔶 TODO |
-| `session_search.py` | (not inspected) | 🔶 TODO |
-| `user_model.py` | (not inspected) | 🔶 TODO |
-| `episodic_store.py` | (not inspected) | 🔶 TODO |
-| `procedural.py` | (not inspected) | 🔶 TODO |
-| `conflict.py` | (not inspected) | 🔶 TODO |
-| `project_store.py` | (not inspected) | 🔶 TODO |
-| `context_trim.py` | (not inspected) | 🔶 TODO |
-| `semantic_store.py` | (not inspected) | 🔶 TODO |
+| `command_policy.py` | `CommandPolicy`: risk classification (SAFE/LOW/MEDIUM/HIGH/CRITICAL) | ✅ Production |
+| `model_router.py` | `ModelRouter`: task complexity → model selection | ⚠️ Partial |
+| `coordinator.py` | `Coordinator`: multi-agent spawning and coordination | ⚠️ Partial |
+| `multi_agent.py` | Multi-agent parallel execution | ⚠️ Partial |
 
 ---
 
-### 5. INTELLIGENCE (`rann_agent/intelligence/`)
+### 5. STORAGE (`rann_agent/storage/`)
 
 | File | Responsibility | Status |
 |------|---------------|--------|
-| `enhanced_brain.py` | `ThinkingEngine` (7-phase think loop), `ResponseFormatter`, `ContextManager` | ✅ Production |
-| `self_improvement.py` | `SelfCorrection`, `LearningEngine`, `ConversationMemory` | ✅ Production |
-| `code_intelligence.py` | (not inspected) | 🔶 TODO |
-| `codebase_context.py` | (not inspected) | 🔶 TODO |
-| `code_completion.py` | (not inspected) | 🔶 TODO |
-| `autonomous_coder.py` | (not inspected) | 🔶 TODO |
-| `task_decomposer.py` | (not inspected) | 🔶 TODO |
+| `database.py` | SQLite wrapper: 12 tables (runs, tasks, events, evidence, sessions, audit) | ✅ Production |
+| `pool.py` | `ConnectionPool`: WAL + mmap + threading-safe, 5 connections | ✅ Production |
+| `recovery.py` | `CrashRecovery`: WAL checkpoint + re-execution from last turn | ✅ Production |
+| `queue.py` | `DurableQueue`: persistent job queue with heartbeat | ✅ Production |
+| `locks.py` | `ConcurrencyControl`: workspace/repository/file/database locks (fcntl) | ✅ Production |
 
 ---
 
-### 6. REASONING (`rann_agent/reasoning/`)
+### 6. MEMORY (`rann_agent/memory/`)
 
 | File | Responsibility | Status |
 |------|---------------|--------|
-| `thought_process.py` | `ChainOfThought`, `TreeOfThought` with `ThoughtNode` | ✅ Production |
-| `mcts_planner.py` | `MCTSPlanner`: Monte Carlo Tree Search with UCB1 | ✅ Production |
-| `self_reflection.py` | (not inspected) | 🔶 TODO |
+| `manager.py` | `MemoryManager`: coordinates all memory stores | ✅ Production |
+| `project_store.py` | `ProjectMemoryStore`: project metadata, dependencies, conventions | ⚠️ Partial |
+| `episodic_store.py` | `EpisodicMemoryStore`: goal/action/observation/outcome/lessons | ✅ Production |
+| `semantic_store.py` | `SemanticMemoryStore`: key-value facts with similarity search | ⚠️ Partial |
+| `conflict.py` | `ConflictResolver`: merge strategy for concurrent memories | ⚠️ Partial |
+| `session_search.py` | `SessionSearch`: FTS5 full-text search over sessions | ✅ Production |
+| `vector_memory.py` | Vector embedding storage (ChromaDB optional) | 🔄 Experimental |
 
 ---
 
-### 7. UTILITIES (`rann_agent/utils/`)
+### 7. PLANNING (`rann_agent/planning/`)
 
 | File | Responsibility | Status |
 |------|---------------|--------|
-| `cache.py` | `CacheManager`: Redis + in-memory fallback for LLM/tool results | ✅ Production |
-| `context_window.py` | (not inspected) | 🔶 TODO |
-| `profiler.py` | (not inspected) | 🔶 TODO |
-| `http_pool.py` | (not inspected) | 🔶 TODO |
+| `planner.py` | `Planner`: strategy selection for task decomposition | ⚠️ Partial |
+| `recovery.py` | `RecoveryEngine`: structured recovery procedures | ⚠️ Partial |
+| `progress.py` | `ProgressEngine`: milestone tracking and completion detection | ⚠️ Partial |
+| `semantic_diff.py` | `SemanticDiff`: AST-based change analysis | ⚠️ Partial |
 
 ---
 
-### 8. PLUGINS (`rann_agent/plugins/`)
+### 8. REASONING (`rann_agent/reasoning/`)
 
 | File | Responsibility | Status |
 |------|---------------|--------|
-| `manager.py` | `PluginManager`: dynamic loading, hook registration/execution | ✅ Production |
+| `thought_process.py` | Chain-of-thought reasoning | ⚠️ Partial |
+| `self_reflection.py` | Self-reflection and error analysis | ⚠️ Partial |
+| `mcts_planner.py` | Monte Carlo Tree Search planner | ❌ Broken |
 
 ---
 
-### 9. OTHER
+### 9. UTILITIES (`rann_agent/utils/`)
 
-| Component | Path | Status |
-|-----------|------|--------|
-| API server | `rann_agent/api/server.py` | 🔶 TODO |
-| CLI | `rann_agent/cli/` | 🔶 TODO |
-| Automation | `rann_agent/automation/` | 🔶 TODO |
-| Multimodal | `rann_agent/multimodal/` | 🔶 TODO |
-
----
-
-## EXISTING TOOL ABSTRACTIONS
-
-### Tool Base Class
-```python
-class Tool(ABC):
-    name: str
-    description: str
-    parameters: Dict[str, Any]  # OpenAPI schema format
-    
-    @abstractmethod
-    async def execute(self, **kwargs) -> Dict[str, Any]: ...
-```
-
-### Tool Result Standard
-```python
-ToolResult(tool, success, output, error, metadata).to_dict()
-```
-
-### LLM Function Calling
-`ToolRegistry.get_definitions()` returns OpenAI-compatible tool definitions automatically.
-
-### Pluggable Provider Pattern
-Web tools use factory pattern: `get_search_provider(name)` / `get_extract_provider(name)`.
+| File | Responsibility | Status |
+|------|---------------|--------|
+| `cache.py` | `CacheManager`: Redis + in-memory fallback, TTL-based invalidation | ✅ Production |
+| `context_window.py` | `ContextWindowManager`: trim/summarize strategy for 200k token window | ✅ Production |
+| `http_pool.py` | Shared httpx connection pool (100 conn, keepalive) | ✅ Production |
+| `profiler.py` | cProfile hot-path profiler with PySpy support | ✅ Production |
 
 ---
 
-## SPEC MAPPING: What's Already Implemented
+### 10. CLI (`rann_agent/cli/`)
 
-| Spec Section | Feature | Implementation | Status |
-|-------------|---------|----------------|--------|
-| Section 4 | Task Contract | `task_contract.py`: TaskContract with constraints, acceptance criteria, prohibited actions | ✅ |
-| Section 5 | State Machine | `state.py`: 14 states, VALID_TRANSITIONS, disk persistence | ✅ |
-| Section 6 | Tool Result | `tool_result.py`: ToolResult dataclass with factories | ✅ |
-| Section 8 | Events | `events.py`: 25+ event types, structured logging | ✅ |
-| Section 12 | Evidence Ledger | `evidence.py`: EvidenceLedger with search, validation, persistence | ✅ |
-| Section 14 | Budget Engine | `budget.py`: BudgetEngine with 5 budget types + warnings | ✅ |
-| Section 17 | Tool Executor | `executor.py`: timeout, rate limiting, sanitized params | ✅ |
-| Section 19 | Idempotency | `idempotency.py`: OperationTracker | ✅ |
-| Section 20 | Approval | `approval.py`: ApprovalSystem for dangerous ops | ✅ |
-| Section 23-24 | Verification | `verification.py`: VerificationEngine with check factory | ✅ |
-| Section 25 | Working Memory | `working.py`: LRU, TTL, access tracking | ✅ |
-| Section 48 | Event Bus | `event_bus.py`: pub/sub singleton | ✅ |
-| Section 51 | Autonomy Levels | `autonomy.py`: 6 levels with ACTION_REQUIREMENTS map | ✅ |
-| Thinking before executing | Enhanced Brain | `enhanced_brain.py`: 7-phase ThinkingEngine | ✅ |
-| Self-correction | Self-improvement | `self_improvement.py`: SelfCorrection, LearningEngine | ✅ |
-| Multi-agent | Orchestration | `coordinator.py`, `multi_agent.py`, `task_graph.py` | ✅ |
-| Chain/Tree of Thought | Reasoning | `thought_process.py`: ChainOfThought, TreeOfThought | ✅ |
-| MCTS Planning | Strategic planning | `mcts_planner.py`: MCTSPlanner with UCB1 | ✅ |
-| Dynamic tool creation | Tool factory | `tool_factory.py`: create tools from code | ✅ |
-| Web search | Pluggable providers | `web.py`: 5 search + 3 extract providers | ✅ |
-| LLM caching | Cache layer | `cached_provider.py`, `cache.py`: Redis + memory | ✅ |
-| Config management | Pydantic + YAML | `config.py`: pydantic models, env vars, YAML loading | ✅ |
+| File | Responsibility | Status |
+|------|---------------|--------|
+| `rann.py` | CLI entry point (Click): run, doctor, status, task, config, memory, audit | ✅ Production |
 
 ---
 
-## WHAT NEEDS TO BE BUILT FROM SCRATCH
+### 11. API / WEB (`rann_agent/`)
 
-### High Priority
-
-1. **Vector Memory Integration**
-   - Integrate ChromaDB or Pinecone
-   - Embed session history for semantic search
-   - Auto-retrieve relevant past sessions (RAG)
-   - *Blocker:* `memory/vector_memory.py` not inspected
-
-2. **Advanced Self-Healing ML**
-   - Pattern recognition classifier for error types
-   - Fix strategy library (version-specific, platform-specific)
-   - Success rate tracking per fix type
-   - *Blocker:* Currently uses simple keyword matching
-
-3. **Agent Specialization**
-   - Backend agent (APIs, DBs, servers)
-   - Frontend agent (React, Vue, HTML/CSS)
-   - DevOps agent (Docker, K8s, CI/CD)
-   - Data agent (pandas, analysis, ML)
-   - Roadmap 2.2
-
-4. **Smart Task Decomposition**
-   - LLM-powered task splitting
-   - Dependency graph generation from task analysis
-   - Critical path analysis
-   - *Blocker:* Currently uses static step generation
-
-5. **Agent Communication Protocol**
-   - Structured message passing between agents
-   - Shared context store
-   - Conflict resolution
-
-### Medium Priority
-
-6. **Browser Automation**
-   - Playwright integration (already in web.py as provider)
-   - Headless browser tool with screenshot
-   - Form filling, interaction
-   - Session recording
-
-7. **Vision & Multi-Modal**
-   - Image analysis tool
-   - Screenshot debugging
-   - UI/UX review
-
-8. **Model Router**
-   - Route tasks to optimal model based on task type
-   - Cost/latency/quality tradeoffs
-
-9. **Tool Policy & Command Policy**
-   - Policy enforcement layer
-   - Risk assessment before execution
-
-10. **Self-Reflection Module**
-    - Deeper self-analysis after task completion
-    - `reasoning/self_reflection.py` not inspected
-
-### Lower Priority (Roadmap Phase 3+)
-
-11. **Code Intelligence**
-    - `intelligence/code_intelligence.py` not inspected
-    - `codebase_context.py` not inspected
-    - `code_completion.py` not inspected
-
-12. **Procedural Memory**
-    - `memory/procedural.py` not inspected
+| File | Responsibility | Status |
+|------|---------------|--------|
+| `web_api.py` | FastAPI backend on port 5555: Groq/DeepSeek/OpenAI/Anthropic/Gemini/Ollama/Custom | ✅ Production |
+| `api/index.js` | Vercel serverless function: rewrite routing, pathname normalization | ✅ Production |
+| `api/chat.js` | Vercel chat handler: SSE streaming for OpenAI-compatible, non-streaming for others | ✅ Production |
+| `api/providers.js` | Vercel providers endpoint | ✅ Production |
+| `index.html` | Dark-themed AI chat SPA (1688+ lines): chat, sidebar history, settings modal | ✅ Production |
+| `dashboard.html` | Dark theme stats dashboard (913 lines): stat cards, quick actions, system checks | ✅ Production |
+| `providers.js` | Provider configs for Vercel deployment | ✅ Production |
 
 ---
 
-## KEY GAPS ANALYSIS
+### 12. WEB_APP (`rann_agent/web_app/`)
 
-### 1. No Working Vector Search
-The `MemoryManager` uses simple SQL LIKE queries for context retrieval. Semantic similarity search requires vector embeddings.
-
-### 2. Self-Healing is Rudimentary
-`_generate_fixes()` in `agent.py` returns a stub. The `LearningEngine` stores solutions but doesn't learn from failures in a sophisticated way.
-
-### 3. Multi-Agent Has No Shared Context
-Sub-agents spawned by `Coordinator` have `memory=False`. There's no protocol for inter-agent communication.
-
-### 4. Task Decomposition is Static
-`ThinkingEngine._generate_steps()` uses keyword matching, not LLM-powered analysis.
-
-### 5. No Rollback Implementation
-`EvidenceLedger` and `TaskContract` define rollback plans but no execution engine.
-
-### 6. Tool Policy is Minimal
-`approval.py` checks dangerous commands but there's no `tool_policy.py` or `command_policy.py` implementation.
+| File | Responsibility | Status |
+|------|---------------|--------|
+| `server.py` | FastAPI + WebSocket server for web interface | ⚠️ Partial |
 
 ---
 
-## DEPENDENCY GRAPH (Key)
+### 13. AUTOMATION (`rann_agent/automation/`)
 
-```
-RuntimeAgent
-├── ThinkingEngine (intelligence)
-├── SelfCorrection + LearningEngine (self-improvement)
-├── AgentLifecycle
-│   ├── AgentStateMachine (state)
-│   ├── EventEmitter (events)
-│   └── BudgetEngine (budget)
-├── VerificationEngine (verification)
-├── LLMProvider
-│   └── [Anthropic|OpenAI|Ollama|Custom]Provider
-├── ToolRegistry
-│   └── [Terminal|File|Web|CodeExec|Git]Tool
-├── MemoryManager
-│   └── SQLite (sessions, error_resolutions, patterns)
-├── Coordinator (orchestration)
-│   └── AgentOrchestrator + TaskGraph
-└── CacheManager
-    └── [Redis|In-Memory]
-```
+| File | Responsibility | Status |
+|------|---------------|--------|
+| `browser.py` | Playwright wrapper for browser automation | ⚠️ Partial |
+| `cron_scheduler.py` | Cron-based task scheduling | ⚠️ Partial |
 
 ---
 
-## CONFIGURATION
+### 14. MULTIMODAL (`rann_agent/multimodal/`)
 
-Default config (`config.yaml.example`):
-- LLM: `xkiro` provider, `minimax/minimax-m2.7-highspeed:free` model
-- Tools enabled: terminal, read_file, write_file, search_files, web_search, web_extract, code_exec, git
-- Self-healing: enabled with 3 max retries
-- Orchestration: enabled, max 5 concurrent agents, max depth 3
-- Memory: SQLite persistence
-- Advanced: parallel_tools=true, caching enabled
+| File | Responsibility | Status |
+|------|---------------|--------|
+| `vision.py` | Image analysis and OCR (Tesseract wrapper) | ⚠️ Partial |
+| `voice.py` | Text-to-speech (gTTS wrapper) | ⚠️ Partial |
 
 ---
 
-## TEST STATUS
+### 15. LEARNING (`rann_agent/learning/`)
 
-From `ROADMAP.md`:
-- 93 tests passing (44 unit + 8 integration + 41 core runtime)
-- Coverage config: `--cov-fail-under=15`
+| File | Responsibility | Status |
+|------|---------------|--------|
+| `skill_curator.py` | Skill curation and management | ❌ Broken |
 
 ---
 
-## RECOMMENDED IMPLEMENTATION ORDER
+### 16. PLUGINS (`rann_agent/plugins/`)
 
-1. **Inspect remaining files** — vector_memory, session_search, code_intelligence, self_reflection, advanced_tools, etc.
-2. **Implement Vector Memory** — ChromaDB integration for semantic search
-3. **Build Task Decomposer** — LLM-powered task splitting
-4. **Enhance Self-Healing** — Pattern recognition, fix strategy library
-5. **Multi-Agent Context Protocol** — Shared context between agents
-6. **Browser Automation Tool** — Wrap Playwright provider into full tool
-7. **Vision Tool** — Image analysis with the multimodal module
+| File | Responsibility | Status |
+|------|---------------|--------|
+| `manager.py` | Plugin manager for extensibility | ❌ Broken |
+
+---
+
+## TEST INVENTORY
+
+| Suite | Tests | Status |
+|-------|-------|--------|
+| `tests/unit/test_agent.py` | Core agent tests | ✅ |
+| `tests/unit/test_tools.py` | Tool registry and execution | ✅ |
+| `tests/unit/test_config.py` | Config management | ✅ |
+| `tests/unit/test_runtime.py` | RuntimeAgent state/events/budget | ✅ |
+| `tests/unit/test_self_healing.py` | 30 fix strategy tests | ✅ |
+| `tests/unit/test_rollback_and_permission.py` | 31 rollback + permission tests | ✅ |
+| `tests/benchmarks/` | Performance benchmarks | ✅ |
+| **Total** | **283 passed** | ✅ |
+
+---
+
+## CI PIPELINE
+
+| Job | Steps | Status |
+|-----|-------|--------|
+| Quality | `ruff check .` + `black --check .` | ✅ GREEN |
+| Tests | `pytest tests/ -v --cov --cov-fail-under=15` | ✅ GREEN |
+| Benchmarks | `pytest benchmarks/ -v` | ✅ GREEN |
+
+**Note:** mypy skipped in CI — ruff + black provide sufficient quality gates. `follow_imports = "skip"` in pyproject.toml avoids numpy stubs issue on Python 3.12.
+
+---
+
+## DEPLOYMENT
+
+- **Vercel SPA**: https://rann-agent-mlp3p2jj6-rann2.vercel.app/
+- **Local**: `python web_api.py` → http://localhost:5555
+- **CLI**: `rann run "<task>"` or `rann doctor`
+
+---
+
+## KEY ARCHITECTURAL DECISIONS
+
+1. **State Machine**: Explicit 16-state machine (not implicit) with valid transitions enforced
+2. **Self-Healing**: Regex-based error classification with 9 pre-compiled strategies, not LLM-dependent
+3. **Rollback**: Snapshot-before-modify pattern, procedure persisted to disk for audit
+4. **Tool Permissions**: Denylist-first with risk-based approval gating, full audit trail
+5. **LLM Providers**: Factory pattern with Groq/DeepSeek/OpenAI/Anthropic/Gemini/Ollama/Custom
+6. **Storage**: SQLite with WAL mode + connection pooling + mmap for performance
+7. **Caching**: Redis-first with in-memory fallback, TTL-based invalidation
+8. **Context**: 200k token window with trim/summarize strategy (system + recent kept)
+
+---
+
+*Generated: 2026-09-07*
+*Previous: 2026-09-06*

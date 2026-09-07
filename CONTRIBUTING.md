@@ -161,9 +161,7 @@ Maintainers only:
 
 ## Questions?
 
-- Open a discussion on GitHub
-- Join our Discord
-- Email: rann@example.com
+- Open a discussion on [GitHub](https://github.com/rann-xyz/rann-agent/discussions)
 
 ## License
 

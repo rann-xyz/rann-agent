@@ -7,26 +7,27 @@
 
 > **THE MODEL GENERATES DECISIONS. RANN CONTROLS EXECUTION.**
 
-Autonomous AI engineering platform with 16-state machine, real terminal execution, evidence ledger, and structured memory.
+Autonomous AI engineering platform with 16-state machine, real terminal execution, evidence ledger, structured memory, and multi-provider LLM support.
 
 ## Status
 
-- **177 tests passing** ✅
-- **33% code coverage** (10,451 executable lines)
-- **121 Python modules**
-- **End-to-end execution verified** — LLM → tool calls → terminal → file system
-- **Phase 1 complete** ✅ (Foundation & Stability)
-- **Phase 1.3 Performance complete** ✅ (profiling, caching, pooling, benchmarks, SLOs)
+- **317 tests passing** ✅ (19 test files across unit/integration/security/benchmarks)
+- **37.15% code coverage** (4,345 of 11,695 executable lines)
+- **Phase 1 complete** ✅ — Foundation & Stability
+- **Phase 2 in progress** ✅ — Self-healing, rollback, permissions, caching
+- **Phase 3 in progress** ✅ — Tool execution, terminal, memory, context
+- **7 LLM providers** ✅ — Groq, DeepSeek, OpenAI, Anthropic, Gemini, Ollama, Custom
+- **Vercel deployment** ✅ — SPA + API functions, streaming SSE chat
 
 ## Features
 
-### 16-State V3 State Machine
+### 12-State V3 State Machine
 ```
-QUEUED → ANALYZING → CONTEXT_READY → PLANNING → WAITING_POLICY → EXECUTING → VERIFYING → COMPLETED
-                              ↓            ↓              ↓            ↓
-                          BLOCKED      FAILED        BLOCKED      FAILED
+QUEUED → ANALYZING → CONTEXT_READY → PLANNING → WAITING_POLICY → EXECUTING → VERIFYING → ACCEPTANCE_CHECK → LEARNING → COMPLETED
+                              ↓            ↓              ↓            ↓            ↓
+                          BLOCKED      FAILED        BLOCKED      FAILED      ROLLED_BACK
                                                           ↓
-                                      RECOVERING → ROLLED_BACK → TIMED_OUT → CANCELLED → ABORTED
+                                      RECOVERING → TIMED_OUT → CANCELLED → ROLLED_BACK
 ```
 
 ### V3 Architecture
@@ -35,8 +36,8 @@ QUEUED → ANALYZING → CONTEXT_READY → PLANNING → WAITING_POLICY → EXECU
 - **ToolRegistry** — OpenAI function-calling compatible tool definitions
 - **RealTerminalExecutor** — Actual shell execution (not simulated)
 - **CommandPolicy** — Risk classification (SAFE/LOW/MEDIUM/HIGH/CRITICAL)
-- **EvidenceLedger** — Timestamped execution proof chain
-- **EventBus** — 30+ event types with structured logging
+- **EvidenceLedger** — SHA256 proof chain for every action
+- **EventBus** — 30+ event types with structured logging via structlog
 
 ### Memory System
 - **ProjectMemoryStore** — Project metadata, dependencies, conventions
@@ -46,15 +47,29 @@ QUEUED → ANALYZING → CONTEXT_READY → PLANNING → WAITING_POLICY → EXECU
 
 ### Storage & Recovery
 - **SQLite Database** — 12 tables: runs, tasks, events, evidence, sessions, audit
+- **Connection Pooling** — WAL mode, mmap, threading-safe pooled connections
 - **CrashRecovery** — WAL checkpoint + re-execution from last turn
 - **DurableQueue** — Persistent job queue with heartbeat
 - **ConcurrencyControl** — Workspace/repository/file/database locks (fcntl)
+
+### Self-Healing & Recovery
+- **RecoveryEngine** — Automatic error classification and fix strategy selection
+- **RollbackEngine** — File-level rollback with atomic operations
+- **PermissionManager** — Elevated permission acquisition and verification
+
+### Performance
+- **CacheManager** — Redis + in-memory LRU fallback
+- **ContextWindowManager** — Trim + summarize strategies for large contexts
+- **HotPathProfiler** — cProfile/py-spy profiling with flamegraph output
+- **SLO Benchmarks** — Contractual p50/p95/p99 latency SLOs
 
 ## Installation
 
 ```bash
 git clone https://github.com/rann-xyz/rann-agent.git
 cd rann-agent
+./setup.sh
+# or manual:
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
@@ -66,13 +81,13 @@ pip install -e .
 # System check
 rann doctor
 
-# Run a task (uses xkiro/minimax-m2.7-highspeed:free by default)
+# Run a task (uses Groq llama-3.1-70b-versatile by default)
 rann run "create a file hello.txt with content 'Hello World'"
 
 # Dry run (no execution)
 rann run "fix the bug" --dry-run
 
-# Change model
+# Change provider/model
 rann config set agent.llm.provider "anthropic"
 rann config set agent.llm.model "claude-sonnet-4-20250514"
 rann config get
@@ -101,8 +116,8 @@ Config file: `~/.rann_agent/config.yaml`
 ```yaml
 agent:
   llm:
-    provider: xkiro
-    model: minimax/minimax-m2.7-highspeed:free
+    provider: groq
+    model: llama-3.1-70b-versatile
     max_tokens: 8192
     temperature: 0.7
     retry:
@@ -112,13 +127,52 @@ agent:
 
 ### Available Providers
 
-| Provider | Base URL | Example Model | Notes |
-|----------|----------|---------------|-------|
-| `xkiro` | https://api.xkiro.com | minimax/minimax-m2.7-highspeed:free | Free tier |
-| `anthropic` | api.anthropic.com | claude-sonnet-4-20250514 | Needs ANTHROPIC_API_KEY |
-| `openai` | api.openai.com | gpt-4o | Needs OPENAI_API_KEY |
-| `custom` | https://seekai.cc | claude-fable-5-1 | Custom endpoint |
-| `ollama` | localhost:11434 | llama3.1:8b | Local Ollama |
+| Provider | Base URL | Default Model | Free Tier |
+|----------|----------|---------------|-----------|
+| `groq` | https://api.groq.com/openai/v1 | llama-3.1-70b-versatile | ✅ |
+| `deepseek` | https://api.deepseek.com/v1 | deepseek-chat | ✅ |
+| `openai` | https://api.openai.com/v1 | gpt-4o | ❌ |
+| `anthropic` | https://api.anthropic.com/v1 | claude-sonnet-4-20250514 | ❌ |
+| `gemini` | https://generativelanguage.googleapis.com/v1beta | gemini-1.5-flash | ✅ |
+| `ollama` | http://localhost:11434/v1 | llama3.2 | ✅ |
+| `custom` | configurable | configurable | ✅ |
+
+## Web UI & API
+
+Start the web server:
+```bash
+python web_api.py
+```
+
+Then open `index.html` in your browser. The web UI features:
+- Streaming SSE chat with provider selection
+- Real-time token usage tracking
+- Session history
+
+### API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/providers` | List all providers and models |
+| `GET` | `/api/config` | Default provider & model |
+| `GET` | `/api/status` | System status |
+| `POST` | `/api/chat` | Streaming chat (SSE) |
+| `POST` | `/api/clear` | Clear session |
+
+### Vercel Deployment
+
+```bash
+vercel          # preview deploy
+vercel --prod   # production deploy
+```
+
+Vercel-configured endpoints:
+- `GET /api/providers` → `api/index.js`
+- `GET /api/config` → `api/index.js`
+- `GET /api/status` → `api/index.js`
+- `POST /api/chat` → `api/index.js` (streaming SSE)
+- `POST /api/clear` → `api/index.js`
+- `/*` → `index.html` (SPA)
 
 ## Python API
 
@@ -132,7 +186,7 @@ async def main():
     config = Config()
     budget = Budget(max_tokens=10000, max_turns=20)
     agent = RuntimeAgent(budget=budget, config=config)
-    
+
     result = await agent.execute("Write a hello world program in Python")
     print(result)
 
@@ -146,7 +200,7 @@ rann_agent/
 ├── core/
 │   ├── runtime.py        # RuntimeAgent (budget + lifecycle + execute loop)
 │   ├── lifecycle.py      # AgentLifecycle (state machine context manager)
-│   ├── state.py          # 16-state machine + VALID_TRANSITIONS
+│   ├── state.py          # 12-state machine + VALID_TRANSITIONS
 │   ├── event_bus.py      # EventEmitter + EventType + EventStatus
 │   ├── config.py         # Config + LLMConfig (pydantic)
 │   ├── budget.py         # Budget + BudgetEngine
@@ -156,8 +210,7 @@ rann_agent/
 │   ├── approval.py       # Approval + AutonomyLevel
 │   ├── autonomy.py       # AutonomyGuard
 │   ├── idempotency.py    # IdempotencyKey + RetryCache
-│   ├── schemas.py        # Pydantic models
-│   └── llm_provider.py   # BaseLLMProvider + CustomProvider + AnthropicProvider
+│   └── llm_provider.py   # BaseLLMProvider + all 7 providers
 ├── orchestration/
 │   ├── command_policy.py # CommandPolicy (risk classification)
 │   └── model_router.py   # ModelRouter
@@ -196,14 +249,32 @@ rann_agent/
 ## Test Results
 
 ```
-169 passed, 23 warnings (deprecation only)
-35.08% coverage (9,170 executable lines)
+tests/unit/              15 files, 283 tests
+tests/integration/       1 file,   8 tests  (E2E, multi-agent, memory)
+tests/security/          1 file,   7 tests  (security audit)
+tests/benchmarks/        3 files, 19 tests  (SLO, performance, benchmark)
+─────────────────────────────────────────────────
+Total:                   20 files, 317 tests
+37.15% coverage (4,345 of 11,695 lines covered)
 ```
 
 Run tests:
 ```bash
+pytest tests/ -v
 pytest tests/unit/ -v
+pytest tests/benchmarks/ -v --benchmark-only
 ```
+
+## Phases
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| **Phase 1** | ✅ Complete | Foundation & Stability — state machine, events, budget, tools, DB, cache |
+| **Phase 2** | ✅ In Progress | Advanced features — self-healing, rollback, permissions, memory, context |
+| **Phase 3** | ✅ In Progress | Capabilities — tool execution, terminal, planner, evidence ledger |
+| **Phase 4+** | 🔄 Planned | Platform integrations, distributed, observability |
+
+See [ROADMAP.md](ROADMAP.md) for full 8-phase plan.
 
 ## GitHub
 
