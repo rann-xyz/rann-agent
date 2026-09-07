@@ -113,13 +113,18 @@ module.exports = async function handler(req, res) {
   if (method === 'POST' && pathname === '/chat') {
     try {
       const data = await getBody(req);
-      const { message, history = [], provider = 'groq', model: modelOverride, api_key, base_url: customBaseUrl } = data;
+      const message = data.message;
+      const history = data.history || [];
+      const provider = data.provider || 'groq';
+      const modelOverride = data.model;
+      let apiKey = data.api_key || '';
+      const baseUrl = data.base_url;
 
       if (!message) {
         return res.status(400).json({ error: 'Message is required' });
       }
 
-      const prov = getProviderConfig(provider, customBaseUrl);
+      const prov = getProviderConfig(provider, baseUrl);
       const base_url = prov.base_url;
       const model = modelOverride || prov.default_model;
 
@@ -127,46 +132,34 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Base URL is required. Configure a provider or use Custom.' });
       }
 
-      // If api_key starts with 'free_' it's a placeholder — no real key provided.
-      // Try anyway; API will return 401 and we'll return a friendly error.
-      // Otherwise require the real key.
-      const isPlaceholder = api_key && api_key.startsWith('free_');
-      if (!api_key || isPlaceholder) {
-        // Try the call without key (will fail with auth error, we return friendly message)
-        api_key = api_key || 'placeholder';
-      }
-
       const systemMessage = { role: 'system', content: 'You are RANN Agent. Be concise and helpful. Format code with triple backticks.' };
-      const messages = [systemMessage, ...history, { role: 'user', content: message }];
-
+      const allMessages = [systemMessage, ...history, { role: 'user', content: message }];
       const startTime = Date.now();
 
       if (prov.api_type === 'anthropic') {
-        const content = await chatAnthropic(api_key, base_url, model, messages);
+        const content = await chatAnthropic(apiKey, base_url, model, allMessages);
         return res.status(200).json({ response: content, tokens: 0, model, latency_ms: Date.now() - startTime, error: null });
       }
 
       if (prov.api_type === 'gemini') {
-        const content = await chatGemini(api_key, base_url, model, messages);
+        const content = await chatGemini(apiKey, base_url, model, allMessages);
         return res.status(200).json({ response: content, tokens: 0, model, latency_ms: Date.now() - startTime, error: null });
       }
 
       // OpenAI-compatible: non-streaming
-      const response = await chatOpenAI(api_key, base_url, model, messages, false);
+      const response = await chatOpenAI(apiKey, base_url, model, allMessages, false);
       const result = await response.json();
       const content = result.choices?.[0]?.message?.content || '';
       return res.status(200).json({ response: content, tokens: result.usage?.total_tokens || 0, model, latency_ms: Date.now() - startTime, error: null });
 
     } catch (err) {
       const msg = err.message || '';
-      // Return friendly error for auth failures (no real API key)
-      if (msg.includes('401') || msg.includes('403') || msg.includes('invalid_api_key') || msg.includes('Incorrect API key')) {
-        const providerName = req.headers.host || 'this provider';
+      if (msg.includes('401') || msg.includes('403') || msg.includes('invalid_api_key') || msg.includes('Incorrect API key') || msg.includes('api_key')) {
         return res.status(401).json({
-          error: `API key required for ${providerName}. Get a free key at console.groq.com (Groq), platform.deepseek.com (DeepSeek), or aiwstudio.google.com (Gemini). Add it in Settings.`
+          error: 'API key required. Add your API key in Settings. Free keys: Groq (console.groq.com), DeepSeek (platform.deepseek.com), Gemini (aiwstudio.google.com)'
         });
       }
-      return res.status(400).json({ error: err.message });
+      return res.status(400).json({ error: msg || 'Request failed' });
     }
     return;
   }
@@ -214,14 +207,17 @@ function getProviderConfig(provider, base_url) {
 }
 
 async function chatOpenAI(api_key, base_url, model, messages, stream = true) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    'Accept': 'application/json'
+  };
+  if (api_key) {
+    headers['Authorization'] = `Bearer ${api_key}`;
+  }
   const response = await fetch(`${base_url}/chat/completions`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${api_key}`,
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Accept': 'application/json'
-    },
+    headers,
     body: JSON.stringify({ model, messages, max_tokens: 2000, temperature: 0.7, stream })
   });
 

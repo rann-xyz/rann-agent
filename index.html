@@ -1534,7 +1534,15 @@
 
     async function sendQuick(msg) {
       if (isStreaming) return;
-      await doSend(msg);
+      const input = document.getElementById('chat-input');
+      input.value = msg;
+      input.focus();
+      // Small delay so user can see the command — auto-send after 300ms
+      setTimeout(() => {
+        if (input.value === msg) {
+          doSend(msg);
+        }
+      }, 300);
     }
 
     async function doSend(msg) {
