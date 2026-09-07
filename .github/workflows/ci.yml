@@ -44,7 +44,9 @@ jobs:
       - run: pip install -e . -r requirements.txt -r requirements-dev.txt
       - run: python --version
       - run: pip list | head -5
-      - run: pytest tests/ -v --cov=rann_agent --cov-report=xml --cov-fail-under=15
+      - run: |
+          set -e
+          pytest tests/ -v --cov=rann_agent --cov-report=xml --cov-fail-under=15
 
   benchmark:
     name: Benchmarks
