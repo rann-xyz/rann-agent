@@ -11,6 +11,49 @@ function handleOptions(res) {
   res.status(200).end();
 }
 
+async function getBody(req) {
+  // req can be Node.js IncomingMessage or Vercel Request
+  const contentType = req.headers ? (req.headers['content-type'] || '') : (req.get('content-type') || '');
+  if (contentType && !contentType.includes('application/json')) {
+    throw new Error('Content-Type must be application/json');
+  }
+  let text;
+  if (typeof req.text === 'function') {
+    // Vercel Request object
+    text = await req.text();
+  } else if (Buffer.isBuffer(req.body)) {
+    text = req.body.toString();
+  } else if (typeof req.body === 'string') {
+    text = req.body;
+  } else if (req.body && typeof req.body.pipe === 'function') {
+    // Node.js readable stream
+    text = await new Promise((resolve, reject) => {
+      const chunks = [];
+      req.body.on('data', chunk => chunks.push(chunk));
+      req.body.on('end', () => resolve(Buffer.concat(chunks).toString()));
+      req.body.on('error', reject);
+    });
+  } else if (typeof req.on === 'function') {
+    // Raw Node.js IncomingMessage — read directly from req
+    text = await new Promise((resolve, reject) => {
+      const chunks = [];
+      req.on('data', chunk => chunks.push(chunk));
+      req.on('end', () => resolve(Buffer.concat(chunks).toString()));
+      req.on('error', reject);
+    });
+  } else {
+    throw new Error('Unable to read request body');
+  }
+  if (!text || !text.trim()) {
+    throw new Error('Request body is empty');
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error('Invalid JSON body');
+  }
+}
+
 module.exports = async function handler(req, res) {
   setCorsHeaders(res);
 
@@ -66,11 +109,157 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  // POST /chat
+  if (method === 'POST' && pathname === '/chat') {
+    try {
+      const data = await getBody(req);
+      const { message, history = [], provider = 'groq', model: modelOverride, api_key, base_url: customBaseUrl } = data;
+
+      if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
+      }
+      if (!api_key) {
+        return res.status(400).json({ error: 'API key is required. Add key in Settings.' });
+      }
+
+      const prov = getProviderConfig(provider, customBaseUrl);
+      const base_url = prov.base_url;
+      const model = modelOverride || prov.default_model;
+
+      if (!base_url) {
+        return res.status(400).json({ error: 'Base URL is required. Configure a provider or use Custom.' });
+      }
+
+      const systemMessage = { role: 'system', content: 'You are RANN Agent. Be concise and helpful. Format code with triple backticks.' };
+      const messages = [systemMessage, ...history, { role: 'user', content: message }];
+
+      const startTime = Date.now();
+
+      if (prov.api_type === 'anthropic') {
+        const content = await chatAnthropic(api_key, base_url, model, messages);
+        return res.status(200).json({ response: content, tokens: 0, model, latency_ms: Date.now() - startTime, error: null });
+      }
+
+      if (prov.api_type === 'gemini') {
+        const content = await chatGemini(api_key, base_url, model, messages);
+        return res.status(200).json({ response: content, tokens: 0, model, latency_ms: Date.now() - startTime, error: null });
+      }
+
+      // OpenAI-compatible: non-streaming for simpler HTTP/1.1 compatibility
+      const response = await chatOpenAI(api_key, base_url, model, messages, false);
+      const result = await response.json();
+      const content = result.choices?.[0]?.message?.content || '';
+      return res.status(200).json({ response: content, tokens: result.usage?.total_tokens || 0, model, latency_ms: Date.now() - startTime, error: null });
+
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    return;
+  }
+
   // POST /clear
   if (method === 'POST' && pathname === '/clear') {
     return res.status(200).json({ success: true });
   }
 
+  // POST /set_key — store provider API key (client-side only, just confirms receipt)
+  if (method === 'POST' && pathname === '/set_key') {
+    try {
+      const data = await getBody(req);
+      const { provider, api_key, model, base_url } = data;
+      if (!provider || !api_key) {
+        return res.status(400).json({ error: 'provider and api_key are required' });
+      }
+      // Vercel serverless: no persistent storage, just validate key format
+      return res.status(200).json({ success: true, provider });
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
+  // GET /key/:provider — check if key is set (client-side check)
+  if (method === 'GET' && pathname.startsWith('/key/')) {
+    const prov = pathname.slice(5);
+    return res.status(200).json({ has_key: false, provider: prov });
+  }
+
   // Fallback
-  return res.status(404).json({ error: 'Not found' });
+  return res.status(404).json({ error: `Not found: ${pathname}` });
 };
+
+function getProviderConfig(provider, base_url) {
+  if (provider === 'custom' && base_url) {
+    return {
+      name: 'Custom',
+      base_url: base_url.replace(/\/$/, ''),
+      default_model: '',
+      api_type: 'openai'
+    };
+  }
+  return PROVIDERS[provider] || PROVIDERS.groq;
+}
+
+async function chatOpenAI(api_key, base_url, model, messages, stream = true) {
+  const response = await fetch(`${base_url}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${api_key}`,
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({ model, messages, max_tokens: 2000, temperature: 0.7, stream })
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`API Error ${response.status}: ${err.slice(0, 200)}`);
+  }
+
+  return response;
+}
+
+async function chatAnthropic(api_key, base_url, model, messages) {
+  const msgs = messages.filter(m => m.role !== 'system').map(m => ({ role: m.role, content: m.content }));
+
+  const response = await fetch(`${base_url}/v1/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': api_key,
+      'anthropic-version': '2023-06-01',
+      'User-Agent': 'Mozilla/5.0',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({ model, messages: msgs, max_tokens: 4096 })
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`API Error ${response.status}: ${err.slice(0, 200)}`);
+  }
+
+  const result = await response.json();
+  return result.content[0].text;
+}
+
+async function chatGemini(api_key, base_url, model, messages) {
+  const contents = messages.filter(m => m.role !== 'system').map(msg => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }]
+  }));
+
+  const response = await fetch(`${base_url}/models/${model}:generateContent?key=${api_key}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 2000, temperature: 0.7 } })
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`API Error ${response.status}: ${err.slice(0, 200)}`);
+  }
+
+  const result = await response.json();
+  return result.candidates[0].content.parts[0].text;
+}
