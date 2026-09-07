@@ -48,6 +48,14 @@ const PROVIDERS = {
     free: true,
     models: ["llama3.2", "llama3.1", "mistral", "codellama", "phi3"]
   },
+  perplexity: {
+    name: "Perplexity",
+    base_url: "https://api.perplexity.ai",
+    default_model: "sonar",
+    api_type: "openai",
+    free: false,
+    models: ["sonar", "sonar-pro", "sonar-reasoning"]
+  },
   custom: {
     name: "Custom",
     base_url: "",

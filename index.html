@@ -1059,23 +1059,29 @@
             <h1>What can I help with?</h1>
             <p>Your AI agent is ready. Ask anything — from coding to analysis, research to creative writing.</p>
             <div class="welcome-capsules">
-              <button class="capsule" onclick="insertPrompt('Explain this code for me')">
-                <span class="capsule-icon">&#128221;</span> Explain code
+              <button class="capsule" onclick="sendQuick('pelajari .')">
+                <span class="capsule-icon">📖</span> Pelajari Repo
               </button>
-              <button class="capsule" onclick="insertPrompt('Help me write a function that...')">
-                <span class="capsule-icon">&#128187;</span> Write code
+              <button class="capsule" onclick="sendQuick('kerjakan ')">
+                <span class="capsule-icon">⚡</span> Kerjakan Task
               </button>
-              <button class="capsule" onclick="insertPrompt('Summarize the key points of...')">
-                <span class="capsule-icon">&#128220;</span> Summarize
+              <button class="capsule" onclick="sendQuick('fix ')">
+                <span class="capsule-icon">🔧</span> Fix Bug
               </button>
-              <button class="capsule" onclick="insertPrompt('What is the best approach to...')">
-                <span class="capsule-icon">&#129504;</span> Analyze
+              <button class="capsule" onclick="sendQuick('cek test')">
+                <span class="capsule-icon">🧪</span> Cek Tests
               </button>
-              <button class="capsule" onclick="insertPrompt('Search the web for...')">
-                <span class="capsule-icon">&#128269;</span> Web search
+              <button class="capsule" onclick="sendQuick('test ')">
+                <span class="capsule-icon">▶</span> Run Tests
               </button>
-              <button class="capsule" onclick="insertPrompt('Help me debug this issue')">
-                <span class="capsule-icon">&#128736;</span> Debug
+              <button class="capsule" onclick="sendQuick('semua ')">
+                <span class="capsule-icon">🚀</span> Jalankan Semua
+              </button>
+              <button class="capsule" onclick="openSettings()">
+                <span class="capsule-icon">⚙</span> Settings
+              </button>
+              <button class="capsule" onclick="sendQuick('upgrade ')">
+                <span class="capsule-icon">⬆</span> Upgrade
               </button>
             </div>
           </div>
@@ -1116,6 +1122,7 @@
             <option value="ollama">Ollama — Local</option>
             <option value="openai">OpenAI — Paid</option>
             <option value="anthropic">Anthropic — Paid</option>
+            <option value="perplexity">Perplexity — Paid</option>
             <option value="custom">Custom Provider</option>
           </select>
         </div>
@@ -1165,8 +1172,9 @@
       deepseek: ['deepseek-chat', 'deepseek-coder'],
       openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
       anthropic: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
-      gemini: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'],
+      gemini: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro', 'gemini-2.0-flash-exp'],
       ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3'],
+      perplexity: ['sonar', 'sonar-pro', 'sonar-reasoning'],
       custom: []
     };
 
@@ -1223,6 +1231,7 @@
         { id: 'openai', name: 'OpenAI', icon: 'O', model: 'gpt-4o', free: false },
         { id: 'anthropic', name: 'Anthropic', icon: 'A', model: 'claude-sonnet-4', free: false },
         { id: 'ollama', name: 'Ollama', icon: 'O', model: 'llama3.2', free: true },
+        { id: 'perplexity', name: 'Perplexity', icon: 'P', model: 'sonar', free: false },
         { id: 'custom', name: 'Custom', icon: '+', model: 'your model', free: true },
       ];
       const list = document.getElementById('provider-list');
@@ -1427,8 +1436,16 @@
       const input = document.getElementById('chat-input');
       const msg = input.value.trim();
       if (!msg || isStreaming) return;
-
       input.value = '';
+      await doSend(msg);
+    }
+
+    async function sendQuick(msg) {
+      if (isStreaming) return;
+      await doSend(msg);
+    }
+
+    async function doSend(msg) {
       isStreaming = true;
       document.getElementById('send-btn').disabled = true;
 

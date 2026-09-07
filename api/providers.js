@@ -27,6 +27,7 @@ module.exports = async function handler(req, res) {
       default_model: prov.default_model,
       api_type: prov.api_type,
       free: prov.free,
+      models: prov.models || [],
       has_key: false // localStorage check is done client-side
     });
   }
