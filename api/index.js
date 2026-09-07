@@ -149,9 +149,15 @@ module.exports = async function handler(req, res) {
       // OpenAI-compatible: non-streaming
       const response = await chatOpenAI(apiKey, base_url, model, allMessages, false);
       if (!response.ok) {
-        const errBody = await response.json().catch(() => ({}));
-        const errMsg = errBody.error?.message || errBody.message || '';
-        if (response.status === 401 || response.status === 403 || errMsg.toLowerCase().includes('api_key') || errMsg.toLowerCase().includes('invalid')) {
+        let errMsg = '';
+        let errBody = {};
+        try { errBody = await response.json(); } catch(e) {}
+        // Try multiple error formats: {error:{message}}, {message}, {error: "..."}
+        errMsg = errBody?.error?.message || errBody?.message || errBody?.error || '';
+        if (!errMsg) errMsg = await response.text().catch(() => '').then(t => t.slice(0, 200));
+        if (response.status === 401 || response.status === 403 ||
+            errMsg.toLowerCase().includes('api_key') || errMsg.toLowerCase().includes('invalid') ||
+            errMsg.toLowerCase().includes('unauthorized')) {
           return res.status(401).json({ error: 'API key required. Add your API key in Settings. Free keys: Groq (console.groq.com), DeepSeek (platform.deepseek.com), Gemini (aiwstudio.google.com)' });
         }
         return res.status(response.status).json({ error: errMsg || 'API request failed' });
