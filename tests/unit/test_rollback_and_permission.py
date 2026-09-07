@@ -104,7 +104,9 @@ class TestRollbackProcedure:
         engine = RollbackEngine(run_id="test_cmd")
         engine.begin_procedure()
 
-        step = engine.record_command_execution("git checkout main", reverse_command="git checkout dev")
+        step = engine.record_command_execution(
+            "git checkout main", reverse_command="git checkout dev"
+        )
 
         assert step.rollback_type == RollbackType.COMMAND_REVERSE
         assert step.target == "git checkout main"
@@ -214,12 +216,14 @@ class TestRollbackExecution:
     def _run_sync(coro):
         """Run an async coroutine synchronously for testing."""
         import asyncio
+
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             loop = None
         if loop and loop.is_running():
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor() as pool:
                 future = pool.submit(asyncio.run, coro)
                 return future.result()
@@ -260,7 +264,9 @@ class TestToolDefinition:
 
     def test_tool_matches_by_pattern(self):
         """Tool definition matches regex patterns"""
-        tool = ToolDefinition(name="shell", category=ToolCategory.SYSTEM, patterns=[r"bash", r"shell"])
+        tool = ToolDefinition(
+            name="shell", category=ToolCategory.SYSTEM, patterns=[r"bash", r"shell"]
+        )
         assert tool.matches("bash_executor")
         assert tool.matches("shell_command")
         assert not tool.matches("read_file")
