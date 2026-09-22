@@ -33,6 +33,7 @@ from typing import Any, Optional
 # STATUS ENUMERATIONS
 # ============================================================================
 
+
 class ExecutionStatus(str, Enum):
     QUEUED = "queued"
     RUNNING = "running"
@@ -47,6 +48,7 @@ class ExecutionStatus(str, Enum):
 # ============================================================================
 # RESOURCE & POLICY DEFINITIONS
 # ============================================================================
+
 
 @dataclass
 class ResourcePolicy:
@@ -78,6 +80,7 @@ class ExecutionPolicy:
 # EXECUTION JOBS
 # ============================================================================
 
+
 @dataclass
 class ExecutionJob:
     """
@@ -86,9 +89,10 @@ class ExecutionJob:
     SECURITY: All identity fields are SERVER-DERIVED only.
     Client-provided identity fields are IGNORED.
     """
+
     job_id: str
     user_id: str  # SERVER-DERIVED from authenticated session
-    run_id: str   # SERVER-DERIVED from server
+    run_id: str  # SERVER-DERIVED from server
     workspace_id: str
     command: str
     policy: ExecutionPolicy = field(default_factory=ExecutionPolicy)
@@ -119,6 +123,7 @@ class ExecutionResult:
 # EXECUTION BACKEND INTERFACE
 # ============================================================================
 
+
 class ExecutionBackend:
     """Abstract interface for execution backends."""
 
@@ -145,6 +150,7 @@ class ExecutionBackend:
 # ============================================================================
 # LOCAL EXECUTION BACKEND (DEVELOPMENT ONLY)
 # ============================================================================
+
 
 class LocalExecutionBackend(ExecutionBackend):
     """
@@ -200,12 +206,11 @@ class LocalExecutionBackend(ExecutionBackend):
 
                 try:
                     stdout, stderr = await asyncio.wait_for(
-                        proc.communicate(),
-                        timeout=job.policy.resource_limits.timeout_seconds
+                        proc.communicate(), timeout=job.policy.resource_limits.timeout_seconds
                     )
 
-                    stdout = stdout.decode()[:job.policy.resource_limits.max_output_bytes]
-                    stderr = stderr.decode()[:job.policy.resource_limits.max_output_bytes]
+                    stdout = stdout.decode()[: job.policy.resource_limits.max_output_bytes]
+                    stderr = stderr.decode()[: job.policy.resource_limits.max_output_bytes]
 
                     job.exit_code = proc.returncode
                     job.stdout = stdout
@@ -240,9 +245,13 @@ class LocalExecutionBackend(ExecutionBackend):
         job = self._jobs.get(job_id)
         if not job:
             return ExecutionResult(
-                success=False, stdout="", stderr="Job not found",
-                exit_code=None, duration_seconds=0, status=ExecutionStatus.FAILED,
-                job_id=job_id
+                success=False,
+                stdout="",
+                stderr="Job not found",
+                exit_code=None,
+                duration_seconds=0,
+                status=ExecutionStatus.FAILED,
+                job_id=job_id,
             )
 
         duration = 0
@@ -257,7 +266,7 @@ class LocalExecutionBackend(ExecutionBackend):
             duration_seconds=duration,
             status=job.status,
             job_id=job.job_id,
-            killed=job.killed
+            killed=job.killed,
         )
 
     async def cancel(self, job_id: str) -> bool:
@@ -281,6 +290,7 @@ class LocalExecutionBackend(ExecutionBackend):
 # ============================================================================
 # CONTAINER EXECUTION BACKEND (PRODUCTION)
 # ============================================================================
+
 
 class ContainerExecutionBackend(ExecutionBackend):
     """
@@ -355,11 +365,10 @@ class ContainerExecutionBackend(ExecutionBackend):
 
             try:
                 stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(),
-                    timeout=job.policy.resource_limits.timeout_seconds
+                    proc.communicate(), timeout=job.policy.resource_limits.timeout_seconds
                 )
 
-                job.stdout = stdout.decode()[:job.policy.resource_limits.max_output_bytes]
+                job.stdout = stdout.decode()[: job.policy.resource_limits.max_output_bytes]
                 job.stderr = stderr.decode()
 
                 if proc.returncode == 0:
@@ -385,14 +394,18 @@ class ContainerExecutionBackend(ExecutionBackend):
 
         job.completed_at = datetime.now(timezone.utc)
 
-    def _build_container_command(self, job: ExecutionJob, workspace: Path, container_name: str) -> list[str]:
+    def _build_container_command(
+        self, job: ExecutionJob, workspace: Path, container_name: str
+    ) -> list[str]:
         """Build secure Docker run command."""
 
         # Base docker run command
         cmd = [
-            "docker", "run",
+            "docker",
+            "run",
             "--rm",
-            "--name", container_name,
+            "--name",
+            container_name,
         ]
 
         # Security: no new privileges
@@ -448,9 +461,7 @@ class ContainerExecutionBackend(ExecutionBackend):
     async def _kill_container(self, container_name: str):
         """Kill and remove a container."""
         try:
-            await asyncio.create_subprocess_exec(
-                "docker", "kill", container_name
-            )
+            await asyncio.create_subprocess_exec("docker", "kill", container_name)
             # Container will be auto-removed due to --rm
         except Exception:
             pass
@@ -463,9 +474,13 @@ class ContainerExecutionBackend(ExecutionBackend):
         job = self._jobs.get(job_id)
         if not job:
             return ExecutionResult(
-                success=False, stdout="", stderr="Job not found",
-                exit_code=None, duration_seconds=0, status=ExecutionStatus.FAILED,
-                job_id=job_id
+                success=False,
+                stdout="",
+                stderr="Job not found",
+                exit_code=None,
+                duration_seconds=0,
+                status=ExecutionStatus.FAILED,
+                job_id=job_id,
             )
 
         duration = 0
@@ -480,7 +495,7 @@ class ContainerExecutionBackend(ExecutionBackend):
             duration_seconds=duration,
             status=job.status,
             job_id=job.job_id,
-            killed=job.killed
+            killed=job.killed,
         )
 
     async def cancel(self, job_id: str) -> bool:
@@ -505,6 +520,7 @@ class ContainerExecutionBackend(ExecutionBackend):
 # ============================================================================
 # FACTORY FUNCTION
 # ============================================================================
+
 
 def get_execution_backend() -> ExecutionBackend:
     """

@@ -34,6 +34,7 @@ from rann_agent.execution import (
 # UNIT TESTS (No Docker required)
 # ============================================================================
 
+
 @pytest.mark.unit
 class TestLocalExecutionBackend:
     """Unit tests for LocalExecutionBackend (development only)."""
@@ -84,7 +85,7 @@ class TestExecutionJob:
         job = ExecutionJob(
             job_id="test-123",
             user_id="user_abc123",  # Server-derived from session
-            run_id="run_xyz789",    # Server-derived from run creation
+            run_id="run_xyz789",  # Server-derived from run creation
             workspace_id="ws_test",
             command="echo test",
         )
@@ -115,10 +116,11 @@ class TestExecutionPolicy:
 # INTEGRATION TESTS (Requires Docker)
 # ============================================================================
 
+
 @pytest.mark.integration
 @pytest.mark.skipif(
     not ContainerExecutionBackend().is_available(),
-    reason="Docker runtime not available for integration tests"
+    reason="Docker runtime not available for integration tests",
 )
 class TestContainerExecution:
     """Integration tests requiring Docker container runtime."""
@@ -166,8 +168,9 @@ class TestContainerExecution:
             await backend.submit(job)
             result = await backend.get_result("secret-test")
 
-            assert test_secret not in result.stdout, \
-                "SECURITY FAILURE: Server secret leaked to container!"
+            assert (
+                test_secret not in result.stdout
+            ), "SECURITY FAILURE: Server secret leaked to container!"
 
         finally:
             if original:
@@ -241,6 +244,7 @@ class TestContainerExecution:
 # ============================================================================
 # FAIL-CLOSED TESTS
 # ============================================================================
+
 
 @pytest.mark.unit
 class TestFailClosedBehavior:

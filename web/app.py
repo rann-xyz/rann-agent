@@ -34,7 +34,7 @@ from rann_agent.auth.router import (
     require_auth,
     generate_session_id,
     hash_session_token,
-    check_rate_limit
+    check_rate_limit,
 )
 from rann_agent.core.security import WorkspaceGuard
 from rann_agent.storage.database import Database
@@ -48,9 +48,9 @@ from rann_agent.execution import (
 )
 
 app = FastAPI(
-    title="RANN Public AI Coding Agent", 
+    title="RANN Public AI Coding Agent",
     version="2.0.0",
-    docs_url="/docs" if os.environ.get("RANN_ENABLE_DOCS") == "true" else None
+    docs_url="/docs" if os.environ.get("RANN_ENABLE_DOCS") == "true" else None,
 )
 
 # Include authentication router
@@ -76,6 +76,7 @@ EXECUTION_BACKEND = os.environ.get("RANN_EXECUTION_BACKEND", "local")  # or "con
 
 logger = structlog.get_logger()
 
+
 # Get execution backend - FAIL CLOSED if not configured
 def get_execution_backend() -> ExecutionBackend:
     """Get the configured execution backend."""
@@ -92,9 +93,10 @@ def get_execution_backend() -> ExecutionBackend:
         logger.warning(
             "using_local_execution_backend",
             message="LocalExecutionBackend is DEVELOPMENT ONLY. "
-            "Do not use for public-facing deployment."
+            "Do not use for public-facing deployment.",
         )
         return LocalExecutionBackend()
+
 
 # Initialize execution backend
 execution_backend = get_execution_backend()
