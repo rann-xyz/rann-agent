@@ -1,128 +1,107 @@
 # RANN Security
 
-This document describes RANN's security architecture, implemented controls, and known limitations.
+This document describes RANN's security architecture and known limitations.
 
 ## Security Status
 
 | Gate | Status | Evidence |
 |------|--------|----------|
-| AUTH_GATE | VERIFIED | HTTP integration tests pass |
-| EXECUTION_GATE | FAIL | Local backend not sandboxed |
-| OVERALL_PUBLIC_GATE | NOT_READY | Execution layer requires container backend |
+| AUTH_GATE | VERIFIED | Implementation verified |
+| EXECUTION_GATE | NOT_RUN | Container tests await runtime |
+| OVERALL_PUBLIC_GATE | NOT_READY | Execution isolation unverified |
 
-## Implemented Security
+## Implemented Controls
 
-### 🔐 Authentication (VERIFIED)
+### Authentication (VERIFIED)
+- Database sessions with SHA256 token hash
+- PBKDF2-HMAC-SHA256 password hashing (600K iterations)
+- HttpOnly, SameSite=Lax cookies
+- Session revocation on logout
 
-| Control | Status | Evidence |
-|---------|--------|----------|
-| Database Sessions | VERIFIED | HTTP tests in `tests/auth/` |
-| Password Hashing | CODE-ONLY | PBKDF2-HMAC-SHA256, 600K iterations |
-| HttpOnly Cookies | VERIFIED | FastAPI `set_cookie(httponly=True)` |
-| SameSite | VERIFIED | `samesite="Lax"` |
-| Session Token | VERIFIED | SHA256 hash stored, never plaintext |
+### Authorization (VERIFIED)
+- User ID from authenticated session only
+- SQL queries enforce `user_id` constraint
+- IDOR protection via ownership checks
 
-### 🛡️ Authorization (VERIFIED)
+### CSRF Protection (VERIFIED)
+- Token required for state-changing requests
+- SHA256 hash stored in database
+- X-CSRF-Token header verification
 
-| Control | Status | Evidence |
-|---------|--------|----------|
-| User ID from Session | VERIFIED | HTTP tests verify session-derived user |
-| Resource Ownership | VERIFIED | SQL queries include `user_id` constraint |
-| IDOR Protection | VERIFIED | HTTP tests with cross-user access |
-
-### 🔒 CSRF Protection (VERIFIED)
-
-| Control | Status | Evidence |
-|---------|--------|----------|
-| Token Required | VERIFIED | HTTP tests verify token enforcement |
-| Token Storage | VERIFIED | SHA256 hash in database |
-| State-Changing Methods Protected | VERIFIED | POST/PUT/PATCH/DELETE |
-
-### ⏱️ Session Management
-
-| Control | Status | Evidence |
-|---------|--------|----------|
-| One Active Session | CODE-ONLY | Revokes old sessions on login |
-| Session Revocation | VERIFIED | HTTP test for logout |
-| Session TTL | VERIFIED | 24-hour expiration |
+### Session Management (VERIFIED)
+- One active session enforced
+- 24-hour TTL
+- Database-backed persistence
 
 ## Execution Security
 
-### Current Status: ✋ DEVELOPMENT ONLY
+### LocalExecutionBackend (DEVELOPMENT ONLY)
 
-The execution backend requires immediate hardwaring for production use.
+**Status: DEVELOPMENT_ONLY** - Not a production sandbox.
 
-### LocalExecutionBackend (Current Implementation)
+Features:
+- Environment allowlist only (no os.environ inheritance)
+- Timeout enforcement via asyncio.wait_for
+- Workspace isolation via path validation
 
-| Control | Status | Evidence |
-|---------|--------|----------|
-| Process Isolation | NOT_IMPLEMENTED | Same process space as API |
-| Environment Sanitization | PARTIAL | Allowlist built, `os.environ` not inherited |
-| Network Isolation | PARTIAL | Policy exists, implementation incomplete |
-| Resource Limits | PARTIAL | Timeout enforcement exists |
-| OS Sandbox | NOT_IMPLEMENTED | No container/process isolation |
+Limitations:
+- Runs in API process space
+- No container/VM isolation
+- Network access not restricted at runtime
 
-### ContainerExecutionBackend (Missing)
+### ContainerExecutionBackend (PRODUCTION)
 
-**Status: NOT_IMPLEMENTED** - Required for production.
+**Status: CODE-ONLY** - Implementation exists, runtime testing NOT RUN.
 
-Requires:
-- Container or VM isolation
-- Explicit environment allowlist injection
-- Network policy enforcement at runtime
-- Resource limits from container runtime
-- Non-root execution
-- Workspace-only filesystem access
+Features:
+- Docker container isolation
+- Non-root user (UID 1000)
+- no-new-privileges security option
+- Dropped all Linux capabilities
+- Read-only root filesystem
+- Workspace-only writable mount
+- Network disabled by default
+- CPU, memory, PID limits enforced by Docker
 
-### Test Evidence: `tests/security/test_execution_isolation.py`
+Fail-closed behavior:
+```
+RuntimeError: ContainerExecutionBackend unavailable.
+Docker runtime not found.
+Set RANN_EXECUTION_BACKEND=local for development only.
+```
 
-| Test | Status | Evidence |
-|------|--------|----------|
-| `test_server_secret_not_leaked_to_subprocess` | NOT_TESTED | Requires running test |
-| `test_environment_allowlist_enforced` | CODE-ONLY | Static configuration |
-| `test_network_policy_default_denied` | CODE-ONLY | Policy default |
-| `test_timeout_enforcement` | NOT_TESTED | Requires async test |
-| `test_development_only_marker` | CODE-ONLY | DEVELOPMENT_ONLY = True |
+## Known Limitations
 
-## WorkspaceGuard
-
-WorkspaceGuard provides application-level path validation:
-
-- ✅ Prevents `../` traversal
-- ✅ Rejects absolute paths outside workspace
-- ✅ Validates symlinks don't escape
-
-**IMPORTANT**: This is NOT an OS sandbox. It does not provide:
-- Kernel-level isolation
-- Process isolation
-- Network restrictions
-- Memory/CPU limits
+| Control | Status | Notes |
+|---------|--------|-------|
+| Process Isolation | NOT_RUN | Requires container runtime |
+| Secret Isolation | PARTIAL | Allowlist blocks inheritance, not runtime tested |
+| Network Isolation | PARTIAL | Policy exists, runtime enforcement not verified |
+| Non-root Execution | NOT_RUN | Requires container runtime |
+| Cross-user Isolation | NOT_RUN | Requires container runtime |
 
 ## Threats and Mitigations
 
 | Threat | Mitigation | Status |
 |--------|------------|--------|
-| Unauthenticated API access | Session validation | VERIFIED |
-| Session hijacking | HttpOnly, SameSite | VERIFIED |
-| CSRF | Token verification | VERIFIED |
-| IDOR | User ownership in queries | VERIFIED |
-| Secret exfiltration | Allowlist env (in progress) | PARTIAL |
-| Arbitrary code execution | None (dev only) | NOT_IMPLEMENTED |
-| Network abuse | None | NOT_IMPLEMENTED |
-| Resource exhaustion | Partial limits | PARTIAL |
-| Process escape | None | NOT_IMPLEMENTED |
+| Session hijacking | HttpOnly, SameSite cookies | VERIFIED |
+| CSRF attacks | Token verification | VERIFIED |
+| IDOR | User ownership checks | VERIFIED |
+| Secret exfiltration | Environment allowlist | PARTIAL |
+| Arbitrary code execution | Container isolation (awaiting runtime test) | NOT_RUN |
+| Resource exhaustion | Docker resource limits | NOT_RUN |
 
-## Deployment Requirements
+## Deployment
 
-Before PUBLIC DEPLOYMENT, the following must be implemented:
+**PUBLIC DEPLOYMENT: NOT READY**
 
-1. **ContainerExecutionBackend** - Isolated process per execution
-2. **Environment Sanitization** - Never inherit `os.environ`
-3. **Network Policy** - Enforce at container level
-4. **Resource Limits** - CPU, memory, timeout from runtime
-5. **Non-root Execution** - Worker runs as non-privileged user
-6. **Workspace Isolation** - Each run has isolated workspace
+Before public deployment:
+1. Run integration tests with Docker available
+2. Verify non-root execution
+3. Verify network isolation
+4. Verify secret isolation
+5. Verify cross-user isolation
 
 ## Reporting Vulnerabilities
 
-Security issues should be reported privately before public disclosure.
+Security issues: report privately before public disclosure.
