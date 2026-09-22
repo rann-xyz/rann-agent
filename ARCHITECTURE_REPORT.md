@@ -1,265 +1,232 @@
 # RANN Agent Architecture Report
 
-**Repository:** `/home/userland/rann-agent`
-**Generated:** 2026-09-07 (updated from 2026-09-06)
-**Purpose:** Comprehensive inventory of implemented codebase
+## Overview
+
+RANN is an autonomous AI agent system with two distinct architectural layers.
 
 ---
 
-## EXECUTIVE SUMMARY
+## Control Plane (Implemented)
 
-RANN Agent is a Python-based autonomous AI agent framework with **substantial core infrastructure fully implemented**. It has two parallel agent implementations:
-- `Agent` (legacy) — basic single-turn execution loop
-- `RuntimeAgent` (Phase 1) — full state-machine-driven agent with events, budget, verification
+The control plane handles authentication, authorization, state, and API responses.
 
-The codebase is well-structured with clear separation across: core runtime, tools, orchestration, memory, intelligence, reasoning, and utilities.
+```
+[HTTP Client] → [API Router] → [Auth Middleware] → [Database] → [Response]
+                              → [Authorization Checks]
+                              → [State Changes]
+```
 
-**Recent additions (Phase 2-3):**
-- Self-healing fix engine with 9 error-type strategies and regex-based classification
-- Rollback engine with snapshot-based file restoration and procedure persistence
-- Tool permission layer with allowlist/denylist, risk-based gating, and audit logging
+### Components
 
----
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| FastAPI Router | HTTP endpoints | ✅ Implemented |
+| Authentication | Session via cookies | ✅ Implemented |
+| Authorization | User ownership enforcement | ✅ Implemented |
+| Database | SQLite with 12 tables | ✅ Implemented |
+| Task/Runs | State management | ✅ Implemented |
 
-## MODULE INVENTORY
+### Authentication Architecture
 
-### 1. CORE RUNTIME (`rann_agent/core/`)
+```
+Client → POST /auth/login → Database → Session Cookie
+                             ↑
+                       sessions table
+```
 
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `agent.py` | Legacy Agent: execute/stream, self-healing, tool orchestration | ⚠️ Legacy |
-| `runtime.py` | **RuntimeAgent** (Phase 1): state machine, events, budget, verification | ✅ Production |
-| `state.py` | `AgentStateMachine`: 16 states, valid transitions, disk persistence | ✅ Production |
-| `context.py` | `Context`: message history, tool results, compression | ✅ Production |
-| `events.py` | `EventEmitter`: 30+ event types, structured logging, trace export | ✅ Production |
-| `event_bus.py` | `EventBus`: pub/sub singleton pattern | ✅ Production |
-| `llm_provider.py` | `LLMProvider`: Groq/DeepSeek/OpenAI/Anthropic/Gemini/Ollama/Custom | ✅ Production |
-| `cached_provider.py` | `CachedLLMProvider`: wraps LLMProvider with cache | ✅ Production |
-| `budget.py` | `BudgetEngine`: token/time/tool/cost/turn tracking with warnings | ✅ Production |
-| `approval.py` | `ApprovalSystem`: dangerous operation approval workflow | ✅ Production |
-| `verification.py` | `VerificationEngine`: evidence-based proof-of-completion, check factory | ✅ Production |
-| `lifecycle.py` | `AgentLifecycle`: context manager for run lifecycle, checkpoint/recovery | ✅ Production |
-| `autonomy.py` | `AutonomyGuard`: 6 autonomy levels (0=OBSERVE to 5=HIGH_AUTONOMY) | ✅ Production |
-| `idempotency.py` | `OperationTracker`: duplicate execution prevention | ✅ Production |
-| `task_contract.py` | `TaskContract`: immutable binding contract (constraints, acceptance criteria) | ✅ Production |
-| `evidence.py` | `EvidenceLedger`: persistent evidence records with search/validation | ✅ Production |
-| `schemas.py` | Structured output schemas (TaskStatusSchema, PlanSchema, VerificationResultSchema, etc.) | ✅ Production |
-| `exceptions.py` | 30+ exception types in hierarchy (LLMError, ToolError, SecurityError, etc.) | ✅ Production |
-| `tool_result.py` | `ToolResult` dataclass with factory methods (success_result, error_result, timeout_result) | ✅ Production |
-| `rollback_engine.py` | **RollbackEngine**: snapshot-based file rollback, procedure persistence | ✅ Production |
-| `tool_permission.py` | **ToolPermissionLayer**: allowlist/denylist, risk gating, audit log | ✅ Production |
+Session flow:
+1. Credentials validated against `users` table
+2. New session created in `sessions` table
+3. Only `token_hash` (SHA256) stored, not raw token
+4. Authentication cookies set with HttpOnly, SameSite=Lax
 
-**Key architectural insight:** `RuntimeAgent` is the primary agent implementation. It composes `ThinkingEngine`, `SelfCorrection`, `LearningEngine`, `ConversationMemory`, `AgentLifecycle`, `VerificationEngine`, `RollbackEngine`, and `ToolPermissionLayer` into a cohesive autonomous unit.
+### Authorization Architecture
+
+```
+User A → POST /api/runs → API → Database → user_id = session_user_id
+User B → tries User A's run → user_id = B ≠ run.user_id = A → DENIED
+```
 
 ---
 
-### 2. INTELLIGENCE (`rann_agent/intelligence/`)
+## Execution Plane (Planned)
 
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `fix_strategies.py` | **FixStrategy registry**: 9 error-type handlers with pre-compiled regex | ✅ Production |
-| `self_improvement.py` | **SelfCorrection + LearningEngine**: generate_fixes(), SQLite error storage | ✅ Production |
-| `learning.py` | `LearningEngine`: tracks error patterns, stores resolutions | ✅ Production |
-| `codebase_context.py` | Codebase summarization for LLM context | ⚠️ Partial |
-| `code_completion.py` | LLM-based code completion | ⚠️ Partial |
-| `autonomous_coder.py` | Autonomous coding agent wrapper | ⚠️ Partial |
-| `code_intelligence.py` | AST analysis for code understanding | ⚠️ Partial |
+The execution plane handles untrusted agent code execution outside the control plane.
 
----
+### Current Architecture (UNSAFE - Development Only)
 
-### 3. TOOLS (`rann_agent/tools/`)
+```
+[API] → RuntimeAgent → Subprocess (inherits Environment)
+           ↓
+      Same process!
+```
 
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `registry.py` | `ToolRegistry`: CRUD + get_definitions for function-calling tools | ✅ Production |
-| `executor.py` | `ToolExecutor`: async timeout, error handling, result formatting | ✅ Production |
-| `real_terminal.py` | `RealTerminalExecutor`: actual shell execution (not simulated) | ✅ Production |
-| `filesystem.py` | `FilesystemEngine`: file read/write/search operations | ✅ Production |
-| `terminal.py` | Terminal tool definition | ✅ Production |
-| `git.py` | Git tool definition (basic operations) | ⚠️ Partial |
+**Critical**: This architecture has no isolation.
 
----
+### Target Architecture
 
-### 4. ORCHESTRATION (`rann_agent/orchestration/`)
+```
+[API] → Execution Queue → Isolated Worker → Sandbox → Agent Runtime
+              ↓                    ↓              ↓
+         Auth Job          Separate Process   Container/MicroVM
+```
 
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `command_policy.py` | `CommandPolicy`: risk classification (SAFE/LOW/MEDIUM/HIGH/CRITICAL) | ✅ Production |
-| `model_router.py` | `ModelRouter`: task complexity → model selection | ⚠️ Partial |
-| `coordinator.py` | `Coordinator`: multi-agent spawning and coordination | ⚠️ Partial |
-| `multi_agent.py` | Multi-agent parallel execution | ⚠️ Partial |
+### Required Sandbox Features
+
+| Feature | Purpose | Status |
+|---------|---------|--------|
+| Process Isolation | API separate from execution | NOT_IMPLEMENTED |
+| Environment Sanitization | No secrets to subprocess | NOT_IMPLEMENTED |
+| Network Policy | Restrict outbound access | NOT_IMPLEMENTED |
+| Resource Limits | CPU, memory, disk caps | NOT_IMPLEMENTED |
+| Timeout | Kill runaway processes | NOT_IMPLEMENTED |
+| Non-root Execution | Prevent privilege escalation | NOT_IMPLEMENTED |
 
 ---
 
-### 5. STORAGE (`rann_agent/storage/`)
+## Data Flow
 
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `database.py` | SQLite wrapper: 12 tables (runs, tasks, events, evidence, sessions, audit) | ✅ Production |
-| `pool.py` | `ConnectionPool`: WAL + mmap + threading-safe, 5 connections | ✅ Production |
-| `recovery.py` | `CrashRecovery`: WAL checkpoint + re-execution from last turn | ✅ Production |
-| `queue.py` | `DurableQueue`: persistent job queue with heartbeat | ✅ Production |
-| `locks.py` | `ConcurrencyControl`: workspace/repository/file/database locks (fcntl) | ✅ Production |
+### Authenticated Request Flow
 
----
+```
+1. HTTP Request
+2. Extract session cookie
+3. Hash token → query sessions table
+4. Load user from users table
+5. Attach user to request context
+6. Database queries include user_id in WHERE clause
+7. Response with user-owned data only
+```
 
-### 6. MEMORY (`rann_agent/memory/`)
+### Execution Submission Flow
 
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `manager.py` | `MemoryManager`: coordinates all memory stores | ✅ Production |
-| `project_store.py` | `ProjectMemoryStore`: project metadata, dependencies, conventions | ⚠️ Partial |
-| `episodic_store.py` | `EpisodicMemoryStore`: goal/action/observation/outcome/lessons | ✅ Production |
-| `semantic_store.py` | `SemanticMemoryStore`: key-value facts with similarity search | ⚠️ Partial |
-| `conflict.py` | `ConflictResolver`: merge strategy for concurrent memories | ⚠️ Partial |
-| `session_search.py` | `SessionSearch`: FTS5 full-text search over sessions | ✅ Production |
-| `vector_memory.py` | Vector embedding storage (ChromaDB optional) | 🔄 Experimental |
-
----
-
-### 7. PLANNING (`rann_agent/planning/`)
-
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `planner.py` | `Planner`: strategy selection for task decomposition | ⚠️ Partial |
-| `recovery.py` | `RecoveryEngine`: structured recovery procedures | ⚠️ Partial |
-| `progress.py` | `ProgressEngine`: milestone tracking and completion detection | ⚠️ Partial |
-| `semantic_diff.py` | `SemanticDiff`: AST-based change analysis | ⚠️ Partial |
+```
+1. Authenticated session provides user_id
+2. API validates run.user_id == session.user_id
+3. ExecutionJob created with user_id, run_id
+4. Job submitted to queue (future: isolated worker)
+5. Current: RuntimeAgent.execute() in API process (DEVELOPMENT)
+```
 
 ---
 
-### 8. REASONING (`rann_agent/reasoning/`)
+## Security Boundaries
 
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `thought_process.py` | Chain-of-thought reasoning | ⚠️ Partial |
-| `self_reflection.py` | Self-reflection and error analysis | ⚠️ Partial |
-| `mcts_planner.py` | Monte Carlo Tree Search planner | ❌ Broken |
+### Implemented Boundaries
 
----
+| Boundary | Mechanism | Verified |
+|----------|-----------|----------|
+| Identity | Session cookie → database | ✅ HTTP tests |
+| Authorization | user_id in SQL queries | ✅ Code review |
+| Session | token_hash storage | ✅ Database tests |
+| CSRF | Token comparison | ✅ HTTP tests |
 
-### 9. UTILITIES (`rann_agent/utils/`)
+### Missing Boundaries
 
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `cache.py` | `CacheManager`: Redis + in-memory fallback, TTL-based invalidation | ✅ Production |
-| `context_window.py` | `ContextWindowManager`: trim/summarize strategy for 200k token window | ✅ Production |
-| `http_pool.py` | Shared httpx connection pool (100 conn, keepalive) | ✅ Production |
-| `profiler.py` | cProfile hot-path profiler with PySpy support | ✅ Production |
-
----
-
-### 10. CLI (`rann_agent/cli/`)
-
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `rann.py` | CLI entry point (Click): run, doctor, status, task, config, memory, audit | ✅ Production |
+| Boundary | Required | Status |
+|----------|----------|--------|
+| Process Isolation | Separate execution process | NOT_IMPLEMENTED |
+| Environment | Allowlisted only | NOT_IMPLEMENTED |
+| Network | Restrict outbound | NOT_IMPLEMENTED |
+| Resources | Limits on CPU/memory | NOT_IMPLEMENTED |
+| Filesystem | Container mount isolation | NOT_IMPLEMENTED |
 
 ---
 
-### 11. API / WEB (`rann_agent/`)
+## Database Schema (Security Relevant Tables)
 
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `web_api.py` | FastAPI backend on port 5555: Groq/DeepSeek/OpenAI/Anthropic/Gemini/Ollama/Custom | ✅ Production |
-| `api/index.js` | Vercel serverless function: rewrite routing, pathname normalization | ✅ Production |
-| `api/chat.js` | Vercel chat handler: SSE streaming for OpenAI-compatible, non-streaming for others | ✅ Production |
-| `api/providers.js` | Vercel providers endpoint | ✅ Production |
-| `index.html` | Dark-themed AI chat SPA (1688+ lines): chat, sidebar history, settings modal | ✅ Production |
-| `dashboard.html` | Dark theme stats dashboard (913 lines): stat cards, quick actions, system checks | ✅ Production |
-| `providers.js` | Provider configs for Vercel deployment | ✅ Production |
+```
+users
+  id (PK)
+  email
+  password_hash (PBKDF2)
+  role
 
----
+sessions
+  session_id (PK)
+  user_id (FK → users.id)
+  token_hash (SHA256)
+  expires_at
+  revoked_at
 
-### 12. WEB_APP (`rann_agent/web_app/`)
+tasks
+  id (PK)
+  user_id (FK → users.id)
+  ...
 
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `server.py` | FastAPI + WebSocket server for web interface | ⚠️ Partial |
+runs
+  id (PK)
+  user_id (FK → users.id)
+  ...
 
----
+state_transitions
+  id (PK)
+  user_id (FK → users.id)
+  ...
+```
 
-### 13. AUTOMATION (`rann_agent/automation/`)
-
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `browser.py` | Playwright wrapper for browser automation | ⚠️ Partial |
-| `cron_scheduler.py` | Cron-based task scheduling | ⚠️ Partial |
-
----
-
-### 14. MULTIMODAL (`rann_agent/multimodal/`)
-
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `vision.py` | Image analysis and OCR (Tesseract wrapper) | ⚠️ Partial |
-| `voice.py` | Text-to-speech (gTTS wrapper) | ⚠️ Partial |
+Note: All mutable tables have `user_id` foreign key to enforce ownership.
 
 ---
 
-### 15. LEARNING (`rann_agent/learning/`)
+## Module Structure
 
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `skill_curator.py` | Skill curation and management | ❌ Broken |
-
----
-
-### 16. PLUGINS (`rann_agent/plugins/`)
-
-| File | Responsibility | Status |
-|------|---------------|--------|
-| `manager.py` | Plugin manager for extensibility | ❌ Broken |
-
----
-
-## TEST INVENTORY
-
-| Suite | Tests | Status |
-|-------|-------|--------|
-| `tests/unit/test_agent.py` | Core agent tests | ✅ |
-| `tests/unit/test_tools.py` | Tool registry and execution | ✅ |
-| `tests/unit/test_config.py` | Config management | ✅ |
-| `tests/unit/test_runtime.py` | RuntimeAgent state/events/budget | ✅ |
-| `tests/unit/test_self_healing.py` | 30 fix strategy tests | ✅ |
-| `tests/unit/test_rollback_and_permission.py` | 31 rollback + permission tests | ✅ |
-| `tests/benchmarks/` | Performance benchmarks | ✅ |
-| **Total** | **283 passed** | ✅ |
+```
+rann_agent/
+├── auth/          # Authentication (implemented)
+│   ├── __init__.py  # PasswordHasher, Session models
+│   └── router.py    # HTTP endpoints
+├── core/          # Runtime (implemented)
+│   └── security.py  # WorkspaceGuard
+├── storage/       # Database (implemented)
+│   └── database.py
+├── tools/         # Agent tools (implemented)
+│   ├── terminal.py # Subprocess execution (UNTRUSTED)
+│   └── files.py    # File operations (needs context)
+├── execution/     # Planned execution backend
+└── web/           # Web API (implemented)
+    └── app.py
+```
 
 ---
 
-## CI PIPELINE
+## Development vs Production
 
-| Job | Steps | Status |
-|-----|-------|--------|
-| Quality | `ruff check .` + `black --check .` | ✅ GREEN |
-| Tests | `pytest tests/ -v --cov --cov-fail-under=15` | ✅ GREEN |
-| Benchmarks | `pytest benchmarks/ -v` | ✅ GREEN |
+### Development Mode
 
-**Note:** mypy skipped in CI — ruff + black provide sufficient quality gates. `follow_imports = "skip"` in pyproject.toml avoids numpy stubs issue on Python 3.12.
+- Local database: `~/.rann-agent/rann.db`
+- Local execution: subprocess in API process
+- Generated secrets: acceptable for testing
 
----
+### Production Requirements
 
-## DEPLOYMENT
-
-- **Vercel SPA**: https://rann-agent-mlp3p2jj6-rann2.vercel.app/
-- **Local**: `python web_api.py` → http://localhost:5555
-- **CLI**: `rann run "<task>"` or `rann doctor`
+- External database (not local file)
+- Isolated execution worker (NOT IMPLEMENTED)
+- Explicit `RANN_IP_BINDING_SECRET` (not generated)
+- HTTPS for Secure cookies
+- Verified execution isolation
 
 ---
 
-## KEY ARCHITECTURAL DECISIONS
+## Future Architecture
 
-1. **State Machine**: Explicit 16-state machine (not implicit) with valid transitions enforced
-2. **Self-Healing**: Regex-based error classification with 9 pre-compiled strategies, not LLM-dependent
-3. **Rollback**: Snapshot-before-modify pattern, procedure persisted to disk for audit
-4. **Tool Permissions**: Denylist-first with risk-based approval gating, full audit trail
-5. **LLM Providers**: Factory pattern with Groq/DeepSeek/OpenAI/Anthropic/Gemini/Ollama/Custom
-6. **Storage**: SQLite with WAL mode + connection pooling + mmap for performance
-7. **Caching**: Redis-first with in-memory fallback, TTL-based invalidation
-8. **Context**: 200k token window with trim/summarize strategy (system + recent kept)
+### Execution Backend Interface (Planned)
 
----
+```python
+class ExecutionBackend:
+    def submit(self, job: ExecutionJob) -> str: ...
+    def status(self, job_id: str) -> ExecutionStatus: ...
+    def cancel(self, job_id: str) -> bool: ...
+    def result(self, job_id: str) -> ExecutionResult: ...
+```
 
-*Generated: 2026-09-07*
-*Previous: 2026-09-06*
+### Container Backend Requirements
+
+- Non-root user
+- No privileged mode
+- No host mounts
+- Dedicated workspace
+- Resource limits (CPU, memory, disk)
+- Network policy (default: disabled)
+- Process timeout
+- Container image: minimal base

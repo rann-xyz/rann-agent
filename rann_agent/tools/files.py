@@ -1,5 +1,5 @@
 """
-File operation tools
+File operation tools - PATCHED FOR WORKSPACE ISOLATION
 """
 
 from pathlib import Path
@@ -8,36 +8,45 @@ from typing import Any
 import structlog
 
 from rann_agent.tools.registry import Tool, ToolResult
+from rann_agent.core.security import WorkspaceGuard, WorkspaceSecurity
 
 logger = structlog.get_logger()
 
 
 class FileReadTool(Tool):
-    """Read file contents"""
+    """Read file contents within workspace boundary."""
 
-    name = "read_file"
-    description = "Read contents of a file"
+    name = "file_read"
+    description = "Read contents of a file within workspace"
     parameters = {
         "path": {"type": "string", "required": True},
         "offset": {"type": "integer", "default": 0},
         "limit": {"type": "integer", "default": 2000},
     }
 
-    def __init__(self, config):
+    def __init__(self, config, workspace_root: Path | None = None):
         self.config = config
         self.max_size = config.tools.files.get("max_file_size", 10485760)
+        self.workspace_root = (workspace_root or Path.cwd()).resolve()
+        self.guard = WorkspaceGuard(self.workspace_root)
 
     async def execute(
         self, path: str, offset: int = 0, limit: int = 2000, **kwargs
     ) -> dict[str, Any]:
-        """Read file"""
+        """Read file with workspace boundary enforcement."""
         try:
-            file_path = Path(path).expanduser().resolve()
+            # Validate path stays within workspace
+            file_path = self.guard.validate_path(path)
 
-            # Check if exists
+            # Check if exists and is a file
             if not file_path.exists():
                 return ToolResult(
                     tool=self.name, success=False, error=f"File not found: {path}"
+                ).to_dict()
+
+            if not file_path.is_file():
+                return ToolResult(
+                    tool=self.name, success=False, error=f"Not a file: {path}"
                 ).to_dict()
 
             # Check size
@@ -72,30 +81,38 @@ class FileReadTool(Tool):
                 },
             ).to_dict()
 
+        except ValueError as e:
+            logger.warning("workspace_violation", path=path, error=str(e))
+            return ToolResult(
+                tool=self.name, success=False, error=f"Workspace violation: {path}"
+            ).to_dict()
         except Exception as e:
             logger.error("file_read_error", path=path, error=str(e))
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
 
 
 class FileWriteTool(Tool):
-    """Write file contents"""
+    """Write file contents within workspace boundary."""
 
     name = "write_file"
-    description = "Write content to a file"
+    description = "Write content to a file within workspace"
     parameters = {
         "path": {"type": "string", "required": True},
         "content": {"type": "string", "required": True},
     }
 
-    def __init__(self, config):
+    def __init__(self, config, workspace_root: Path | None = None):
         self.config = config
+        self.workspace_root = (workspace_root or Path.cwd()).resolve()
+        self.guard = WorkspaceGuard(self.workspace_root)
 
     async def execute(self, path: str, content: str, **kwargs) -> dict[str, Any]:
-        """Write file"""
+        """Write file with workspace boundary enforcement."""
         try:
-            file_path = Path(path).expanduser().resolve()
+            # Validate path stays within workspace
+            file_path = self.guard.validate_path(path)
 
-            # Create parent directories
+            # Create parent directories within workspace
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Write file
@@ -105,20 +122,68 @@ class FileWriteTool(Tool):
             return ToolResult(
                 tool=self.name,
                 success=True,
-                output=f"Written {len(content)} bytes to {path}",
-                metadata={"bytes": len(content), "path": str(file_path)},
+                output=f"Written {len(content)} bytes",
+                metadata={"bytes": len(content), "path": str(file_path.relative_to(self.workspace_root))},
             ).to_dict()
 
+        except ValueError as e:
+            logger.warning("workspace_violation", path=path, error=str(e))
+            return ToolResult(
+                tool=self.name, success=False, error=f"Workspace violation: {path}"
+            ).to_dict()
         except Exception as e:
             logger.error("file_write_error", path=path, error=str(e))
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
 
 
-class FileSearchTool(Tool):
-    """Search files by pattern"""
+class FileDeleteTool(Tool):
+    """Delete file within workspace boundary."""
 
-    name = "search_files"
-    description = "Search files by name or content pattern"
+    name = "file_delete"
+    description = "Delete a file within workspace"
+    parameters = {
+        "path": {"type": "string", "required": True},
+    }
+
+    def __init__(self, config, workspace_root: Path | None = None):
+        self.config = config
+        self.workspace_root = (workspace_root or Path.cwd()).resolve()
+        self.guard = WorkspaceGuard(self.workspace_root)
+
+    async def execute(self, path: str, **kwargs) -> dict[str, Any]:
+        """Delete file with workspace boundary enforcement."""
+        try:
+            # Validate path stays within workspace
+            file_path = self.guard.validate_path(path)
+
+            if not file_path.exists():
+                return ToolResult(
+                    tool=self.name, success=False, error=f"File not found: {path}"
+                ).to_dict()
+
+            file_path.unlink()
+
+            return ToolResult(
+                tool=self.name,
+                success=True,
+                output=f"Deleted: {path}",
+            ).to_dict()
+
+        except ValueError as e:
+            logger.warning("workspace_violation", path=path, error=str(e))
+            return ToolResult(
+                tool=self.name, success=False, error=f"Workspace violation: {path}"
+            ).to_dict()
+        except Exception as e:
+            logger.error("file_delete_error", path=path, error=str(e))
+            return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
+
+
+class FileSearchTool(Tool):
+    """Search files by pattern within workspace."""
+
+    name = "file_search"
+    description = "Search files by name or content pattern within workspace"
     parameters = {
         "pattern": {"type": "string", "required": True},
         "target": {"type": "string", "default": "content"},  # content | files
@@ -126,8 +191,10 @@ class FileSearchTool(Tool):
         "limit": {"type": "integer", "default": 50},
     }
 
-    def __init__(self, config):
+    def __init__(self, config, workspace_root: Path | None = None):
         self.config = config
+        self.workspace_root = (workspace_root or Path.cwd()).resolve()
+        self.guard = WorkspaceGuard(self.workspace_root)
 
     async def execute(
         self,
@@ -137,28 +204,43 @@ class FileSearchTool(Tool):
         limit: int = 50,
         **kwargs,
     ) -> dict[str, Any]:
-        """Search files"""
+        """Search files with workspace boundary enforcement."""
         try:
+            # Validate search path stays within workspace
+            search_path = self.guard.validate_path(path)
+
             import subprocess
 
-            search_path = Path(path).expanduser().resolve()
-
+            # Use find/grep with validated path only
             if target == "files":
-                # Search filenames with find
-                cmd = f"find {search_path} -name '*{pattern}*' -type f | head -n {limit}"
+                cmd = ["find", str(search_path), "-name", f"*{pattern}*", "-type", "f"]
             else:
-                # Search content with grep
-                cmd = f"grep -r '{pattern}' {search_path} | head -n {limit}"
+                # Escape pattern for grep safety
+                import shlex
+                safe_pattern = shlex.quote(pattern)
+                cmd = ["grep", "-r", "-l", safe_pattern, str(search_path)]
 
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+            paths = result.stdout.strip().split("\n") if result.stdout.strip() else []
 
             return ToolResult(
                 tool=self.name,
                 success=True,
-                output=result.stdout,
-                metadata={"pattern": pattern, "target": target},
+                output="\n".join(paths[:limit]),
+                metadata={"pattern": pattern, "target": target, "count": len(paths[:limit])},
             ).to_dict()
 
+        except ValueError as e:
+            logger.warning("workspace_violation", path=path, error=str(e))
+            return ToolResult(
+                tool=self.name, success=False, error=f"Workspace violation: {path}"
+            ).to_dict()
         except Exception as e:
             logger.error("file_search_error", error=str(e))
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()

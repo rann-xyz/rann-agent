@@ -1,7 +1,6 @@
 """
-Configuration management
+Configuration management - Clean Provider Architecture
 """
-
 import os
 from pathlib import Path
 from typing import Any
@@ -12,15 +11,12 @@ from pydantic_settings import BaseSettings
 
 
 class LLMConfig(BaseModel):
-    provider: str = "xkiro"
-    model: str = "minimax/minimax-m2.7-highspeed:free"
+    provider: str = "custom"
+    model: str = "gpt-4o"
     temperature: float = 0.7
     max_tokens: int = 8192
     fallback_providers: list[dict[str, str]] = []
-    retry: dict[str, Any] = {
-        "max_attempts": 3,
-        "backoff_multiplier": 2.0,
-    }
+    retry: dict[str, Any] = {"max_attempts": 3, "backoff_multiplier": 2.0}
 
 
 class SelfHealingConfig(BaseModel):
@@ -59,20 +55,9 @@ class AgentConfig(BaseModel):
 
 class ToolsConfig(BaseModel):
     enabled: list[str] = [
-        "terminal",
-        "read_file",
-        "write_file",
-        "search_files",
-        "web_search",
-        "web_extract",
-        "code_exec",
-        "git",
+        "terminal", "read_file", "write_file", "search_files", "web_search", "web_extract", "code_exec", "git"
     ]
-    terminal: dict[str, Any] = {
-        "default_timeout": 300,
-        "max_timeout": 3600,
-        "allow_background": True,
-    }
+    terminal: dict[str, Any] = {"default_timeout": 300, "max_timeout": 3600, "allow_background": True}
     files: dict[str, Any] = {"max_file_size": 10485760}
     web: dict[str, Any] = {"max_concurrent_requests": 10, "timeout": 30}
     code_exec: dict[str, Any] = {"sandbox": True, "timeout": 300}
@@ -80,10 +65,7 @@ class ToolsConfig(BaseModel):
 
 class LoggingConfig(BaseModel):
     level: str = "INFO"
-    file: dict[str, Any] = {
-        "enabled": True,
-        "path": "~/.rann-agent/logs/agent.log",
-    }
+    file: dict[str, Any] = {"enabled": True, "path": "~/.rann-agent/logs/agent.log"}
     console: dict[str, Any] = {"enabled": True, "colorize": True}
 
 
@@ -104,15 +86,13 @@ class AdvancedConfig(BaseModel):
 
 
 class Config(BaseSettings):
-    """Main configuration class"""
-
     agent: AgentConfig = Field(default_factory=AgentConfig)
     tools: ToolsConfig = Field(default_factory=ToolsConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     api: APIConfig = Field(default_factory=APIConfig)
     advanced: AdvancedConfig = Field(default_factory=AdvancedConfig)
 
-    # Environment variables
+    # Environment variables for LLM providers
     anthropic_api_key: str | None = Field(None, alias="ANTHROPIC_API_KEY")
     openai_api_key: str | None = Field(None, alias="OPENAI_API_KEY")
     database_url: str = Field("sqlite:///~/.rann-agent/data/sessions.db", alias="DATABASE_URL")
@@ -124,48 +104,34 @@ class Config(BaseSettings):
 
     @classmethod
     def load(cls, config_path: Path | None = None) -> "Config":
-        """
-        Load configuration from file and environment
-
-        Args:
-            config_path: Path to config.yaml (defaults to ./config.yaml)
-        """
-        # Try to load from config.yaml
+        config_dict = {}
         if config_path is None:
             config_path = Path("config.yaml")
             if not config_path.exists():
                 config_path = Path.home() / ".rann-agent" / "config.yaml"
 
-        config_dict = {}
         if config_path.exists():
             with open(config_path) as f:
                 config_dict = yaml.safe_load(f) or {}
 
-        # Merge with environment variables
         return cls(**config_dict)
 
     def get_api_key(self, provider: str) -> str | None:
-        """Get API key for a provider"""
+        """Get API key for a provider - Clean generic architecture"""
         if provider == "anthropic":
             return self.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
         elif provider == "openai":
             return self.openai_api_key or os.getenv("OPENAI_API_KEY")
-        elif provider == "xkiro":
-            return os.getenv("HERMES_CUSTOM_API_XKIRO_COM_API_KEY")
         elif provider == "custom":
-            return os.getenv("CUSTOM_API_KEY") or os.getenv("HERMES_CUSTOM_SEEKAI_CC_API_KEY")
+            return os.getenv("LLM_API_KEY") or os.getenv("CUSTOM_API_KEY")
         return None
 
     def validate_config(self) -> list[str]:
-        """Validate configuration and return list of warnings"""
         warnings = []
-
-        # Check API keys
         provider = self.agent.llm.provider
         if not self.get_api_key(provider):
             warnings.append(f"No API key found for provider: {provider}")
 
-        # Check paths exist
         data_dir = Path(self.database_url.replace("sqlite:///", "")).parent
         if not data_dir.exists():
             warnings.append(f"Data directory does not exist: {data_dir}")

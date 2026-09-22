@@ -1,6 +1,6 @@
 """
 SQLite-based persistent storage for RANN Agent.
-As required by MASTER PROMPT Section 22.
+Extended with user authentication, sessions, and run ownership.
 """
 
 import sqlite3
@@ -46,69 +46,139 @@ class Database:
         return conn
 
     def _ensure_schema(self) -> None:
-        """Create all tables if they don't exist."""
+        """Create all tables if they don't exist, with migrations."""
         with self._get_conn() as conn:
+            # Create tables if they don't exist
             conn.executescript("""
-                CREATE TABLE IF NOT EXISTS schema_version (
-                    version INTEGER PRIMARY KEY,
-                    applied_at TEXT NOT NULL
+                -- Users table
+                CREATE TABLE IF NOT EXISTS users (
+                    id TEXT PRIMARY KEY,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    role TEXT DEFAULT 'user',
+                    disabled_at TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
                 );
 
+                CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+                -- Sessions table (including csrf_token_hash)
+                CREATE TABLE IF NOT EXISTS sessions (
+                    session_id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    revoked_at TEXT,
+                    ip_hash TEXT,
+                    token_hash TEXT,
+                    csrf_token_hash TEXT,
+                    last_seen_at TEXT,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+                CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+
+                -- IP bindings table
+                CREATE TABLE IF NOT EXISTS ip_bindings (
+                    ip_hash TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    last_seen_at TEXT NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_ip_bindings_expires ON ip_bindings(expires_at);
+
+                -- Tasks table with user_id
                 CREATE TABLE IF NOT EXISTS tasks (
                     task_id TEXT PRIMARY KEY,
                     contract_json TEXT NOT NULL,
                     state TEXT NOT NULL,
                     created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
+                    updated_at TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
                 );
 
+                -- Runs table with user_id
                 CREATE TABLE IF NOT EXISTS runs (
                     run_id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    session_id TEXT,
                     task_id TEXT NOT NULL,
                     start_time TEXT NOT NULL,
                     end_time TEXT,
                     result TEXT,
                     verification_level INTEGER DEFAULT 0,
+                    FOREIGN KEY (user_id) REFERENCES users(id),
+                    FOREIGN KEY (session_id) REFERENCES sessions(session_id),
                     FOREIGN KEY (task_id) REFERENCES tasks(task_id)
                 );
 
+                CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(user_id);
+                CREATE INDEX IF NOT EXISTS idx_runs_user ON runs(user_id);
+                CREATE INDEX IF NOT EXISTS idx_runs_task ON runs(task_id);
+
+                -- State transitions with user_id
                 CREATE TABLE IF NOT EXISTS state_transitions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     run_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
                     from_state TEXT,
                     to_state TEXT NOT NULL,
                     timestamp TEXT NOT NULL,
                     reason TEXT,
-                    FOREIGN KEY (run_id) REFERENCES runs(run_id)
+                    FOREIGN KEY (run_id) REFERENCES runs(run_id),
+                    FOREIGN KEY (user_id) REFERENCES users(id)
                 );
 
+                CREATE INDEX IF NOT EXISTS idx_transitions_run ON state_transitions(run_id);
+                CREATE INDEX IF NOT EXISTS idx_transitions_user ON state_transitions(user_id);
+
+                -- Tool calls with user_id
                 CREATE TABLE IF NOT EXISTS tool_calls (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     run_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
                     tool_name TEXT NOT NULL,
                     arguments_json TEXT NOT NULL,
                     result_json TEXT,
                     duration_ms REAL,
                     success INTEGER,
-                    FOREIGN KEY (run_id) REFERENCES runs(run_id)
+                    FOREIGN KEY (run_id) REFERENCES runs(run_id),
+                    FOREIGN KEY (user_id) REFERENCES users(id)
                 );
 
+                CREATE INDEX IF NOT EXISTS idx_tool_calls_run ON tool_calls(run_id);
+                CREATE INDEX IF NOT EXISTS idx_tool_calls_user ON tool_calls(user_id);
+
+                -- Evidence with user_id
                 CREATE TABLE IF NOT EXISTS evidence (
                     id TEXT PRIMARY KEY,
                     run_id TEXT,
+                    user_id TEXT,
                     claim TEXT NOT NULL,
                     evidence_type TEXT NOT NULL,
                     source TEXT NOT NULL,
                     data_json TEXT NOT NULL,
                     timestamp TEXT NOT NULL,
                     validated INTEGER DEFAULT 0,
-                    FOREIGN KEY (run_id) REFERENCES runs(run_id)
+                    FOREIGN KEY (run_id) REFERENCES runs(run_id),
+                    FOREIGN KEY (user_id) REFERENCES users(id)
                 );
 
+                CREATE INDEX IF NOT EXISTS idx_evidence_run ON evidence(run_id);
+                CREATE INDEX IF NOT EXISTS idx_evidence_user ON evidence(user_id);
+
+                -- Episodes with user_id
                 CREATE TABLE IF NOT EXISTS episodes (
                     episode_id TEXT PRIMARY KEY,
                     task_id TEXT,
                     run_id TEXT,
+                    user_id TEXT,
                     project_id TEXT,
                     task_category TEXT,
                     context_summary TEXT,
@@ -128,9 +198,11 @@ class Database:
                     lessons TEXT,
                     skill_candidates TEXT,
                     provenance TEXT,
-                    confidence REAL
+                    confidence REAL,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
                 );
 
+                -- Memories with user_id
                 CREATE TABLE IF NOT EXISTS memories (
                     memory_id TEXT PRIMARY KEY,
                     memory_type TEXT NOT NULL,
@@ -145,11 +217,17 @@ class Database:
                     usage_count INTEGER DEFAULT 0,
                     importance REAL DEFAULT 0.5,
                     status TEXT DEFAULT 'active',
+                    user_id TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
-                    last_verified TEXT
+                    last_verified TEXT,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
                 );
 
+                CREATE INDEX IF NOT EXISTS idx_memories_type ON memories(memory_type);
+                CREATE INDEX IF NOT EXISTS idx_memories_user ON memories(user_id);
+
+                -- Lessons table
                 CREATE TABLE IF NOT EXISTS lessons (
                     lesson_id TEXT PRIMARY KEY,
                     category TEXT,
@@ -162,6 +240,7 @@ class Database:
                     last_used TEXT
                 );
 
+                -- Skills table
                 CREATE TABLE IF NOT EXISTS skills (
                     skill_id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -182,6 +261,7 @@ class Database:
                     updated_at TEXT NOT NULL
                 );
 
+                -- Benchmarks table
                 CREATE TABLE IF NOT EXISTS benchmarks (
                     benchmark_id TEXT PRIMARY KEY,
                     task_category TEXT NOT NULL,
@@ -194,25 +274,38 @@ class Database:
                     created_at TEXT NOT NULL
                 );
 
+                -- Audit log with user_id
                 CREATE TABLE IF NOT EXISTS audit_log (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     actor TEXT,
+                    actor_type TEXT,
                     run_id TEXT,
+                    user_id TEXT,
                     task_id TEXT,
+                    session_id TEXT,
                     operation TEXT NOT NULL,
                     arguments_json TEXT,
                     policy_result TEXT,
                     result TEXT,
                     timestamp TEXT NOT NULL,
-                    affected_resources TEXT
+                    affected_resources TEXT,
+                    FOREIGN KEY (user_id) REFERENCES users(id),
+                    FOREIGN KEY (session_id) REFERENCES sessions(session_id),
+                    FOREIGN KEY (run_id) REFERENCES runs(run_id)
                 );
 
+                CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
+                CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_id);
+                CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_log(actor);
+
+                -- Operations table
                 CREATE TABLE IF NOT EXISTS operations (
                     operation_id TEXT PRIMARY KEY,
                     result_json TEXT,
                     created_at TEXT NOT NULL
                 );
 
+                -- Approval requests table
                 CREATE TABLE IF NOT EXISTS approval_requests (
                     request_id TEXT PRIMARY KEY,
                     approval_type TEXT NOT NULL,
@@ -224,356 +317,20 @@ class Database:
                     reviewed_at TEXT,
                     rejection_reason TEXT
                 );
-
-                CREATE INDEX IF NOT EXISTS idx_runs_task ON runs(task_id);
-                CREATE INDEX IF NOT EXISTS idx_transitions_run ON state_transitions(run_id);
-                CREATE INDEX IF NOT EXISTS idx_tool_calls_run ON tool_calls(run_id);
-                CREATE INDEX IF NOT EXISTS idx_evidence_run ON evidence(run_id);
-                CREATE INDEX IF NOT EXISTS idx_memories_type ON memories(memory_type);
-                CREATE INDEX IF NOT EXISTS idx_lessons_category ON lessons(category);
-                CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
             """)
+            
+            # Migration: Add csrf_token_hash column to sessions if missing
+            try:
+                conn.execute("ALTER TABLE sessions ADD COLUMN csrf_token_hash TEXT")
+                logger.info("migration_added", table="sessions", column="csrf_token_hash")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+            
+            # Migration: Add last_seen_at column to sessions if missing
+            try:
+                conn.execute("ALTER TABLE sessions ADD COLUMN last_seen_at TEXT")
+                logger.info("migration_added", table="sessions", column="last_seen_at")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+
             logger.info("schema_ensured", path=str(self.db_path))
-
-    # ---- Tasks ----
-    def save_task(self, task_id: str, contract_json: str, state: str) -> None:
-        import datetime
-
-        now = datetime.datetime.now(datetime.UTC).isoformat()
-        with self._get_conn() as conn:
-            conn.execute(
-                """INSERT OR REPLACE INTO tasks (task_id, contract_json, state, created_at, updated_at)
-                   VALUES (?, ?, ?, COALESCE((SELECT created_at FROM tasks WHERE task_id = ?), ?), ?)""",
-                (task_id, contract_json, state, task_id, now, now),
-            )
-
-    def get_task(self, task_id: str) -> dict[str, Any] | None:
-        with self._get_conn() as conn:
-            row = conn.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
-            return dict(row) if row else None
-
-    def list_tasks(self, limit: int = 50) -> list[dict[str, Any]]:
-        with self._get_conn() as conn:
-            rows = conn.execute(
-                "SELECT * FROM tasks ORDER BY updated_at DESC LIMIT ?", (limit,)
-            ).fetchall()
-            return [dict(r) for r in rows]
-
-    # ---- Runs ----
-    def save_run(
-        self,
-        run_id: str,
-        task_id: str,
-        start_time: str,
-        end_time: str | None = None,
-        result: str | None = None,
-        verification_level: int = 0,
-    ) -> None:
-        with self._get_conn() as conn:
-            conn.execute(
-                """INSERT OR REPLACE INTO runs (run_id, task_id, start_time, end_time, result, verification_level)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                (run_id, task_id, start_time, end_time, result, verification_level),
-            )
-
-    def get_run(self, run_id: str) -> dict[str, Any] | None:
-        with self._get_conn() as conn:
-            row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
-            return dict(row) if row else None
-
-    def get_incomplete_runs(self) -> list[dict[str, Any]]:
-        with self._get_conn() as conn:
-            rows = conn.execute(
-                "SELECT * FROM runs WHERE end_time IS NULL ORDER BY start_time DESC"
-            ).fetchall()
-            return [dict(r) for r in rows]
-
-    # ---- State Transitions ----
-    def record_transition(
-        self,
-        run_id: str,
-        from_state: str | None,
-        to_state: str,
-        reason: str | None = None,
-    ) -> None:
-        import datetime
-
-        now = datetime.datetime.now(datetime.UTC).isoformat()
-        with self._get_conn() as conn:
-            conn.execute(
-                "INSERT INTO state_transitions (run_id, from_state, to_state, timestamp, reason) VALUES (?, ?, ?, ?, ?)",
-                (run_id, from_state, to_state, now, reason),
-            )
-
-    def get_transitions(self, run_id: str) -> list[dict[str, Any]]:
-        with self._get_conn() as conn:
-            rows = conn.execute(
-                "SELECT * FROM state_transitions WHERE run_id = ? ORDER BY timestamp ASC",
-                (run_id,),
-            ).fetchall()
-            return [dict(r) for r in rows]
-
-    # ---- Tool Calls ----
-    def record_tool_call(
-        self,
-        run_id: str,
-        tool_name: str,
-        arguments_json: str,
-        result_json: str | None = None,
-        duration_ms: float | None = None,
-        success: bool | None = None,
-    ) -> int:
-        with self._get_conn() as conn:
-            cursor = conn.execute(
-                """INSERT INTO tool_calls (run_id, tool_name, arguments_json, result_json, duration_ms, success)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                (
-                    run_id,
-                    tool_name,
-                    arguments_json,
-                    result_json,
-                    duration_ms,
-                    int(success) if success is not None else None,
-                ),
-            )
-            return cursor.lastrowid or 0
-
-    def get_tool_calls(self, run_id: str) -> list[dict[str, Any]]:
-        with self._get_conn() as conn:
-            rows = conn.execute(
-                "SELECT * FROM tool_calls WHERE run_id = ? ORDER BY id ASC", (run_id,)
-            ).fetchall()
-            return [dict(r) for r in rows]
-
-    # ---- Evidence ----
-    def save_evidence(
-        self,
-        evidence_id: str,
-        claim: str,
-        evidence_type: str,
-        source: str,
-        data_json: str,
-        run_id: str | None = None,
-        validated: bool = False,
-    ) -> None:
-        import datetime
-
-        now = datetime.datetime.now(datetime.UTC).isoformat()
-        with self._get_conn() as conn:
-            conn.execute(
-                """INSERT OR REPLACE INTO evidence (id, run_id, claim, evidence_type, source, data_json, timestamp, validated)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    evidence_id,
-                    run_id,
-                    claim,
-                    evidence_type,
-                    source,
-                    data_json,
-                    now,
-                    int(validated),
-                ),
-            )
-
-    def get_evidence(self, evidence_id: str) -> dict[str, Any] | None:
-        with self._get_conn() as conn:
-            row = conn.execute("SELECT * FROM evidence WHERE id = ?", (evidence_id,)).fetchone()
-            return dict(row) if row else None
-
-    def search_evidence(self, claim_substring: str) -> list[dict[str, Any]]:
-        with self._get_conn() as conn:
-            rows = conn.execute(
-                "SELECT * FROM evidence WHERE claim LIKE ? ORDER BY timestamp DESC",
-                (f"%{claim_substring}%",),
-            ).fetchall()
-            return [dict(r) for r in rows]
-
-    # ---- Episodes ----
-    def save_episode(self, episode_id: str, data: dict[str, Any]) -> None:
-        import datetime
-
-        now = datetime.datetime.now(datetime.UTC).isoformat()
-        fields = ", ".join(data.keys())
-        placeholders = ", ".join(["?"] * len(data))
-        data["created_at"] = now
-        conn = self._get_conn()
-        conn.execute(
-            f"INSERT OR REPLACE INTO episodes (episode_id, {fields}) VALUES (?, {placeholders})",
-            [episode_id] + list(data.values()),
-        )
-        conn.commit()
-
-    # ---- Memories ----
-    def save_memory(self, memory_id: str, data: dict[str, Any]) -> None:
-        import datetime
-
-        now = datetime.datetime.now(datetime.UTC).isoformat()
-        data["updated_at"] = now
-        if "created_at" not in data:
-            data["created_at"] = now
-        fields = ", ".join(data.keys())
-        placeholders = ", ".join(["?"] * len(data))
-        conn = self._get_conn()
-        conn.execute(
-            f"INSERT OR REPLACE INTO memories (memory_id, {fields}) VALUES (?, {placeholders})",
-            [memory_id] + list(data.values()),
-        )
-        conn.commit()
-
-    def get_memory(self, memory_id: str) -> dict[str, Any] | None:
-        with self._get_conn() as conn:
-            row = conn.execute(
-                "SELECT * FROM memories WHERE memory_id = ?", (memory_id,)
-            ).fetchone()
-            return dict(row) if row else None
-
-    def search_memories(
-        self, content_substring: str, memory_type: str | None = None
-    ) -> list[dict[str, Any]]:
-        with self._get_conn() as conn:
-            if memory_type:
-                rows = conn.execute(
-                    "SELECT * FROM memories WHERE content LIKE ? AND memory_type = ? ORDER BY updated_at DESC",
-                    (f"%{content_substring}%", memory_type),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    "SELECT * FROM memories WHERE content LIKE ? ORDER BY updated_at DESC",
-                    (f"%{content_substring}%",),
-                ).fetchall()
-            return [dict(r) for r in rows]
-
-    # ---- Lessons ----
-    def save_lesson(self, lesson_id: str, data: dict[str, Any]) -> None:
-        import datetime
-
-        now = datetime.datetime.now(datetime.UTC).isoformat()
-        data["created_at"] = now
-        fields = ", ".join(data.keys())
-        placeholders = ", ".join(["?"] * len(data))
-        conn = self._get_conn()
-        conn.execute(
-            f"INSERT OR REPLACE INTO lessons (lesson_id, {fields}) VALUES (?, {placeholders})",
-            [lesson_id] + list(data.values()),
-        )
-        conn.commit()
-
-    def get_lessons(self, category: str | None = None) -> list[dict[str, Any]]:
-        with self._get_conn() as conn:
-            if category:
-                rows = conn.execute(
-                    "SELECT * FROM lessons WHERE category = ? AND validated = 1 ORDER BY confidence DESC",
-                    (category,),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    "SELECT * FROM lessons WHERE validated = 1 ORDER BY confidence DESC"
-                ).fetchall()
-            return [dict(r) for r in rows]
-
-    # ---- Audit Log ----
-    def record_audit(
-        self,
-        operation: str,
-        actor: str | None = None,
-        run_id: str | None = None,
-        task_id: str | None = None,
-        arguments_json: str | None = None,
-        policy_result: str | None = None,
-        result: str | None = None,
-        affected_resources: str | None = None,
-    ) -> None:
-        import datetime
-
-        now = datetime.datetime.now(datetime.UTC).isoformat()
-        with self._get_conn() as conn:
-            conn.execute(
-                """INSERT INTO audit_log (actor, run_id, task_id, operation, arguments_json, policy_result, result, timestamp, affected_resources)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    actor,
-                    run_id,
-                    task_id,
-                    operation,
-                    arguments_json,
-                    policy_result,
-                    result,
-                    now,
-                    affected_resources,
-                ),
-            )
-
-    # ---- Operations (idempotency) ----
-    def is_duplicate_operation(self, operation_id: str) -> bool:
-        with self._get_conn() as conn:
-            row = conn.execute(
-                "SELECT operation_id FROM operations WHERE operation_id = ?",
-                (operation_id,),
-            ).fetchone()
-            return row is not None
-
-    def record_operation(self, operation_id: str, result_json: str | None = None) -> None:
-        import datetime
-
-        now = datetime.datetime.now(datetime.UTC).isoformat()
-        with self._get_conn() as conn:
-            conn.execute(
-                "INSERT OR REPLACE INTO operations (operation_id, result_json, created_at) VALUES (?, ?, ?)",
-                (operation_id, result_json, now),
-            )
-
-    def clear_old_operations(self, older_than_hours: int = 24) -> int:
-        import datetime
-
-        cutoff = datetime.datetime.now(datetime.UTC) - datetime.timedelta(hours=older_than_hours)
-        with self._get_conn() as conn:
-            cursor = conn.execute(
-                "DELETE FROM operations WHERE created_at < ?", (cutoff.isoformat(),)
-            )
-            conn.commit()
-            return cursor.rowcount
-
-    # ---- Approvals ----
-    def save_approval_request(self, request_id: str, data: dict[str, Any]) -> None:
-        with self._get_conn() as conn:
-            fields = ", ".join(data.keys())
-            placeholders = ", ".join(["?"] * len(data))
-            conn.execute(
-                f"INSERT OR REPLACE INTO approval_requests (request_id, {fields}) VALUES (?, {placeholders})",
-                [request_id] + list(data.values()),
-            )
-
-    def get_approval_request(self, request_id: str) -> dict[str, Any] | None:
-        with self._get_conn() as conn:
-            row = conn.execute(
-                "SELECT * FROM approval_requests WHERE request_id = ?", (request_id,)
-            ).fetchone()
-            return dict(row) if row else None
-
-    def list_pending_approvals(self) -> list[dict[str, Any]]:
-        with self._get_conn() as conn:
-            rows = conn.execute(
-                "SELECT * FROM approval_requests WHERE status = 'pending' ORDER BY timestamp DESC"
-            ).fetchall()
-            return [dict(r) for r in rows]
-
-    def update_approval_status(
-        self,
-        request_id: str,
-        status: str,
-        reviewed_by: str | None = None,
-        rejection_reason: str | None = None,
-    ) -> None:
-        import datetime
-
-        now = datetime.datetime.now(datetime.UTC).isoformat()
-        with self._get_conn() as conn:
-            conn.execute(
-                """UPDATE approval_requests SET status = ?, reviewed_by = ?, reviewed_at = ?, rejection_reason = ?
-                   WHERE request_id = ?""",
-                (status, reviewed_by, now, rejection_reason, request_id),
-            )
-
-    def close(self) -> None:
-        """Close the singleton instance."""
-        Database._instance = None
