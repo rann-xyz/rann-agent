@@ -131,7 +131,7 @@ jobs:
         run: |
           echo "=== FAIL-CLOSED VERIFICATION ==="
           # Verify LocalExecutionBackend is marked DEVELOPMENT_ONLY
-          if grep -q "DEVEL\OPMENT_ONLY = True" rann_agent/execution/__init__.py 2>/dev/null; then
+          if grep -q "DEVELOPMENT_ONLY = True" rann_agent/execution/__init__.py 2>/dev/null; then
             echo "✅ LocalExecutionBackend properly marked DEVELOPMENT_ONLY"
           else
             echo "✅ Checking DEVELOPMENT_ONLY marker..."
