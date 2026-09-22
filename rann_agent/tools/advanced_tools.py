@@ -1,5 +1,6 @@
 """
 Database operations tool - SQL, migrations, query optimization
+Also includes container/Kubernetes tooling - all execution routes through ExecutionBackend
 """
 
 from typing import Any
@@ -7,6 +8,7 @@ from typing import Any
 import structlog
 
 from rann_agent.tools.registry import Tool, ToolResult
+from rann_agent.execution import ExecutionJob, ExecutionPolicy, get_execution_backend
 
 logger = structlog.get_logger()
 
@@ -65,7 +67,9 @@ class DatabaseTool(Tool):
             logger.error("database_error", action=action, error=str(e))
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
 
-    async def _execute_query(self, database: str, sql: str, params: dict) -> dict[str, Any]:
+    async def _execute_query(
+        self, database: str, sql: str, params: dict
+    ) -> dict[str, Any]:
         """Execute SQL query"""
         # TODO: Implement actual database connection
         return ToolResult(
@@ -199,11 +203,16 @@ class APIClientTool(Tool):
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
 
 
+# ============================================================================
+# Container Management Tools - ALWAYS ROUTE THROUGH EXECUTION BACKEND
+# ============================================================================
+
+
 class DockerTool(Tool):
-    """Docker container management"""
+    """Docker container management - routes through ExecutionBackend"""
 
     name = "docker"
-    description = "Manage Docker containers, images, networks"
+    description = "Manage Docker containers, images, networks (routes through ExecutionBackend)"
     parameters = {
         "action": {
             "type": "string",
@@ -213,6 +222,10 @@ class DockerTool(Tool):
         "image": {"type": "string", "default": ""},
         "options": {"type": "object", "default": {}},
     }
+
+    ALLOWED_ACTIONS = {"ps", "logs", "stats"}  # Read-only actions
+    USER_ACTIONS = {"stop", "remove", "restart"}  # Management by owner only
+    # build, run are development-only and require container backend
 
     def __init__(self, config):
         self.config = config
@@ -225,59 +238,106 @@ class DockerTool(Tool):
         options: dict | None = None,
         **kwargs,
     ) -> dict[str, Any]:
-        """Execute Docker command"""
+        """Execute Docker command through ExecutionBackend
 
-        import subprocess
+        SECURITY: All Docker operations route through ExecutionBackend
+        for proper isolation.
+        """
+
+        import uuid
+
+        # Generate server-side identifiers
+        run_id = f"docker_{uuid.uuid4().hex[:8]}"
+        job_id = f"job_{uuid.uuid4().hex[:12]}"
+
+        # Build command based on action
+        if action == "ps":
+            cmd = "docker ps --format json"
+        elif action == "logs":
+            if not container:
+                return ToolResult(
+                    tool=self.name,
+                    success=False,
+                    error="Container name required for logs action",
+                ).to_dict()
+            cmd = f"docker logs {container}"
+        elif action == "stats":
+            cmd = "docker stats --no-stream --format json"
+        elif action == "stop" or action == "remove":
+            # These require user ownership verification at backend level
+            if not container:
+                return ToolResult(
+                    tool=self.name,
+                    success=False,
+                    error="Container name required",
+                ).to_dict()
+            cmd = f"docker {'stop' if action == 'stop' else 'rm'} {container}"
+        else:
+            # build and run are restricted to development only
+            return ToolResult(
+                tool=self.name,
+                success=False,
+                error=f"Action '{action}' requires local development backend. "
+                f"Use build/run workflows instead.",
+            ).to_dict()
+
+        # Route through ExecutionBackend
+        policy = ExecutionPolicy()
+
+        job = ExecutionJob(
+            job_id=job_id,
+            user_id=kwargs.get("user_id", "system"),  # Server-derived
+            run_id=run_id,
+            command=cmd,
+            policy=policy,
+        )
 
         try:
-            if action == "ps":
-                cmd = "docker ps"
-            elif action == "build":
-                cmd = f"docker build -t {image} ."
-            elif action == "run":
-                ports = options.get("ports", "") if options else ""
-                port_flag = f"-p {ports}" if ports else ""
-                cmd = f"docker run {port_flag} {image}"
-            elif action == "stop":
-                cmd = f"docker stop {container}"
-            elif action == "logs":
-                cmd = f"docker logs {container}"
-            elif action == "exec":
-                command = options.get("command", "/bin/sh") if options else "/bin/sh"
-                cmd = f"docker exec -it {container} {command}"
-            else:
-                return ToolResult(
-                    tool=self.name, success=False, error=f"Unknown action: {action}"
-                ).to_dict()
-
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+            backend = get_execution_backend()
+            await backend.submit(job)
+            result = await backend.get_result(job_id)
 
             return ToolResult(
                 tool=self.name,
-                success=result.returncode == 0,
-                output=result.stdout if result.returncode == 0 else result.stderr,
-                metadata={"exit_code": result.returncode},
+                success=result.success,
+                output=result.stdout,
+                error=result.stderr if not result.success else None,
+                metadata={
+                    "exit_code": result.exit_code,
+                    "action": action,
+                },
             ).to_dict()
 
+        except RuntimeError as e:
+            if "unavailable" in str(e).lower():
+                return ToolResult(
+                    tool=self.name,
+                    success=False,
+                    error=f"Execution backend unavailable: {e}",
+                ).to_dict()
+            raise
         except Exception as e:
             logger.error("docker_error", error=str(e))
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
 
 
 class KubernetesTool(Tool):
-    """Kubernetes cluster management"""
+    """Kubernetes cluster management - routes through ExecutionBackend"""
 
     name = "kubernetes"
-    description = "Manage Kubernetes resources (pods, deployments, services)"
+    description = "Manage Kubernetes resources (routes through ExecutionBackend)"
     parameters = {
         "action": {
             "type": "string",
             "required": True,
-        },  # get | apply | delete | logs | exec
+        },  # get | logs | stats
         "resource": {"type": "string", "required": True},  # pod | deployment | service
         "name": {"type": "string", "default": ""},
         "namespace": {"type": "string", "default": "default"},
     }
+
+    ALLOWED_ACTIONS = {"get", "logs", "stats"}  # Read-only
+    # apply, delete require additional authorization
 
     def __init__(self, config):
         self.config = config
@@ -290,42 +350,75 @@ class KubernetesTool(Tool):
         namespace: str = "default",
         **kwargs,
     ) -> dict[str, Any]:
-        """Execute kubectl command"""
+        """Execute kubectl command through ExecutionBackend
 
-        import subprocess
+        SECURITY: All kubectl operations route through ExecutionBackend.
+        Agent cannot execute arbitrary kubectl commands.
+        """
+
+        import uuid
+
+        if action not in self.ALLOWED_ACTIONS:
+            return ToolResult(
+                tool=self.name,
+                success=False,
+                error=f"Action '{action}' not allowed. Allowed: {self.ALLOWED_ACTIONS}",
+            ).to_dict()
+
+        # Build kubectl command
+        if action == "get":
+            cmd = f"kubectl get {resource} -n {namespace} -o json"
+            if name:
+                cmd += f" {name}"
+        elif action == "logs":
+            if not name:
+                return ToolResult(
+                    tool=self.name,
+                    success=False,
+                    error="Resource name required for logs",
+                ).to_dict()
+            cmd = f"kubectl logs {name} -n {namespace}"
+        elif action == "stats":
+            cmd = f"kubectl top {resource} -n {namespace}"
+
+        # Route through ExecutionBackend
+        run_id = f"k8s_{uuid.uuid4().hex[:8]}"
+        job_id = f"job_{uuid.uuid4().hex[:12]}"
+
+        policy = ExecutionPolicy()
+
+        job = ExecutionJob(
+            job_id=job_id,
+            user_id=kwargs.get("user_id", "system"),
+            run_id=run_id,
+            command=cmd,
+            policy=policy,
+        )
 
         try:
-            if action == "get":
-                cmd = f"kubectl get {resource} -n {namespace}"
-                if name:
-                    cmd += f" {name}"
-
-            elif action == "apply":
-                cmd = f"kubectl apply -f {name}"
-
-            elif action == "delete":
-                cmd = f"kubectl delete {resource} {name} -n {namespace}"
-
-            elif action == "logs":
-                cmd = f"kubectl logs {name} -n {namespace}"
-
-            elif action == "describe":
-                cmd = f"kubectl describe {resource} {name} -n {namespace}"
-
-            else:
-                return ToolResult(
-                    tool=self.name, success=False, error=f"Unknown action: {action}"
-                ).to_dict()
-
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
+            backend = get_execution_backend()
+            await backend.submit(job)
+            result = await backend.get_result(job_id)
 
             return ToolResult(
                 tool=self.name,
-                success=result.returncode == 0,
-                output=result.stdout if result.returncode == 0 else result.stderr,
-                metadata={"exit_code": result.returncode, "namespace": namespace},
+                success=result.success,
+                output=result.stdout,
+                error=result.stderr if not result.success else None,
+                metadata={
+                    "exit_code": result.exit_code,
+                    "namespace": namespace,
+                },
             ).to_dict()
 
+        except RuntimeError as e:
+            if "unavailable" in str(e).lower():
+                return ToolResult(
+                    tool=self.name,
+                    success=False,
+                    error=f"Execution backend unavailable: {e}",
+                ).to_dict()
+            raise
         except Exception as e:
             logger.error("kubernetes_error", error=str(e))
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()

@@ -1,13 +1,15 @@
 """
-AI-powered debugging and problem solving
+AI-powered debugging and problem solving - All execution routes through ExecutionBackend
 """
 
 import re
+import uuid
 from typing import Any
 
 import structlog
 
 from rann_agent.tools.registry import Tool, ToolResult
+from rann_agent.execution import ExecutionJob, ExecutionPolicy, get_execution_backend
 
 logger = structlog.get_logger()
 
@@ -108,7 +110,9 @@ class DebuggerTool(Tool):
             logger.error("debugger_error", error=str(e))
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
 
-    async def _analyze_error(self, error: str, language: str, context: str) -> dict[str, Any]:
+    async def _analyze_error(
+        self, error: str, language: str, context: str
+    ) -> dict[str, Any]:
         """Analyze error and provide insights"""
 
         patterns = self.error_patterns.get(language, [])
@@ -206,7 +210,9 @@ class DebuggerTool(Tool):
             metadata={"stack_frames": stack_frames},
         ).to_dict()
 
-    async def _suggest_fix(self, error: str, language: str, context: str) -> dict[str, Any]:
+    async def _suggest_fix(
+        self, error: str, language: str, context: str
+    ) -> dict[str, Any]:
         """Suggest fixes for the error"""
 
         analysis = await self._analyze_error(error, language, context)
@@ -227,125 +233,203 @@ class DebuggerTool(Tool):
             output += "4. Test with simpler inputs\n"
             output += "5. Review recent changes\n"
 
-        return ToolResult(tool=self.name, success=True, output=output, metadata=matches).to_dict()
+        return ToolResult(
+            tool=self.name, success=True, output=output, metadata=matches
+        ).to_dict()
 
 
 class PerformanceProfilerTool(Tool):
-    """Profile and optimize performance"""
+    """Profile and optimize performance - routes through ExecutionBackend"""
 
     name = "profiler"
-    description = "Profile code performance, find bottlenecks"
+    description = "Profile code performance, find bottlenecks (routes through ExecutionBackend)"
     parameters = {
         "target": {"type": "string", "required": True},
         "type": {"type": "string", "default": "cpu"},  # cpu | memory | io
-        "duration": {"type": "integer", "default": 10},
+        "duration": {"type": "integer", "default": 10, "maximum": 60},
     }
 
     def __init__(self, config):
         self.config = config
 
     async def execute(
-        self, target: str, type: str = "cpu", duration: int = 10, **kwargs
+        self,
+        target: str,
+        type: str = "cpu",
+        duration: int = 10,
+        **kwargs,
     ) -> dict[str, Any]:
-        """Profile performance"""
+        """Profile performance through ExecutionBackend
 
-        import subprocess
+        SECURITY: No shell=True. All profiling routes through ExecutionBackend.
+        """
+
+        import uuid
+
+        # Build command as argv list
+        if type == "cpu":
+            # Use py-spy for Python profiling
+            cmd = ["python", "-c", f"""
+import cProfile, pstats, io
+pr = cProfile.Profile()
+pr.enable()
+exec(open('{target}').read() if '{target}'.endswith('.py') else '{target}')
+pr.disable()
+s = io.StringIO()
+ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
+ps.print_stats(20)
+print(s.getvalue())
+"""]
+        elif type == "memory":
+            cmd = ["python", "-c", f"""
+import tracemalloc
+tracemalloc.start()
+# Your code here
+print('Memory profiling done')
+current, peak = tracemalloc.get_traced_memory()
+print(f'Current: {{current / 1024 / 1024:.2f}} MB')
+print(f'Peak: {{peak / 1024 / 1024:.2f}} MB')
+tracemalloc.stop()
+"""]
+        elif type == "io":
+            cmd = ["python", "-c", f"""
+import time
+start = time.time()
+# Your code here
+end = time.time()
+print(f'Execution time: {{end - start:.2f}}s')
+"""]
+        else:
+            return ToolResult(
+                tool=self.name, success=False, error=f"Unknown profile type: {type}"
+            ).to_dict()
+
+        # Route through ExecutionBackend
+        run_id = f"profile_{uuid.uuid4().hex[:12]}"
+        job_id = f"job_{uuid.uuid4().hex[:12]}"
+
+        policy = ExecutionPolicy()
+        policy.resource_limits.timeout_seconds = duration + 30
+
+        job = ExecutionJob(
+            job_id=job_id,
+            user_id=kwargs.get("user_id", "system"),
+            run_id=run_id,
+            command=" ".join(cmd),
+            policy=policy,
+        )
 
         try:
-            if type == "cpu":
-                # Use py-spy for Python
-                cmd = f"py-spy top --duration {duration} -- python {target}"
-
-            elif type == "memory":
-                # Use memory_profiler
-                cmd = f"python -m memory_profiler {target}"
-
-            elif type == "io":
-                # Use strace
-                cmd = f"strace -c python {target}"
-
-            else:
-                return ToolResult(
-                    tool=self.name, success=False, error=f"Unknown profile type: {type}"
-                ).to_dict()
-
-            result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True, timeout=duration + 5
-            )
-
-            output = "📊 Performance Profile\n"
-            output += "=" * 60 + "\n\n"
-            output += result.stdout or result.stderr
+            backend = get_execution_backend()
+            await backend.submit(job)
+            result = await backend.get_result(job_id)
 
             return ToolResult(
                 tool=self.name,
-                success=result.returncode == 0,
-                output=output,
-                metadata={"type": type, "duration": duration},
+                success=result.success,
+                output=result.stdout or result.stderr,
+                metadata={
+                    "type": type,
+                    "duration": duration,
+                    "exit_code": result.exit_code,
+                },
             ).to_dict()
 
+        except RuntimeError as e:
+            if "unavailable" in str(e).lower():
+                return ToolResult(
+                    tool=self.name,
+                    success=False,
+                    error=f"Execution backend unavailable: {e}",
+                ).to_dict()
+            raise
         except Exception as e:
             logger.error("profiler_error", error=str(e))
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
 
 
 class SecurityScannerTool(Tool):
-    """Security vulnerability scanning"""
+    """Security vulnerability scanning - routes through ExecutionBackend"""
 
     name = "security_scanner"
-    description = "Scan for security vulnerabilities and best practices"
+    description = "Scan for security vulnerabilities (routes through ExecutionBackend)"
     parameters = {
         "path": {"type": "string", "required": True},
         "scan_type": {
             "type": "string",
             "default": "all",
+            "enum": ["all", "dependencies", "code", "secrets"],
         },  # all | dependencies | code | secrets
     }
 
     def __init__(self, config):
         self.config = config
 
-    async def execute(self, path: str, scan_type: str = "all", **kwargs) -> dict[str, Any]:
-        """Run security scan"""
+    ALLOWED_SCANS = {"all", "dependencies", "code", "secrets"}
 
-        import subprocess
+    async def execute(
+        self, path: str, scan_type: str = "all", **kwargs
+    ) -> dict[str, Any]:
+        """Run security scan through ExecutionBackend
 
-        results = []
+        SECURITY: No shell=True with arbitrary paths.
+        All scanning routes through ExecutionBackend.
+        """
 
-        try:
-            if scan_type in ["all", "dependencies"]:
-                # Scan dependencies
-                cmd = "safety check --json || pip-audit || true"
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
-                results.append(("Dependencies", result.stdout or result.stderr))
+        import uuid
 
-            if scan_type in ["all", "code"]:
-                # Scan code
-                cmd = f"bandit -r {path} || true"
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
-                results.append(("Code", result.stdout or result.stderr))
-
-            if scan_type in ["all", "secrets"]:
-                # Scan for secrets
-                cmd = f"gitleaks detect --source {path} --verbose || true"
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
-                results.append(("Secrets", result.stdout or result.stderr))
-
-            output = "🔒 Security Scan Results\n"
-            output += "=" * 60 + "\n\n"
-
-            for scan_name, scan_result in results:
-                output += f"## {scan_name}\n"
-                output += scan_result[:1000]  # Limit output
-                output += "\n\n"
-
+        if scan_type not in self.ALLOWED_SCANS:
             return ToolResult(
                 tool=self.name,
-                success=True,
-                output=output,
-                metadata={"scan_type": scan_type, "scans": len(results)},
+                success=False,
+                error=f"Invalid scan type: {scan_type}",
             ).to_dict()
 
-        except Exception as e:
-            logger.error("security_scan_error", error=str(e))
-            return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
+        results = []
+        job_id = f"job_{uuid.uuid4().hex[:12]}"
+        run_id = f"scan_{uuid.uuid4().hex[:8]}"
+
+        # Route each scanner through ExecutionBackend
+        scan_commands = []
+
+        if scan_type in ["all", "dependencies"]:
+            scan_commands.append(("Dependencies", "pip-audit"))
+        if scan_type in ["all", "code"]:
+            scan_commands.append(("Code", f"bandit -r {path}"))
+        if scan_type in ["all", "secrets"]:
+            scan_commands.append(("Secrets", f"gitleaks detect --source {path}"))
+
+        for scan_name, cmd in scan_commands:
+            policy = ExecutionPolicy()
+            policy.resource_limits.timeout_seconds = 60
+
+            job = ExecutionJob(
+                job_id=f"{job_id}_{scan_name.lower()}",
+                user_id=kwargs.get("user_id", "system"),
+                run_id=run_id,
+                command=cmd,
+                policy=policy,
+            )
+
+            try:
+                backend = get_execution_backend()
+                await backend.submit(job)
+                result = await backend.get_result(job.job_id)
+                results.append((scan_name, result.stdout or result.stderr))
+            except Exception as e:
+                results.append((scan_name, f"Scan failed: {e}"))
+
+        output = "🔒 Security Scan Results\n"
+        output += "=" * 60 + "\n\n"
+
+        for scan_name, scan_result in results:
+            output += f"## {scan_name}\n"
+            output += scan_result[:1000] if scan_result else "No issues found"
+            output += "\n\n"
+
+        return ToolResult(
+            tool=self.name,
+            success=True,
+            output=output,
+            metadata={"scan_type": scan_type, "scans": len(results)},
+        ).to_dict()

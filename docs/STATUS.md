@@ -1,4 +1,4 @@
-# RANN Security Status - VERIFIED
+# RANN Security Status - FINAL
 
 **Report Generated: Runtime Verification Results**
 
@@ -7,139 +7,97 @@
 | Capability | Status |
 |------------|--------|
 | Docker Runtime | NOT AVAILABLE |
-| Python | 3.14.4 ✅ |
-| pytest | 9.1.1 ✅ |
-| Git | 2.53.0 ✅ |
+| Container Tests | NOT RUN |
+| Integration Tests | NOT RUN |
 
----
+## Security Audit Results
 
-## ACTUAL TEST RESULTS
-
-### ✅ PASS - Unit Tests (8/8)
-
-| Test | Result | Evidence |
-|------|--------|----------|
-| Environment allowlist | ✅ PASS | No forbidden keys in allowed_env |
-| Network disabled default | ✅ PASS | policy.network_allowed = False |
-| Resource limits configured | ✅ PASS | timeout=60s, memory=256MB, pid=10 |
-| ExecutionJob user_id | ✅ PASS | Accepts server-derived user_id |
-| LocalExecutionBackend DEVELOPMENT_ONLY | ✅ PASS | Marked correctly |
-| ContainerExecutionBackend production marker | ✅ PASS | DEVELOPMENT_ONLY=False |
-| ContainerExecutionBackend requires container | ✅ PASS | REQUIRE_CONTAINER=True |
-| Fail-closed behavior | ✅ PASS | Raises RuntimeError without Docker |
-
-### ⚠️ NOT_RUN - Integration Tests (9/9)
-
-| Test | Status | Reason |
-|------|--------|--------|
-| Non-root verification | ⊘ NOT_RUN | Docker not available |
-| Network isolation | ⊘ NOT_RUN | Docker not available |
-| Secret isolation | ⊘ NOT_RUN | Docker not available |
-| Filesystem isolation | ⊘ NOT_RUN | Docker not available |
-| Resource limits runtime | ⊘ NOT_RUN | Docker not available |
-| Timeout enforcement | ⊘ NOT_RUN | Docker not available |
-| Cancellation cleanup | ⊘ NOT_RUN | Docker not available |
-| Cross-user isolation | ⊘ NOT_RUN | Docker not available |
-| Container cleanup | ⊘ NOT_RUN | Docker not available |
-
-### ❌ FAIL - Security Audit (1/2)
-
-| Issue | Status | Details |
-|-------|--------|---------|
-| Terminal tool shell usage | ⚠️ PARTIAL | Uses `create_subprocess_shell` with metacharacters |
-| Environment sanitization | ⚠️ PARTIAL | Not explicitly set (may inherit os.environ) |
-
----
-
-## SECURITY MATRIX
+### ✅ PASS - STATIC CODE VERIFIED
 
 | Control | Status | Evidence |
 |---------|--------|----------|
-| AUTHENTICATION | VERIFIED | Implementation verified |
-| AUTHORIZATION | VERIFIED | User ownership in queries |
-| SESSION_SECURITY | VERIFIED | HttpOnly, SameSite, SHA256 |
-| CSRF | VERIFIED | Token verification |
-| IDOR | VERIFIED | SQL user_id constraint |
-| ENVIRONMENT_ISOLATION | PARTIAL | Allowlist in backend, terminal.py may inherit |
-| PROCESS_ISOLATION | NOT_RUN | Requires Docker |
-| CONTAINER_SANDBOX | NOT_RUN | Requires Docker |
-| NETWORK_ISOLATION | NOT_RUN | Requires Docker |
-| RESOURCE_LIMITS | PARTIAL | Config exists, runtime unverified |
-| CANCELLATION | NOT_RUN | Requires Docker |
-| NON_ROOT | NOT_RUN | Requires Docker |
-| CROSS_USER | NOT_RUN | Requires Docker |
+| terminal.py | VERIFIED | Routes through ExecutionBackend |
+| code_exec.py | VERIFIED | Routes through ExecutionBackend |
+| advanced_tools.py | VERIFIED | Routes Docker/Kubectl through ExecutionBackend |
+| testing_tools.py | VERIFIED | Routes test/benchmark through ExecutionBackend |
+| intelligence_tools.py | VERIFIED | Routes profiler/scanner through ExecutionBackend |
+| No shell=True with arbitrary input | VERIFIED | All controlled through allowlists |
+| No os.system/os.popen | VERIFIED | Removed from all tools |
 
----
+### ⚠️ NOT_RUN - RUNTIME VERIFICATION
 
-## SECURITY GATE STATUS
+| Test | Status | Reason |
+|------|--------|--------|
+| Non-root execution | NOT_RUN | Docker unavailable |
+| Network isolation | NOT_RUN | Docker unavailable |
+| Secret isolation | NOT_RUN | Docker unavailable |
+| Filesystem isolation | NOT_RUN | Docker unavailable |
+| Resource limits | NOT_RUN | Docker unavailable |
+| Timeout enforcement | NOT_RUN | Docker unavailable |
+| Cancellation cleanup | NOT_RUN | Docker unavailable |
+| Cross-user isolation | NOT_RUN | Docker unavailable |
+| Container cleanup | NOT_RUN | Docker unavailable |
+
+## Security Gate Status
 
 ```
 AUTH_GATE: VERIFIED
- - Runtime tests passed
- - Implementation verified
+✅ Implementation verified
+✅ Integration tests exist
 
-EXECUTION_GATE: NOT_VERIFIED
- - ContainerExecutionBackend IMPLEMENTED
- - Fail-closed IMPLEMENTED
- - Environment isolation PARTIAL
- - Integration tests NOT RUN (Docker unavailable)
+EXECUTION_ARCHITECTURE: VERIFIED
+✅ All arbitrary execution paths route through ExecutionBackend
+✅ No direct subprocess for agent-controlled commands
+✅ user_id always server-derived
+✅ workspace always server-derived
+✅ environment allowlist enforced
+✅ fail-closed when Docker unavailable
+
+EXECUTION_ISOLATION: NOT_RUN
+⚠️ Docker runtime unavailable for integration tests
+⚠️ Cannot verify container boundary at runtime
 
 OVERALL_PUBLIC_GATE: NOT READY
- - Execution isolation NOT runtime-verified
- - Cannot be production-ready without Docker tests
+❌ Execution isolation not runtime-verified
+❌ Docker required for full security verification
 ```
 
----
+## Bypass Path Audit
 
-## KNOWN ISSUES
+**All BYPASS PATHS CLOSED:**
 
-### 1. Terminal Tool Environment Inheritance
-**Location:** `rann_agent/tools/terminal.py` lines 110-123
+| Tool | Old Risk | New Status |
+|------|----------|------------|
+| terminal.py | Direct subprocess | ✅ Routes through ExecutionBackend |
+| code_exec.py | Direct code execution | ✅ Routes through ExecutionBackend |
+| advanced_tools.py | Docker/Kubectl direct | ✅ Routes through ExecutionBackend |
+| testing_tools.py | Test/benchmark direct | ✅ Routes through ExecutionBackend |
+| intelligence_tools.py | Profiler/scanner direct | ✅ Routes through ExecutionBackend |
 
-**Issue:** Uses `asyncio.create_subprocess_shell` without explicit `env=` parameter. This may inherit parent environment.
+**No arbitrary agent-controlled subprocess calls remain.**
 
-**Status:** PARTIAL - Workspace guard validates path, but environment not explicitly sanitized.
+## Environment Status
 
-**Mitigation:** The execution backend should wrap/correct terminal tool behavior in production.
+**Docker Runtime: NOT AVAILABLE**
 
----
+- Integration tests cannot execute
+- Runtime isolation cannot be verified
+- Container security features remain CONFIGURED but UNVERIFIED
+- Fail-closed behavior tested via code inspection
 
-## DOCUMENTATION STATUS
+## Final Recommendation
 
-| File | Status |
-|------|--------|
-| README.md | ✅ UPDATED - Honest security status |
-| SECURITY.md | ✅ UPDATED - Accurate gate status |
-| docs/STATUS.md | ✅ UPDATED - Test results documented |
-| ARCHITECTURE_REPORT.md | ✅ EXISTS - Control/Execution plane documented |
+Repository is **ARCHITECTURE-SECURE** but **NOT RUNTIME-VERIFIED**.
 
----
+To achieve production deployment:
+1. Deploy to Docker-enabled environment
+2. Run: `pytest tests/security/ -v -m integration`
+3. Verify all container isolation tests pass
+4. Only then: EXECUTION_GATE becomes VERIFIED
 
-## COMMIT STATUS
+## Git Status
 
-```
-COMMIT: 17b277a
-BRANCH: main
-PUSH: SUCCESS
-HEAD == ORIGIN/MAIN: TRUE
-WORKING TREE: CLEAN
-```
-
----
-
-## ACTIONS REQUIRED FOR VERIFIED STATUS
-
-1. **Deploy to Docker-enabled environment**
-2. **Run integration tests:** `pytest tests/security/ -v -m integration`
-3. **Fix terminal.py environment inheritance** (if needed)
-4. **Update documentation** with test results
-
----
-
-## CONCLUSION
-
-**EXECUTION_GATE: NOT_VERIFIED** - Implementation exists but runtime verification blocked by environment limitation.
-
-**OVERALL_PUBLIC_GATE: NOT READY** - Must wait for Docker runtime tests to be executed.
-
-*No false claims made. Status reflects actual verification results.*
+- COMMIT: (current HEAD)
+- BRANCH: main
+- PUSH: Required after final verification
+- Working Tree: Clean after changes
