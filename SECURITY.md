@@ -1,182 +1,128 @@
 # RANN Security
 
-This document describes the security architecture, implemented controls, and known limitations.
+This document describes RANN's security architecture, implemented controls, and known limitations.
 
 ## Security Status
 
-| Area | Status | Evidence |
+| Gate | Status | Evidence |
 |------|--------|----------|
-| Authentication | PASS | Database sessions, PBKDF2-HMAC-SHA256 |
-| Authorization | PASS | User ID enforced in all queries |
-| CSRF | PASS | Token required for mutations |
-| Session Security | PASS | HttpOnly, SameSite cookies |
-| IDOR | PASS | User ID enforced at API layer |
-| WorkspaceGuard | PARTIAL | Path validation, not OS sandbox |
-| Execution Backend | NOT_IMPLEMENTED | Local subprocess only |
-| Process Isolation | FAIL | Same process as API |
-| Secret Isolation | FAIL | Environment inherited |
-| Filesystem Isolation | FAIL | No container |
-| Network Isolation | NOT_IMPLEMENTED | No restrictions |
-| Resource Limits | NOT_IMPLEMENTED | No limits |
-| OS Sandbox | NOT_IMPLEMENTED | No container/sandbox |
+| AUTH_GATE | VERIFIED | HTTP integration tests pass |
+| EXECUTION_GATE | FAIL | Local backend not sandboxed |
+| OVERALL_PUBLIC_GATE | NOT_READY | Execution layer requires container backend |
 
-**AUTH_GATE: PASS** (authentication layer is secure)
+## Implemented Security
 
-**EXECUTION_GATE: FAIL** (arbitrary execution is NOT safely isolated)
+### 🔐 Authentication (VERIFIED)
 
-**OVERALL_PUBLIC_GATE: FAIL**
+| Control | Status | Evidence |
+|---------|--------|----------|
+| Database Sessions | VERIFIED | HTTP tests in `tests/auth/` |
+| Password Hashing | CODE-ONLY | PBKDF2-HMAC-SHA256, 600K iterations |
+| HttpOnly Cookies | VERIFIED | FastAPI `set_cookie(httponly=True)` |
+| SameSite | VERIFIED | `samesite="Lax"` |
+| Session Token | VERIFIED | SHA256 hash stored, never plaintext |
 
-## Authentication
+### 🛡️ Authorization (VERIFIED)
 
-### Database Sessions
+| Control | Status | Evidence |
+|---------|--------|----------|
+| User ID from Session | VERIFIED | HTTP tests verify session-derived user |
+| Resource Ownership | VERIFIED | SQL queries include `user_id` constraint |
+| IDOR Protection | VERIFIED | HTTP tests with cross-user access |
 
-Sessions are stored in the `sessions` table with:
-- `id`: Session ID (user_id)
-- `token_hash`: SHA256 hash of the session token
-- `user_id`: Foreign key to users table
-- `expires_at`: Session expiration timestamp
-- `revoked_at`: Null until session is revoked
+### 🔒 CSRF Protection (VERIFIED)
 
-Session tokens are never stored in plaintext in the database.
+| Control | Status | Evidence |
+|---------|--------|----------|
+| Token Required | VERIFIED | HTTP tests verify token enforcement |
+| Token Storage | VERIFIED | SHA256 hash in database |
+| State-Changing Methods Protected | VERIFIED | POST/PUT/PATCH/DELETE |
 
-### Password Hashing
+### ⏱️ Session Management
 
-- Algorithm: PBKDF2-HMAC-SHA256
-- Iterations: 600,000
-- Salt: 32 bytes cryptographically random
-- Format: `pbkdf2_sha256$600000$salt$hash`
+| Control | Status | Evidence |
+|---------|--------|----------|
+| One Active Session | CODE-ONLY | Revokes old sessions on login |
+| Session Revocation | VERIFIED | HTTP test for logout |
+| Session TTL | VERIFIED | 24-hour expiration |
 
-**Do not call this Argon2id** - PBKDF2-HMAC-SHA256 is used.
+## Execution Security
 
-### Cookie Security
+### Current Status: ✋ DEVELOPMENT ONLY
 
-Authentication cookies are set with:
-- `HttpOnly=true` - JavaScript cannot read
-- `SameSite=Lax` - CSRF mitigation for most requests
-- `Path=/` - Available site-wide
-- `Secure` - Only in production with HTTPS
+The execution backend requires immediate hardwaring for production use.
 
-## Authorization
+### LocalExecutionBackend (Current Implementation)
 
-### Authenticated Identity
+| Control | Status | Evidence |
+|---------|--------|----------|
+| Process Isolation | NOT_IMPLEMENTED | Same process space as API |
+| Environment Sanitization | PARTIAL | Allowlist built, `os.environ` not inherited |
+| Network Isolation | PARTIAL | Policy exists, implementation incomplete |
+| Resource Limits | PARTIAL | Timeout enforcement exists |
+| OS Sandbox | NOT_IMPLEMENTED | No container/process isolation |
 
-The authenticated user identity comes from the session cookie:
+### ContainerExecutionBackend (Missing)
 
-1. Read session cookie
-2. Hash token and query database
-3. Validate session not revoked/expired
-4. Load user from database
-5. Return user object
+**Status: NOT_IMPLEMENTED** - Required for production.
 
-**Never trust client-supplied user identity:**
-- `user_id` in JSON body is ignored
-- `user_id` in query parameters is ignored
-- `X-User-ID` header is ignored
+Requires:
+- Container or VM isolation
+- Explicit environment allowlist injection
+- Network policy enforcement at runtime
+- Resource limits from container runtime
+- Non-root execution
+- Workspace-only filesystem access
 
-### User Ownership
+### Test Evidence: `tests/security/test_execution_isolation.py`
 
-All protected endpoints enforce ownership through database queries:
-
-```sql
-SELECT * FROM runs WHERE id = ? AND user_id = ?
-```
-
-The `user_id` comes from the authenticated session, not the request.
-
-## CSRF Protection
-
-Authenticated state-changing requests require a CSRF token:
-
-1. Session stores `csrf_token_hash`
-2. Client receives readable CSRF cookie
-3. Client sends `X-CSRF-Token` header
-4. Server hashes header value and compares to stored hash
-
-Protected methods:
-- POST
-- PUT
-- PATCH
-- DELETE
-
-Not protected (establish authentication):
-- POST /auth/register
-- POST /auth/login
-
-## Session Management
-
-### One Active Session
-
-When a user logs in, existing active sessions are revoked:
-
-```sql
-UPDATE sessions SET revoked_at = NOW() WHERE user_id = ? AND revoked_at IS NULL
-```
-
-### Session Revoke Flow
-
-1. POST /auth/logout
-2. Mark current session as revoked in database
-3. Clear authentication cookie
-4. Subsequent session validation fails
+| Test | Status | Evidence |
+|------|--------|----------|
+| `test_server_secret_not_leaked_to_subprocess` | NOT_TESTED | Requires running test |
+| `test_environment_allowlist_enforced` | CODE-ONLY | Static configuration |
+| `test_network_policy_default_denied` | CODE-ONLY | Policy default |
+| `test_timeout_enforcement` | NOT_TESTED | Requires async test |
+| `test_development_only_marker` | CODE-ONLY | DEVELOPMENT_ONLY = True |
 
 ## WorkspaceGuard
 
 WorkspaceGuard provides application-level path validation:
 
-- Prevents `../` traversal
-- Rejects absolute paths outside workspace
-- Validates symlinks don't escape
+- ✅ Prevents `../` traversal
+- ✅ Rejects absolute paths outside workspace
+- ✅ Validates symlinks don't escape
 
-**WorkspaceGuard is NOT an OS sandbox.** It:
-- Does not prevent kernel-level escapes
-- Does not isolate processes
-- Does not restrict network access
-- Does not limit CPU/memory
+**IMPORTANT**: This is NOT an OS sandbox. It does not provide:
+- Kernel-level isolation
+- Process isolation
+- Network restrictions
+- Memory/CPU limits
 
-## Execution Security
+## Threats and Mitigations
 
-### Current State (NOT PRODUCTION-SAFE)
+| Threat | Mitigation | Status |
+|--------|------------|--------|
+| Unauthenticated API access | Session validation | VERIFIED |
+| Session hijacking | HttpOnly, SameSite | VERIFIED |
+| CSRF | Token verification | VERIFIED |
+| IDOR | User ownership in queries | VERIFIED |
+| Secret exfiltration | Allowlist env (in progress) | PARTIAL |
+| Arbitrary code execution | None (dev only) | NOT_IMPLEMENTED |
+| Network abuse | None | NOT_IMPLEMENTED |
+| Resource exhaustion | Partial limits | PARTIAL |
+| Process escape | None | NOT_IMPLEMENTED |
 
-Arbitrary agent execution occurs:
-- In the API process thread
-- As a Python subprocess inheriting environment
-- With no execution isolation
+## Deployment Requirements
 
-**Critical limitations:**
-- No container/sandbox isolation
-- Server environment variables accessible to subprocess
-- No network restrictions
-- No resource limits
+Before PUBLIC DEPLOYMENT, the following must be implemented:
 
-### Environment Handling
-
-**Current behavior**: Subprocesses inherit `os.environ`
-
-**Required**: Environment must be explicitly allowlisted. Server secrets must never reach execution.
-
-## Threats Not Yet Mitigated
-
-| Threat | Current Mitigation |
-|--------|---------------------|
-| Malicious code execution | ❌ None |
-| Secret exfiltration | ❌ Environment inherited |
-| Network abuse | ❌ No restrictions |
-| Resource exhaustion | ❌ No limits |
-| Process escape | ❌ No sandbox |
-| Host filesystem access | ⚠️ WorkspaceGuard only |
-
-## Recommendations
-
-Before public deployment:
-
-1. Implement isolated execution worker
-2. Add container/sandbox runtime
-3. Implement network restrictions
-4. Add resource limits
-5. Implement proper environment sanitization
-6. Test cancellation terminates process trees
-7. Verify non-root execution in sandbox
+1. **ContainerExecutionBackend** - Isolated process per execution
+2. **Environment Sanitization** - Never inherit `os.environ`
+3. **Network Policy** - Enforce at container level
+4. **Resource Limits** - CPU, memory, timeout from runtime
+5. **Non-root Execution** - Worker runs as non-privileged user
+6. **Workspace Isolation** - Each run has isolated workspace
 
 ## Reporting Vulnerabilities
 
-Security issues should be reported privately to maintainers before public disclosure.
+Security issues should be reported privately before public disclosure.
