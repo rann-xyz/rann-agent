@@ -1,186 +1,147 @@
 """
-Code execution tool
+Code Execution Tool - Routes ALL code execution through ExecutionBackend
+
+SECURITY: This tool NO LONGER executes code directly.
+All execution routes through the ExecutionBackend abstraction.
 """
 
 import asyncio
+import uuid
+import tempfile
 from pathlib import Path
 from typing import Any
 
 import structlog
 
 from rann_agent.tools.registry import Tool, ToolResult
+from rann_agent.core.security import WorkspaceGuard
+from rann_agent.execution import (
+    ExecutionJob,
+    ExecutionPolicy,
+    ExecutionStatus,
+    get_execution_backend,
+)
+from rann_agent.auth.session import get_current_user_id
 
 logger = structlog.get_logger()
 
 
-class CodeExecutionTool(Tool):
-    """Execute code in various languages"""
+class CodeExecTool(Tool):
+    """Execute Python code through isolated execution backend."""
 
     name = "code_exec"
-    description = "Execute Python, JavaScript, or shell code"
+    description = "Execute Python code through sandboxed execution backend"
     parameters = {
         "code": {"type": "string", "required": True},
-        "language": {
-            "type": "string",
-            "default": "python",
-        },  # python | javascript | bash
-        "timeout": {"type": "integer", "default": 300},
+        "timeout": {"type": "integer", "default": 30},
+        "language": {"type": "string", "default": "python"},
     }
 
-    def __init__(self, config):
+    DEFAULT_WORKSPACE = Path.cwd()
+
+    def __init__(self, config, session_id: str | None = None):
         self.config = config
-        self.sandbox = config.tools.code_exec.get("sandbox", True)
-        self.timeout = config.tools.code_exec.get("timeout", 300)
-        self.allowed_languages = config.tools.code_exec.get(
-            "allowed_languages", ["python", "javascript", "bash"]
-        )
+        self.workspace_root = self.DEFAULT_WORKSPACE.resolve()
+        self.guard = WorkspaceGuard(self.workspace_root)
+        self.session_id = session_id
 
     async def execute(
-        self, code: str, language: str = "python", timeout: int | None = None, **kwargs
+        self,
+        code: str,
+        timeout: int | None = None,
+        language: str = "python",
+        **kwargs,
     ) -> dict[str, Any]:
-        """Execute code"""
+        """Execute Python code through ExecutionBackend.
 
-        if language not in self.allowed_languages:
-            return ToolResult(
-                tool=self.name, success=False, error=f"Language not allowed: {language}"
-            ).to_dict()
+        SECURITY: Never executes directly in API process.
+        Always routes through backend for isolation.
+        """
 
-        timeout = timeout or self.timeout
-
-        try:
-            logger.info("code_exec_start", language=language, lines=len(code.splitlines()))
-
-            if language == "python":
-                result = await self._execute_python(code, timeout)
-            elif language == "javascript":
-                result = await self._execute_javascript(code, timeout)
-            elif language == "bash":
-                result = await self._execute_bash(code, timeout)
-            else:
-                return ToolResult(
-                    tool=self.name,
-                    success=False,
-                    error=f"Unsupported language: {language}",
-                ).to_dict()
-
-            return result
-
-        except Exception as e:
-            logger.error("code_exec_error", error=str(e))
-            return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
-
-    async def _execute_python(self, code: str, timeout: int) -> dict[str, Any]:
-        """Execute Python code"""
-        # Create temp file
-        import tempfile
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-            f.write(code)
-            temp_path = f.name
-
-        try:
-            process = await asyncio.create_subprocess_exec(
-                "python3",
-                temp_path,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-
-            try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
-
-                output = stdout.decode() if stdout else ""
-                error = stderr.decode() if stderr else ""
-
-                return ToolResult(
-                    tool=self.name,
-                    success=process.returncode == 0,
-                    output=output if process.returncode == 0 else error,
-                    error=error if process.returncode != 0 else None,
-                    metadata={"language": "python", "exit_code": process.returncode},
-                ).to_dict()
-
-            except asyncio.TimeoutError:
-                process.kill()
-                return ToolResult(
-                    tool=self.name,
-                    success=False,
-                    error=f"Execution timed out after {timeout}s",
-                ).to_dict()
-
-        finally:
-            Path(temp_path).unlink(missing_ok=True)
-
-    async def _execute_javascript(self, code: str, timeout: int) -> dict[str, Any]:
-        """Execute JavaScript code with Node.js"""
-        import tempfile
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".js", delete=False) as f:
-            f.write(code)
-            temp_path = f.name
-
-        try:
-            process = await asyncio.create_subprocess_exec(
-                "node",
-                temp_path,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-
-            try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
-
-                output = stdout.decode() if stdout else ""
-                error = stderr.decode() if stderr else ""
-
-                return ToolResult(
-                    tool=self.name,
-                    success=process.returncode == 0,
-                    output=output if process.returncode == 0 else error,
-                    error=error if process.returncode != 0 else None,
-                    metadata={
-                        "language": "javascript",
-                        "exit_code": process.returncode,
-                    },
-                ).to_dict()
-
-            except asyncio.TimeoutError:
-                process.kill()
-                return ToolResult(
-                    tool=self.name,
-                    success=False,
-                    error=f"Execution timed out after {timeout}s",
-                ).to_dict()
-
-        finally:
-            Path(temp_path).unlink(missing_ok=True)
-
-    async def _execute_bash(self, code: str, timeout: int) -> dict[str, Any]:
-        """Execute bash script"""
-        process = await asyncio.create_subprocess_shell(
-            code,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-
-        try:
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
-
-            output = stdout.decode() if stdout else ""
-            error = stderr.decode() if stderr else ""
-
-            return ToolResult(
-                tool=self.name,
-                success=process.returncode == 0,
-                output=output if process.returncode == 0 else error,
-                error=error if process.returncode != 0 else None,
-                metadata={"language": "bash", "exit_code": process.returncode},
-            ).to_dict()
-
-        except asyncio.TimeoutError:
-            process.kill()
+        # Get server-derived user_id from session
+        user_id = await get_current_user_id(self.session_id)
+        if not user_id:
             return ToolResult(
                 tool=self.name,
                 success=False,
-                error=f"Execution timed out after {timeout}s",
+                error="Authentication required - no active session",
+            ).to_dict()
+
+        # Generate server-side identifiers
+        run_id = f"run_{uuid.uuid4().hex[:12]}"
+        job_id = f"exec_{uuid.uuid4().hex[:12]}"
+        workspace_id = f"ws_{uuid.uuid4().hex[:8]}"
+
+        # Create execution policy
+        policy = ExecutionPolicy()
+        policy.resource_limits.timeout_seconds = timeout or 30
+
+        # Create Python execution command
+        if language == "python":
+            # Create temp file with code
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+                f.write(code)
+                temp_path = f.name
+
+            command = ["python3", temp_path]
+            cleanup = f"rm -f {temp_path}"
+        else:
+            return ToolResult(
+                tool=self.name,
+                success=False,
+                error=f"Language not supported: {language}",
+            ).to_dict()
+
+        # Create execution job
+        job = ExecutionJob(
+            job_id=job_id,
+            user_id=user_id,
+            run_id=run_id,
+            workspace_id=workspace_id,
+            command=" ".join(command),  # Will be executed in container
+            policy=policy,
+        )
+
+        try:
+            # Get execution backend
+            backend = get_execution_backend()
+
+            # Submit to backend
+            await backend.submit(job)
+
+            # Get result
+            result = await backend.get_result(job_id)
+
+            # Add cleanup to result
+            output = result.stdout
+            if cleanup:
+                output += f"\n{cleanup}"
+
+            return ToolResult(
+                tool=self.name,
+                success=result.success,
+                output=output,
+                error=result.stderr if not result.success else None,
+                metadata={
+                    "job_id": job_id,
+                    "status": result.status.value,
+                    "exit_code": result.exit_code,
+                    "duration": result.duration_seconds,
+                },
+            ).to_dict()
+
+        except RuntimeError as e:
+            if "unavailable" in str(e).lower():
+                return ToolResult(
+                    tool=self.name,
+                    success=False,
+                    error=f"Execution backend unavailable: {e}",
+                ).to_dict()
+            raise
+
+        except Exception as e:
+            return ToolResult(
+                tool=self.name,
+                success=False,
+                error=f"Execution failed: {e}",
             ).to_dict()
