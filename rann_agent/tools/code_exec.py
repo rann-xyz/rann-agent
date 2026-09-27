@@ -6,14 +6,14 @@ All execution routes through the ExecutionBackend abstraction.
 """
 
 import asyncio
-import uuid
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Any
 
 import structlog
 
-from rann_agent.tools.registry import Tool, ToolResult
+from rann_agent.auth.session import get_current_user_id
 from rann_agent.core.security import WorkspaceGuard
 from rann_agent.execution import (
     ExecutionJob,
@@ -21,7 +21,7 @@ from rann_agent.execution import (
     ExecutionStatus,
     get_execution_backend,
 )
-from rann_agent.auth.session import get_current_user_id
+from rann_agent.tools.registry import Tool, ToolResult
 
 logger = structlog.get_logger()
 
@@ -79,7 +79,7 @@ class CodeExecTool(Tool):
         # Create Python execution command
         if language == "python":
             # Create temp file with code
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
                 f.write(code)
                 temp_path = f.name
 

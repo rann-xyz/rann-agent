@@ -21,14 +21,13 @@ import pytest
 sys.path.insert(0, "/home/userland/rann-agent")
 
 from rann_agent.execution import (
+    ContainerExecutionBackend,
     ExecutionJob,
     ExecutionPolicy,
     ExecutionStatus,
     LocalExecutionBackend,
-    ContainerExecutionBackend,
     get_execution_backend,
 )
-
 
 # ============================================================================
 # UNIT TESTS (No Docker required)

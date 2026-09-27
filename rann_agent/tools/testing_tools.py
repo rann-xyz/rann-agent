@@ -7,8 +7,8 @@ from typing import Any
 
 import structlog
 
-from rann_agent.tools.registry import Tool, ToolResult
 from rann_agent.execution import ExecutionJob, ExecutionPolicy, get_execution_backend
+from rann_agent.tools.registry import Tool, ToolResult
 
 logger = structlog.get_logger()
 
@@ -133,9 +133,7 @@ class LinterTool(Tool):
     def __init__(self, config):
         self.config = config
 
-    async def execute(
-        self, tool: str, path: str, fix: bool = False, **kwargs
-    ) -> dict[str, Any]:
+    async def execute(self, tool: str, path: str, fix: bool = False, **kwargs) -> dict[str, Any]:
         """Run linter through ExecutionBackend
 
         SECURITY: Restricted to allowlist of tools.
@@ -323,9 +321,7 @@ class CoverageTool(Tool):
     def __init__(self, config):
         self.config = config
 
-    async def execute(
-        self, path: str = ".", format: str = "html", **kwargs
-    ) -> dict[str, Any]:
+    async def execute(self, path: str = ".", format: str = "html", **kwargs) -> dict[str, Any]:
         """Run coverage analysis through ExecutionBackend"""
 
         # Build command as argv list

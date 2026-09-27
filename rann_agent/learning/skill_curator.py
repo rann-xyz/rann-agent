@@ -218,13 +218,13 @@ class SkillCurator:
 
         skill = self.skills[skill_id]
 
-        markdown = f"""# {skill['name']}
+        markdown = f"""# {skill["name"]}
 
-**Description:** {skill['description']}
+**Description:** {skill["description"]}
 
-**Version:** {skill['version']}
-**Created:** {skill['created_at']}
-**Updated:** {skill['updated_at']}
+**Version:** {skill["version"]}
+**Created:** {skill["created_at"]}
+**Updated:** {skill["updated_at"]}
 
 ## Steps
 

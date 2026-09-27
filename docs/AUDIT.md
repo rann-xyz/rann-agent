@@ -1,8 +1,8 @@
 # RANN Agent Forensic Audit
 
-**Generated:** 2026-09-03  
-**Phase:** Phase 0 — Forensic Audit  
-**Repository:** https://github.com/rann-xyz/rann-agent  
+**Generated:** 2026-09-03
+**Phase:** Phase 0 — Forensic Audit
+**Repository:** https://github.com/rann-xyz/rann-agent
 **Revision:** 90ea008 (fix: Fix imports and add installation script)
 
 ---
@@ -249,15 +249,15 @@ Located in `core/agent.py:Agent.execute()`:
 async def execute(self, goal: str, context: Optional[str] = None, max_turns: int = 50):
     # 1. Initialize session
     self.session_id = generate_session_id()
-    
+
     # 2. Build initial context
     self.context.messages = [SystemMessage(...), UserMessage(goal)]
-    
+
     # 3. Main execution loop
     for turn in range(max_turns):
         # 3a. Get LLM response
         response = await self.llm.complete_with_retry(messages)
-        
+
         # 3b. Parse response (text or tool_calls)
         if response.tool_calls:
             for tool_call in response.tool_calls:
@@ -265,7 +265,7 @@ async def execute(self, goal: str, context: Optional[str] = None, max_turns: int
                 self.context.messages.append(ToolMessage(result))
         else:
             return {"output": response.content, "done": True}
-    
+
     # 4. Save to memory
     await self.memory.save_session(...)
 ```
@@ -532,10 +532,10 @@ class MemoryManager:
     def __init__(self, config):
         self.db_path = ~/.rann-agent/data/sessions.db
         # Tables: sessions, error_resolutions, learned_patterns
-    
+
     async def save_session(self, session_id, messages, ...):
         # Issue: JSON serialization fails with Mock objects
-        
+
     async def get_relevant_context(self, query):
         # Keyword-match retrieval, not semantic
 ```
@@ -569,7 +569,8 @@ class MemoryManager:
 class Coordinator:
     def spawn_worker(self, role, goal):
         return Agent()  # Simple - no resource limits
-        
+
+
 class MultiAgentCoordinator:
     async def run_parallel(self, tasks):
         await asyncio.gather(*[agent.execute(t) for t in tasks])

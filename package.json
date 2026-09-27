@@ -1,8 +1,31 @@
 {
-  "name": "rann-agent",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "start": "node api/index.js"
-  }
+ "name": "rann-agent",
+ "version": "1.0.0",
+ "private": true,
+ "scripts": {
+ "dev": "python -m uvicorn web.app:app --host 0.0.0.0 --port 8000 --reload",
+ "start": "python -m uvicorn web.app:app --host 0.0.0.0 --port 8000",
+ "test": "pytest tests/ -v --timeout=30",
+ "lint": "ruff check rann_agent/",
+ "typecheck": "mypy rann_agent/",
+ "format": "black rann_agent/",
+ "migrate": "alembic upgrade head"
+ },
+ "dependencies": {
+ "fastapi": "^0.115.0",
+ "uvicorn[standard]": "^0.32.0",
+ "pydantic-settings": "^2.6.0",
+ "structlog": "^24.4.0",
+ "python-dotenv": "^1.0.0"
+ },
+ "devDependencies": {
+ "uvicorn[standard]": "^0.32.0",
+ "pytest": "^8.3.0",
+ "pytest-asyncio": "^0.24.0",
+ "pytest-timeout": "^2.3.1",
+ "pytest-cov": "^6.0.0",
+ "ruff": "^0.7.0",
+ "mypy": "^1.13.0",
+ "black": "^24.10.0"
+ }
 }

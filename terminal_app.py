@@ -138,7 +138,7 @@ class TerminalApp:
         if self.autonomous_coder and self.autonomous_coder.task_history:
             summary = asyncio.run(self.autonomous_coder.get_task_summary())
             status_table.add_row("Tasks Completed", str(summary["completed"]))
-            status_table.add_row("Success Rate", f"{summary['success_rate']*100:.1f}%")
+            status_table.add_row("Success Rate", f"{summary['success_rate'] * 100:.1f}%")
 
         layout["body"].update(Panel(status_table))
 

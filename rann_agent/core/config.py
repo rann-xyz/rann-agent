@@ -1,6 +1,7 @@
 """
 Configuration management - Clean Provider Architecture
 """
+
 import os
 from pathlib import Path
 from typing import Any
@@ -55,9 +56,20 @@ class AgentConfig(BaseModel):
 
 class ToolsConfig(BaseModel):
     enabled: list[str] = [
-        "terminal", "read_file", "write_file", "search_files", "web_search", "web_extract", "code_exec", "git"
+        "terminal",
+        "read_file",
+        "write_file",
+        "search_files",
+        "web_search",
+        "web_extract",
+        "code_exec",
+        "git",
     ]
-    terminal: dict[str, Any] = {"default_timeout": 300, "max_timeout": 3600, "allow_background": True}
+    terminal: dict[str, Any] = {
+        "default_timeout": 300,
+        "max_timeout": 3600,
+        "allow_background": True,
+    }
     files: dict[str, Any] = {"max_file_size": 10485760}
     web: dict[str, Any] = {"max_concurrent_requests": 10, "timeout": 30}
     code_exec: dict[str, Any] = {"sandbox": True, "timeout": 300}

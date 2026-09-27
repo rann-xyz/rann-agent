@@ -28,7 +28,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
 
-
 # ============================================================================
 # STATUS ENUMERATIONS
 # ============================================================================
@@ -98,13 +97,13 @@ class ExecutionJob:
     policy: ExecutionPolicy = field(default_factory=ExecutionPolicy)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     status: ExecutionStatus = ExecutionStatus.QUEUED
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    exit_code: Optional[int] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    exit_code: int | None = None
     stdout: str = ""
     stderr: str = ""
     killed: bool = False
-    container_id: Optional[str] = None
+    container_id: str | None = None
 
 
 @dataclass
@@ -112,7 +111,7 @@ class ExecutionResult:
     success: bool
     stdout: str
     stderr: str
-    exit_code: Optional[int]
+    exit_code: int | None
     duration_seconds: float
     status: ExecutionStatus
     job_id: str
@@ -429,13 +428,13 @@ class ContainerExecutionBackend(ExecutionBackend):
         cmd.extend(["--memory-swap", f"{job.policy.resource_limits.memory_bytes}"])
         cmd.extend(["--cpus", str(job.policy.resource_limits.cpu_shares / 1024)])
         cmd.extend(["--pids-limit", str(job.policy.resource_limits.pid_limit)])
-        cmd.extend(["--ulimit", f"nofile=1024:1024"])
+        cmd.extend(["--ulimit", "nofile=1024:1024"])
 
         # Workspace mount (only writable location)
         cmd.extend(["-v", f"{workspace}:/workspace:rw"])
 
         # Temporary directory mount (read-only)
-        cmd.extend(["-v", f"/tmp:/tmp:rw"])
+        cmd.extend(["-v", "/tmp:/tmp:rw"])
 
         # Deny Docker socket access
         # (Not mounting it achieves this)

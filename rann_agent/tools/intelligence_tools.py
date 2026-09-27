@@ -8,8 +8,8 @@ from typing import Any
 
 import structlog
 
-from rann_agent.tools.registry import Tool, ToolResult
 from rann_agent.execution import ExecutionJob, ExecutionPolicy, get_execution_backend
+from rann_agent.tools.registry import Tool, ToolResult
 
 logger = structlog.get_logger()
 
@@ -110,9 +110,7 @@ class DebuggerTool(Tool):
             logger.error("debugger_error", error=str(e))
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
 
-    async def _analyze_error(
-        self, error: str, language: str, context: str
-    ) -> dict[str, Any]:
+    async def _analyze_error(self, error: str, language: str, context: str) -> dict[str, Any]:
         """Analyze error and provide insights"""
 
         patterns = self.error_patterns.get(language, [])
@@ -210,9 +208,7 @@ class DebuggerTool(Tool):
             metadata={"stack_frames": stack_frames},
         ).to_dict()
 
-    async def _suggest_fix(
-        self, error: str, language: str, context: str
-    ) -> dict[str, Any]:
+    async def _suggest_fix(self, error: str, language: str, context: str) -> dict[str, Any]:
         """Suggest fixes for the error"""
 
         analysis = await self._analyze_error(error, language, context)
@@ -233,9 +229,7 @@ class DebuggerTool(Tool):
             output += "4. Test with simpler inputs\n"
             output += "5. Review recent changes\n"
 
-        return ToolResult(
-            tool=self.name, success=True, output=output, metadata=matches
-        ).to_dict()
+        return ToolResult(tool=self.name, success=True, output=output, metadata=matches).to_dict()
 
 
 class PerformanceProfilerTool(Tool):
@@ -269,7 +263,10 @@ class PerformanceProfilerTool(Tool):
         # Build command as argv list
         if type == "cpu":
             # Use py-spy for Python profiling
-            cmd = ["python", "-c", f"""
+            cmd = [
+                "python",
+                "-c",
+                f"""
 import cProfile, pstats, io
 pr = cProfile.Profile()
 pr.enable()
@@ -279,26 +276,35 @@ s = io.StringIO()
 ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
 ps.print_stats(20)
 print(s.getvalue())
-"""]
+""",
+            ]
         elif type == "memory":
-            cmd = ["python", "-c", f"""
+            cmd = [
+                "python",
+                "-c",
+                """
 import tracemalloc
 tracemalloc.start()
 # Your code here
 print('Memory profiling done')
 current, peak = tracemalloc.get_traced_memory()
-print(f'Current: {{current / 1024 / 1024:.2f}} MB')
-print(f'Peak: {{peak / 1024 / 1024:.2f}} MB')
+print(f'Current: {current / 1024 / 1024:.2f} MB')
+print(f'Peak: {peak / 1024 / 1024:.2f} MB')
 tracemalloc.stop()
-"""]
+""",
+            ]
         elif type == "io":
-            cmd = ["python", "-c", f"""
+            cmd = [
+                "python",
+                "-c",
+                """
 import time
 start = time.time()
 # Your code here
 end = time.time()
-print(f'Execution time: {{end - start:.2f}}s')
-"""]
+print(f'Execution time: {end - start:.2f}s')
+""",
+            ]
         else:
             return ToolResult(
                 tool=self.name, success=False, error=f"Unknown profile type: {type}"
@@ -367,9 +373,7 @@ class SecurityScannerTool(Tool):
 
     ALLOWED_SCANS = {"all", "dependencies", "code", "secrets"}
 
-    async def execute(
-        self, path: str, scan_type: str = "all", **kwargs
-    ) -> dict[str, Any]:
+    async def execute(self, path: str, scan_type: str = "all", **kwargs) -> dict[str, Any]:
         """Run security scan through ExecutionBackend
 
         SECURITY: No shell=True with arbitrary paths.

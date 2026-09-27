@@ -9,7 +9,8 @@ from typing import Optional
 # Simulated session store (in production, this would be database-backed)
 _session_store = {}
 
-async def get_current_user_id(session_id: Optional[str]) -> Optional[str]:
+
+async def get_current_user_id(session_id: str | None) -> str | None:
     """Get user_id from authenticated session.
 
     Args:
@@ -30,9 +31,11 @@ async def get_current_user_id(session_id: Optional[str]) -> Optional[str]:
 
     return None
 
+
 def register_session(session_id: str, user_id: str):
     """Register a session (called during authentication)."""
     _session_store[session_id] = {"user_id": user_id}
+
 
 def clear_session(session_id: str):
     """Clear a session (called during logout)."""

@@ -78,7 +78,7 @@ Open an issue with:
    ```bash
    git commit -m "feat: add amazing feature"
    ```
-   
+
    Use conventional commits:
    - `feat:` new feature
    - `fix:` bug fix
@@ -134,20 +134,17 @@ Example:
 ```python
 from rann_agent.tools.registry import Tool, ToolResult
 
+
 class MyTool(Tool):
     name = "my_tool"
     description = "Does something useful"
     parameters = {
         "input": {"type": "string", "required": True},
     }
-    
+
     async def execute(self, input: str, **kwargs):
         # Your logic here
-        return ToolResult(
-            tool=self.name,
-            success=True,
-            output="Result"
-        ).to_dict()
+        return ToolResult(tool=self.name, success=True, output="Result").to_dict()
 ```
 
 ## Release Process

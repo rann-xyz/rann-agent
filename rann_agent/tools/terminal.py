@@ -12,7 +12,7 @@ from typing import Any
 
 import structlog
 
-from rann_agent.tools.registry import Tool, ToolResult
+from rann_agent.auth.session import get_current_user_id
 from rann_agent.core.security import WorkspaceGuard
 from rann_agent.execution import (
     ExecutionJob,
@@ -20,7 +20,7 @@ from rann_agent.execution import (
     ExecutionStatus,
     get_execution_backend,
 )
-from rann_agent.auth.session import get_current_user_id
+from rann_agent.tools.registry import Tool, ToolResult
 
 logger = structlog.get_logger()
 
@@ -68,7 +68,7 @@ class TerminalTool(Tool):
 
         # Validate workspace boundary
         try:
-            validated_path = self.guard.validate_path(str(self.workspace_root))
+            self.guard.validate_path(str(self.workspace_root))  # Validates path, raises on failure
         except ValueError as e:
             return ToolResult(
                 tool=self.name,
@@ -88,7 +88,7 @@ class TerminalTool(Tool):
         job = ExecutionJob(
             job_id=job_id,
             user_id=user_id,  # SERVER-DERIVED from session
-            run_id=run_id,    # SERVER-GENERATED
+            run_id=run_id,  # SERVER-GENERATED
             workspace_id=workspace_id,
             command=command,  # Still needs validation but routed through backend
             policy=policy,

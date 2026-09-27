@@ -143,7 +143,7 @@ class TaskDecomposer:
                     depends_on = [subtasks[i - 1].id]
 
             subtask = Subtask(
-                id=f"step_{i+1}",
+                id=f"step_{i + 1}",
                 description=part,
                 tool_hint=tool_hint,
                 depends_on=depends_on,

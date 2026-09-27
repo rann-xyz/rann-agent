@@ -1,104 +1,72 @@
 """
-RANN Web API - Session-based LLM Configuration
-Includes rate limiting, workspace isolation, and authentication
+RANN Agent Web API
 
-SECURITY NOTICE:
-- This API ONLY submits execution jobs to a backend
-- Direct code execution in the API process is PROHIBITED
-- ContainerExecutionBackend required for production
-- LocalExecutionBackend is DEVELOPMENT_ONLY
+FastAPI application with WebSocket terminal and REST APIs for projects, files, terminals, agents.
+
+Architecture:
+Browser → WebSocket → FastAPI → Auth → Project Auth → Sandbox → Docker
+       → REST API → FastAPI → Auth → Project → Files/Sessions/Agents
 """
 
-import asyncio
-import os
-import sys
-import time
-import uuid
-import secrets
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
-from typing import Any, Optional
+from datetime import datetime, timezone
 
 import structlog
-from fastapi import FastAPI, Request, HTTPException, Depends
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-import aiohttp
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-from rann_agent.auth.router import (
-    router as auth_router,
-    get_current_user,
-    require_auth,
-    generate_session_id,
-    hash_session_token,
-    check_rate_limit,
-)
-from rann_agent.core.security import WorkspaceGuard
+from rann_agent.auth.router import router as auth_router
+from rann_agent.api.projects import router as projects_router
+from rann_agent.api.files import router as files_router
+from rann_agent.api.terminal_sessions import router as terminal_sessions_router
+from rann_agent.api.agent_sessions import router as agent_sessions_router
 from rann_agent.storage.database import Database
-from rann_agent.execution import (
-    ExecutionJob,
-    ExecutionStatus,
-    ExecutionPolicy,
-    ExecutionBackend,
-    LocalExecutionBackend,
-    ContainerExecutionBackend,
-)
+from rann_agent.web.websocket_terminal import router as websocket_router
 
+logger = structlog.get_logger()
+
+# Initialize FastAPI app
 app = FastAPI(
-    title="RANN Public AI Coding Agent",
-    version="2.0.0",
-    docs_url="/docs" if os.environ.get("RANN_ENABLE_DOCS") == "true" else None,
+    title="RANN Agent API",
+    description="Autonomous AI engineering platform",
+    version="1.0.0",
 )
 
-# Include authentication router
-app.include_router(auth_router)
-
-# CORS - specific Vercel domain only
-ALLOWED_ORIGINS = [
-    "https://rann-agent-mlp3p2jj6-rann2.vercel.app",
-    "http://localhost:3000",
-    "http://localhost:8000",
-]
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],  # TODO: Configure properly for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-WORKSPACE = os.environ.get("WORKSPACE", "/workspace")
-VALID_PROVIDERS = ["anthropic", "openai", "custom"]
-EXECUTION_BACKEND = os.environ.get("RANN_EXECUTION_BACKEND", "local")  # or "container"
-
-logger = structlog.get_logger()
-
-
-# Get execution backend - FAIL CLOSED if not configured
-def get_execution_backend() -> ExecutionBackend:
-    """Get the configured execution backend."""
-    if EXECUTION_BACKEND == "container":
-        backend = ContainerExecutionBackend()
-        if not backend.is_available():
-            raise RuntimeError(
-                "ContainerExecutionBackend requested but runtime unavailable. "
-                "Set RANN_EXECUTION_BACKEND=local for development only."
-            )
-        return backend
-    else:
-        # Local backend for development ONLY
-        logger.warning(
-            "using_local_execution_backend",
-            message="LocalExecutionBackend is DEVELOPMENT ONLY. "
-            "Do not use for public-facing deployment.",
-        )
-        return LocalExecutionBackend()
+# Include routers
+app.include_router(auth_router)
+app.include_router(projects_router)
+app.include_router(files_router)
+app.include_router(terminal_sessions_router)
+app.include_router(agent_sessions_router)
+app.include_router(websocket_router)
 
 
-# Initialize execution backend
-execution_backend = get_execution_backend()
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup."""
+    db = Database()
+    logger.info("api_started", db_path=str(db.db_path))
 
-# Rest of the original file content...
+
+@app.get("/")
+async def root():
+    """Health check endpoint."""
+    return {"status": "ok", "service": "rann-agent"}
+
+
+@app.get("/health")
+async def health():
+    """Health check with detailed status."""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "service": "rann-agent",
+    }

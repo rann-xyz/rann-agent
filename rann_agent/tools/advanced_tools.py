@@ -7,8 +7,8 @@ from typing import Any
 
 import structlog
 
-from rann_agent.tools.registry import Tool, ToolResult
 from rann_agent.execution import ExecutionJob, ExecutionPolicy, get_execution_backend
+from rann_agent.tools.registry import Tool, ToolResult
 
 logger = structlog.get_logger()
 
@@ -67,9 +67,7 @@ class DatabaseTool(Tool):
             logger.error("database_error", action=action, error=str(e))
             return ToolResult(tool=self.name, success=False, error=str(e)).to_dict()
 
-    async def _execute_query(
-        self, database: str, sql: str, params: dict
-    ) -> dict[str, Any]:
+    async def _execute_query(self, database: str, sql: str, params: dict) -> dict[str, Any]:
         """Execute SQL query"""
         # TODO: Implement actual database connection
         return ToolResult(
@@ -180,7 +178,6 @@ class APIClientTool(Tool):
                     json=body if body else None,
                     timeout=aiohttp.ClientTimeout(total=30),
                 ) as resp:
-
                     status = resp.status
                     text = await resp.text()
 

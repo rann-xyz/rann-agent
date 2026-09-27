@@ -122,7 +122,7 @@ class TestPerformanceBenchmarks:
             times.append(time.perf_counter() - start)
 
         avg = sum(times) / len(times) / 100  # per-event
-        assert avg < 0.005, f"Event emission avg {avg*1000:.2f}ms (SLO: <5ms)"
+        assert avg < 0.005, f"Event emission avg {avg * 1000:.2f}ms (SLO: <5ms)"
 
     # -------------------------------------------------------------------------
     # Throughput benchmarks

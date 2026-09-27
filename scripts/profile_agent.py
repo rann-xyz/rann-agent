@@ -113,7 +113,7 @@ def main():
 
     profiler.disable()
 
-    print(f"Execution time: {elapsed*1000:.2f}ms for {elapsed} LLM calls")
+    print(f"Execution time: {elapsed * 1000:.2f}ms for {elapsed} LLM calls")
     print()
 
     # Save
@@ -159,7 +159,7 @@ def main():
     bottlenecks.sort(reverse=True)
     print("\nRANN Agent bottlenecks (cumtime > 1ms):")
     for ct, tt, filename, line, func_name in bottlenecks[:20]:
-        print(f"  {ct*1000:.2f}ms cum / {tt*1000:.2f}ms self | {filename}:{line} | {func_name}")
+        print(f"  {ct * 1000:.2f}ms cum / {tt * 1000:.2f}ms self | {filename}:{line} | {func_name}")
 
     print(f"\nProfile saved: {output_path}")
     return output_path

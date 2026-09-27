@@ -14,12 +14,10 @@ logger = structlog.get_logger()
 
 DB_PATH = Path.home() / ".rann-agent" / "rann.db"
 
-
 def get_db_path() -> Path:
     db_dir = Path.home() / ".rann-agent"
     db_dir.mkdir(parents=True, exist_ok=True)
     return db_dir / "rann.db"
-
 
 class Database:
     """SQLite database with migrations and transactions."""
@@ -43,13 +41,14 @@ class Database:
     def _get_conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
         return conn
 
     def _ensure_schema(self) -> None:
         """Create all tables if they don't exist, with migrations."""
         with self._get_conn() as conn:
-            # Create tables if they don't exist
-            conn.executescript("""
+            conn.executescript(
+                """
                 -- Users table
                 CREATE TABLE IF NOT EXISTS users (
                     id TEXT PRIMARY KEY,
@@ -79,6 +78,41 @@ class Database:
 
                 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
                 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+
+                -- Projects table
+                CREATE TABLE IF NOT EXISTS projects (
+                    id TEXT PRIMARY KEY,
+                    owner_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    slug TEXT,
+                    workspace_path TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY (owner_id) REFERENCES users(id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects(owner_id);
+
+                -- Terminal sessions table
+                CREATE TABLE IF NOT EXISTS terminal_sessions (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    project_id TEXT NOT NULL,
+                    container_id TEXT,
+                    exec_id TEXT,
+                    status TEXT DEFAULT 'created',
+                    cols INTEGER DEFAULT 120,
+                    rows INTEGER DEFAULT 32,
+                    websocket_active BOOLEAN DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    last_activity TEXT NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users(id),
+                    FOREIGN KEY (project_id) REFERENCES projects(id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_terminal_sessions_user ON terminal_sessions(user_id);
+                CREATE INDEX IF NOT EXISTS idx_terminal_sessions_project ON terminal_sessions(project_id);
+                CREATE INDEX IF NOT EXISTS idx_terminal_sessions_active ON terminal_sessions(websocket_active);
 
                 -- IP bindings table
                 CREATE TABLE IF NOT EXISTS ip_bindings (
@@ -317,15 +351,16 @@ class Database:
                     reviewed_at TEXT,
                     rejection_reason TEXT
                 );
-            """)
-            
+            """
+            )
+
             # Migration: Add csrf_token_hash column to sessions if missing
             try:
                 conn.execute("ALTER TABLE sessions ADD COLUMN csrf_token_hash TEXT")
                 logger.info("migration_added", table="sessions", column="csrf_token_hash")
             except sqlite3.OperationalError:
                 pass  # Column already exists
-            
+
             # Migration: Add last_seen_at column to sessions if missing
             try:
                 conn.execute("ALTER TABLE sessions ADD COLUMN last_seen_at TEXT")

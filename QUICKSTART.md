@@ -52,13 +52,15 @@ from rann_agent.core.runtime import RuntimeAgent
 from rann_agent.core.budget import Budget
 from rann_agent.core.config import Config
 
+
 async def main():
     config = Config()
     budget = Budget(max_tokens=10000, max_turns=20)
     agent = RuntimeAgent(budget=budget, config=config)
-    
+
     result = await agent.execute("Write a hello world program in Python")
     print(result["output"])
+
 
 asyncio.run(main())
 ```

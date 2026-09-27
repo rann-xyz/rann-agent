@@ -12,7 +12,9 @@ pydantic>=2.9.0
 pydantic-settings>=2.6.0
 python-dotenv>=1.0.0
 
+# -----------------------------------------------------------------------------
 # LLM Providers
+# -----------------------------------------------------------------------------
 anthropic>=0.39.0
 openai>=1.54.0
 
@@ -31,12 +33,12 @@ typer>=0.15.0
 prompt-toolkit>=3.0.48
 
 # -----------------------------------------------------------------------------
-# API Server (stdlib-only fallback available; fastapi is optional)
+# API Server
 # -----------------------------------------------------------------------------
-# fastapi>=0.115.0       # Optional: for REST API (web_api.py uses stdlib http.server)
-# uvicorn[standard]>=0.32.0
-# websockets>=14.0
-# python-multipart>=0.0.12
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+websockets>=14.0
+python-multipart>=0.0.12
 
 # -----------------------------------------------------------------------------
 # Database & Persistence
@@ -67,6 +69,11 @@ pexpect>=4.9.0
 ptyprocess>=0.7.0
 
 # -----------------------------------------------------------------------------
+# Docker Sandbox Runtime (PRODUCTION)
+# -----------------------------------------------------------------------------
+docker>=7.0.0
+
+# -----------------------------------------------------------------------------
 # Git Operations
 # -----------------------------------------------------------------------------
 gitpython>=3.1.43
@@ -83,9 +90,10 @@ sentry-sdk>=2.17.0
 # -----------------------------------------------------------------------------
 pytest>=8.3.0
 pytest-asyncio>=0.24.0
-pytest-cov>=6.0.0
 pytest-timeout>=2.3.1
+pytest-cov>=6.0.0
 pytest-mock>=3.14.0
+httpx>=0.27.0
 
 # -----------------------------------------------------------------------------
 # Code Quality (pre-commit hooks)
@@ -101,29 +109,7 @@ pre-commit>=4.0.0
 py-spy>=0.3.14
 
 # -----------------------------------------------------------------------------
-# Genius-level features (optional — install separately if needed)
-# -----------------------------------------------------------------------------
-# Vector search & RAG (for self-learning memory)
-# chromadb>=0.5.0
-# sentence-transformers>=3.0.0
-
-# Browser automation (web control)
-# playwright>=1.48.0
-
-# Multimodal - Vision
-# pytesseract>=0.3.10
-# Pillow>=10.0.0
-
-# Multimodal - Voice
-# gtts>=2.5.0
-# SpeechRecognition>=3.10.0
-
-# Advanced reasoning & planning
-# numpy>=1.24.0
-# scipy>=1.11.0
-
-# -----------------------------------------------------------------------------
-# Optional: Redis for distributed caching
+# Optional: Redis for distributed caching/rate limiting
 # -----------------------------------------------------------------------------
 # redis>=5.2.0
 # celery>=5.4.0

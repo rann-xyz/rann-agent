@@ -1,6 +1,7 @@
 """
 LLM Provider abstraction layer - Clean Provider Architecture
 """
+
 import asyncio
 import json
 import os
@@ -41,6 +42,7 @@ class AnthropicProvider(BaseLLMProvider):
                 self.client = _LLM_CLIENT_CACHE[cache_key]
             else:
                 from anthropic import AsyncAnthropic
+
                 self.client = AsyncAnthropic(api_key=api_key)
                 _LLM_CLIENT_CACHE[cache_key] = self.client
         self.model = model
@@ -56,7 +58,10 @@ class AnthropicProvider(BaseLLMProvider):
         )
         return {
             "content": response.content[0].text,
-            "usage": {"input_tokens": response.usage.input_tokens, "output_tokens": response.usage.output_tokens},
+            "usage": {
+                "input_tokens": response.usage.input_tokens,
+                "output_tokens": response.usage.output_tokens,
+            },
             "model": response.model,
         }
 
@@ -79,6 +84,7 @@ class OpenAIProvider(BaseLLMProvider):
                 self.client = _LLM_CLIENT_CACHE[cache_key]
             else:
                 from openai import AsyncOpenAI
+
                 self.client = AsyncOpenAI(api_key=api_key)
                 _LLM_CLIENT_CACHE[cache_key] = self.client
         self.model = model
@@ -94,7 +100,10 @@ class OpenAIProvider(BaseLLMProvider):
         )
         return {
             "content": response.choices[0].message.content,
-            "usage": {"prompt_tokens": response.usage.prompt_tokens, "completion_tokens": response.usage.completion_tokens},
+            "usage": {
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens,
+            },
             "model": response.model,
         }
 
@@ -119,16 +128,23 @@ class OllamaProvider(BaseLLMProvider):
 
     async def complete(self, messages: list[dict[str, str]]) -> dict[str, Any]:
         import aiohttp
+
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{self.host}/api/chat",
-                json={"model": self.model, "messages": messages, "stream": False, "options": {"temperature": self.temperature}},
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "stream": False,
+                    "options": {"temperature": self.temperature},
+                },
             ) as resp:
                 result = await resp.json()
                 return {"content": result["message"]["content"], "usage": {}, "model": self.model}
 
     async def stream(self, messages: list[dict[str, str]]) -> AsyncIterator[str]:
         import aiohttp
+
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{self.host}/api/chat",
@@ -137,6 +153,7 @@ class OllamaProvider(BaseLLMProvider):
                 async for line in resp.content:
                     if line:
                         import json
+
                         try:
                             data = json.loads(line)
                             if "message" in data:
@@ -161,8 +178,11 @@ class CustomProvider(BaseLLMProvider):
             return f"{base}/chat/completions"
         return f"{base}/v1/chat/completions"
 
-    async def complete(self, messages: list[dict[str, str]], tools: list[dict] | None = None) -> dict[str, Any]:
+    async def complete(
+        self, messages: list[dict[str, str]], tools: list[dict] | None = None
+    ) -> dict[str, Any]:
         import aiohttp
+
         payload = {
             "model": self.model,
             "messages": messages,
@@ -174,11 +194,14 @@ class CustomProvider(BaseLLMProvider):
             payload["tools"] = tools
 
         chat_url = await self._create_url()
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 chat_url,
-                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
                 json=payload,
             ) as resp:
                 if resp.status != 200:
@@ -186,15 +209,21 @@ class CustomProvider(BaseLLMProvider):
                     raise RuntimeError(f"API error {resp.status}: {text}")
                 result = await resp.json()
                 message = result["choices"][0]["message"]
-                response = {"content": message.get("content", ""), "usage": result.get("usage", {}), "model": result.get("model", self.model)}
-                
+                response = {
+                    "content": message.get("content", ""),
+                    "usage": result.get("usage", {}),
+                    "model": result.get("model", self.model),
+                }
+
                 if message.get("tool_calls"):
                     response["tool_calls"] = [
                         {
                             "name": tc.get("function", {}).get("name") or tc.get("name"),
-                            "parameters": json.loads(tc.get("function", {}).get("arguments", "{}"))
-                            if isinstance(tc.get("function", {}).get("arguments"), str)
-                            else tc.get("function", {}).get("arguments", {}),
+                            "parameters": (
+                                json.loads(tc.get("function", {}).get("arguments", "{}"))
+                                if isinstance(tc.get("function", {}).get("arguments"), str)
+                                else tc.get("function", {}).get("arguments", {})
+                            ),
                         }
                         for tc in message["tool_calls"]
                     ]
@@ -203,30 +232,45 @@ class CustomProvider(BaseLLMProvider):
                     response["tool_calls"] = [
                         {
                             "name": tc.get("function", {}).get("name") or tc.get("name"),
-                            "parameters": json.loads(tc.get("function", {}).get("arguments", "{}"))
-                            if isinstance(tc.get("function", {}).get("arguments"), str)
-                            else tc.get("function", {}).get("arguments", {}),
+                            "parameters": (
+                                json.loads(tc.get("function", {}).get("arguments", "{}"))
+                                if isinstance(tc.get("function", {}).get("arguments"), str)
+                                else tc.get("function", {}).get("arguments", {})
+                            ),
                         }
                     ]
                 return response
 
-    async def stream(self, messages: list[dict[str, str]], tools: list[dict] | None = None) -> AsyncIterator[str]:
+    async def stream(
+        self, messages: list[dict[str, str]], tools: list[dict] | None = None
+    ) -> AsyncIterator[str]:
         import aiohttp
-        payload = {"model": self.model, "messages": messages, "stream": True, "temperature": self.temperature, "max_tokens": self.max_tokens}
+
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "stream": True,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+        }
         if tools:
             payload["tools"] = tools
-        
+
         chat_url = await self._create_url()
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 chat_url,
-                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
                 json=payload,
             ) as resp:
                 async for line in resp.content:
                     if line:
                         import json
+
                         try:
                             data = json.loads(line)
                             if data.get("choices"):
@@ -246,22 +290,36 @@ class LLMProvider:
         self.model = config.agent.llm.model
 
         if self.provider not in self.VALID_PROVIDERS:
-            raise ValueError(f"Invalid provider: {self.provider}. Must be one of: {self.VALID_PROVIDERS}")
+            raise ValueError(
+                f"Invalid provider: {self.provider}. Must be one of: {self.VALID_PROVIDERS}"
+            )
 
-        self.primary = self._create_provider(self.provider, self.model, config.get_api_key(self.provider))
+        self.primary = self._create_provider(
+            self.provider, self.model, config.get_api_key(self.provider)
+        )
         self.fallbacks = []
         for fb in config.agent.llm.fallback_providers:
             provider = fb["provider"].lower()
             if provider not in self.VALID_PROVIDERS:
                 logger.warning("invalid_fallback_provider", provider=provider)
                 continue
-            provider_instance = self._create_provider(provider, fb["model"], config.get_api_key(provider))
+            provider_instance = self._create_provider(
+                provider, fb["model"], config.get_api_key(provider)
+            )
             self.fallbacks.append(provider_instance)
 
-        logger.info("llm_provider_init", primary=self.provider, model=self.model, fallbacks=len(self.fallbacks))
+        logger.info(
+            "llm_provider_init",
+            primary=self.provider,
+            model=self.model,
+            fallbacks=len(self.fallbacks),
+        )
 
     def _create_provider(self, provider: str, model: str, api_key: str | None) -> BaseLLMProvider:
-        kwargs = {"temperature": self.config.agent.llm.temperature, "max_tokens": self.config.agent.llm.max_tokens}
+        kwargs = {
+            "temperature": self.config.agent.llm.temperature,
+            "max_tokens": self.config.agent.llm.max_tokens,
+        }
 
         if provider == "anthropic":
             if not api_key:
@@ -287,7 +345,9 @@ class LLMProvider:
     async def complete(self, messages: list[dict[str, str]]) -> dict[str, Any]:
         return await self.primary.complete(messages)
 
-    async def complete_with_retry(self, messages: list[dict[str, str]], tools: list[dict] | None = None) -> dict[str, Any]:
+    async def complete_with_retry(
+        self, messages: list[dict[str, str]], tools: list[dict] | None = None
+    ) -> dict[str, Any]:
         max_attempts = self.config.agent.llm.retry["max_attempts"]
         backoff = self.config.agent.llm.retry["backoff_multiplier"]
 

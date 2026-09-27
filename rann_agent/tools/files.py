@@ -7,8 +7,8 @@ from typing import Any
 
 import structlog
 
-from rann_agent.tools.registry import Tool, ToolResult
 from rann_agent.core.security import WorkspaceGuard, WorkspaceSecurity
+from rann_agent.tools.registry import Tool, ToolResult
 
 logger = structlog.get_logger()
 
@@ -123,7 +123,10 @@ class FileWriteTool(Tool):
                 tool=self.name,
                 success=True,
                 output=f"Written {len(content)} bytes",
-                metadata={"bytes": len(content), "path": str(file_path.relative_to(self.workspace_root))},
+                metadata={
+                    "bytes": len(content),
+                    "path": str(file_path.relative_to(self.workspace_root)),
+                },
             ).to_dict()
 
         except ValueError as e:
@@ -217,6 +220,7 @@ class FileSearchTool(Tool):
             else:
                 # Escape pattern for grep safety
                 import shlex
+
                 safe_pattern = shlex.quote(pattern)
                 cmd = ["grep", "-r", "-l", safe_pattern, str(search_path)]
 

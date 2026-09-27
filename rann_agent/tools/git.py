@@ -9,8 +9,8 @@ from typing import Any
 
 import structlog
 
-from rann_agent.tools.registry import Tool, ToolResult
 from rann_agent.execution import ExecutionJob, ExecutionPolicy, get_execution_backend
+from rann_agent.tools.registry import Tool, ToolResult
 
 logger = structlog.get_logger()
 

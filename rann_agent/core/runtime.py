@@ -208,9 +208,9 @@ class RuntimeAgent:
 
                 # Add thinking trace to context
                 thinking_summary = f"""Task Analysis:
-- Type: {thinking_result['execution_plan']['task_type']}
-- Estimated steps: {len(thinking_result['execution_plan']['steps'])}
-- Thinking phases completed: {len(thinking_result['thinking_trace'])}
+- Type: {thinking_result["execution_plan"]["task_type"]}
+- Estimated steps: {len(thinking_result["execution_plan"]["steps"])}
+- Thinking phases completed: {len(thinking_result["thinking_trace"])}
 """
                 self.context.add_system_message(thinking_summary)
 

@@ -254,10 +254,10 @@ def test_{func_name}_success():
     \"\"\"Test {func_name} with valid inputs\"\"\"
     # Arrange
     {self._generate_mock_args(args)}
-    
+
     # Act
-    result = {func_name}({', '.join(args)})
-    
+    result = {func_name}({", ".join(args)})
+
     # Assert
     assert result is not None
     # TODO: Add more specific assertions

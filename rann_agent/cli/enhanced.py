@@ -79,7 +79,6 @@ async def _execute_with_progress(agent: Agent, goal: str, context: str, interact
         TimeElapsedColumn(),
         console=console,
     ) as progress:
-
         task = progress.add_task("[cyan]Agent working...", total=100)
 
         # Simulate progress (in real impl, track actual progress)
