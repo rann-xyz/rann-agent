@@ -109,10 +109,16 @@ class Config(BaseSettings):
     openai_api_key: str | None = Field(None, alias="OPENAI_API_KEY")
     database_url: str = Field("sqlite:///~/.rann-agent/data/sessions.db", alias="DATABASE_URL")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = {
+        "extra": "ignore",  # Ignore extra env vars from other apps (e.g., ~/.hermes/.env)
+        "env_file": [
+            ".env",
+            str(Path.cwd() / ".env"),
+            str(Path.home() / ".rann-agent" / "rann.env"),
+        ],
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+    }
 
     @classmethod
     def load(cls, config_path: Path | None = None) -> "Config":

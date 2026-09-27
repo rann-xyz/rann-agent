@@ -21,10 +21,10 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
 
+import docker.errors
 import structlog
 
 import docker
-import docker.errors
 from rann_agent.execution import (
     ExecutionBackend,
     ExecutionJob,

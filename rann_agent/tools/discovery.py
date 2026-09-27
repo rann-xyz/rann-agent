@@ -25,7 +25,7 @@ class ToolDiscovery:
 
     def _scan_builtin_tools(self) -> None:
         """Scan and register built-in tools"""
-        from rann_agent.tools.code_exec import CodeExecutionTool
+        from rann_agent.tools.code_exec import CodeExecTool
         from rann_agent.tools.files import FileReadTool, FileSearchTool, FileWriteTool
         from rann_agent.tools.git import GitTool
         from rann_agent.tools.terminal import TerminalTool
@@ -39,7 +39,7 @@ class ToolDiscovery:
             ("git", GitTool, "low", "Git version control"),
             ("web_search", WebSearchTool, "safe", "Search the web"),
             ("web_extract", WebExtractTool, "safe", "Extract content from URLs"),
-            ("code_execution", CodeExecutionTool, "high", "Execute code in sandbox"),
+            ("code_execution", CodeExecTool, "high", "Execute code in sandbox"),
         ]
 
         for name, cls, risk, desc in builtin:

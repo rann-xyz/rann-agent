@@ -14,10 +14,12 @@ logger = structlog.get_logger()
 
 DB_PATH = Path.home() / ".rann-agent" / "rann.db"
 
+
 def get_db_path() -> Path:
     db_dir = Path.home() / ".rann-agent"
     db_dir.mkdir(parents=True, exist_ok=True)
     return db_dir / "rann.db"
+
 
 class Database:
     """SQLite database with migrations and transactions."""
@@ -113,6 +115,21 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_terminal_sessions_user ON terminal_sessions(user_id);
                 CREATE INDEX IF NOT EXISTS idx_terminal_sessions_project ON terminal_sessions(project_id);
                 CREATE INDEX IF NOT EXISTS idx_terminal_sessions_active ON terminal_sessions(websocket_active);
+
+                -- Agent sessions table
+                CREATE TABLE IF NOT EXISTS agent_sessions (
+                    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                    user_id TEXT NOT NULL,
+                    project_id TEXT NOT NULL,
+                    status TEXT DEFAULT 'pending',
+                    created_at TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_activity TEXT NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES users(id),
+                    FOREIGN KEY (project_id) REFERENCES projects(id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_agent_sessions_user ON agent_sessions(user_id);
+                CREATE INDEX IF NOT EXISTS idx_agent_sessions_project ON agent_sessions(project_id);
 
                 -- IP bindings table
                 CREATE TABLE IF NOT EXISTS ip_bindings (

@@ -22,7 +22,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 # Ensure we can import the rann_agent module
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

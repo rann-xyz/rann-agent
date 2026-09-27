@@ -77,7 +77,7 @@ class ToolRegistry:
 
     def _register_builtin_tools(self):
         """Register all built-in tools"""
-        from rann_agent.tools.code_exec import CodeExecutionTool
+        from rann_agent.tools.code_exec import CodeExecTool
         from rann_agent.tools.files import FileReadTool, FileSearchTool, FileWriteTool
         from rann_agent.tools.git import GitTool
         from rann_agent.tools.terminal import TerminalTool
@@ -91,7 +91,7 @@ class ToolRegistry:
             FileSearchTool,
             WebSearchTool,
             WebExtractTool,
-            CodeExecutionTool,
+            CodeExecTool,
             GitTool,
         ]:
             tool = tool_class(self.config)

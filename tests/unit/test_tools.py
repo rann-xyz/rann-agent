@@ -87,7 +87,7 @@ class TestToolRegistry:
 
         assert len(registry.tools) > 0
         assert "terminal" in registry.tools
-        assert "read_file" in registry.tools
+        assert "file_read" in registry.tools
 
     def test_register_custom_tool(self):
         """Test registering custom tool"""
@@ -103,14 +103,14 @@ class TestToolRegistry:
     def test_get_enabled_tools(self):
         """Test getting enabled tools"""
         config = Config()
-        config.tools.enabled = ["terminal", "read_file"]
+        config.tools.enabled = ["terminal", "file_read"]
         registry = ToolRegistry(config)
 
         enabled = registry.get_enabled()
         enabled_names = [t.name for t in enabled]
 
         assert "terminal" in enabled_names
-        assert "read_file" in enabled_names
+        assert "file_read" in enabled_names
 
     @pytest.mark.asyncio
     async def test_execute_tool_success(self):

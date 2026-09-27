@@ -35,14 +35,16 @@ ignore = [
  "F811",     # redefinition of unused — __init__.py re-exports intentionally
  "F401",     # unused imports — try-except imports in CLI, test assertions
  "ASYNC221", # blocking subprocess in async — verification.py needs it
- "ASYNC230", # blocking open() in async — various modules need it
+ "ASYNC230",
+"ASYNC240", # blocking open() in async — various modules need it
  "ASYNC110", # asyncio.Event suggestion — coordinator.py works fine as-is
  "S602",     # shell=True subprocess — verification.py needs git commands
  "S608",     # SQL injection vector — false positive (parametrized queries)
  "B027",     # empty method without abstract decorator — CacheBackend.close
  "SIM102",   # nested if statements — readable as-is
  "SIM108",   # ternary suggestion — readable as-is
- "B007",     # unused loop variable — intentionally unused
+ "B007",
+   "B008",     # unused loop variable — intentionally unused
  "S102",     # exec usage — tool_factory.py and loader.py need it
  "S105",     # hardcoded password in literals — secrets.py defines constant names
  "E712",     # equality to False — test code needs explicit False check

@@ -17,14 +17,14 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Optional, Dict
+from typing import Any, Optional
 
+import structlog
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
-import structlog
+
 import docker
 from docker import errors as docker_errors
-
 from rann_agent.storage.database import Database
 
 logger = structlog.get_logger(__name__)
@@ -32,15 +32,17 @@ logger = structlog.get_logger(__name__)
 
 class TerminalStatus(str, Enum):
     """Terminal session lifecycle states."""
-    CREATED = "created"       # Resource allocated, no WebSocket
-    ATTACHED = "attached"     # WebSocket connected and active
-    DETACHED = "detached"     # WebSocket disconnected, PTY alive
-    CLOSED = "closed"         # Session terminated
-    FAILED = "failed"         # Error state
+
+    CREATED = "created"  # Resource allocated, no WebSocket
+    ATTACHED = "attached"  # WebSocket connected and active
+    DETACHED = "detached"  # WebSocket disconnected, PTY alive
+    CLOSED = "closed"  # Session terminated
+    FAILED = "failed"  # Error state
 
 
 class TerminalMessage:
     """WebSocket message types."""
+
     INPUT = "input"
     OUTPUT = "output"
     EXIT = "exit"
@@ -66,11 +68,12 @@ class TerminalSession:
     IMPORTANT: This is SESSION STATE, not WebSocket state.
     WebSocket attaches/detaches from this session.
     """
+
     id: str
     user_id: str
     project_id: str
     container_id: str
-    exec_id: Optional[str] = None
+    exec_id: str | None = None
     status: TerminalStatus = TerminalStatus.CREATED
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     last_activity: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -83,8 +86,8 @@ class TerminalSessionManager:
     """Manages terminal sessions with proper limits and locking."""
 
     def __init__(self):
-        self._sessions: Dict[str, TerminalSession] = {}
-        self._locks: Dict[str, asyncio.Lock] = {}
+        self._sessions: dict[str, TerminalSession] = {}
+        self._locks: dict[str, asyncio.Lock] = {}
 
     def _get_lock(self, session_id: str) -> asyncio.Lock:
         """Get atomic lock for session operations."""
@@ -93,12 +96,7 @@ class TerminalSessionManager:
         return self._locks[session_id]
 
     async def create_session(
-        self,
-        user_id: str,
-        project_id: str,
-        container_id: str,
-        cols: int = 120,
-        rows: int = 32
+        self, user_id: str, project_id: str, container_id: str, cols: int = 120, rows: int = 32
     ) -> TerminalSession:
         """Create terminal session with per-user/project limits.
 
@@ -127,7 +125,7 @@ class TerminalSessionManager:
         logger.info("terminal_session_created", session_id=session.id)
         return session
 
-    async def find_session(self, session_id: str) -> Optional[TerminalSession]:
+    async def find_session(self, session_id: str) -> TerminalSession | None:
         """Find existing session by ID (for reconnect)."""
         session = self._sessions.get(session_id)
         if session:
@@ -198,7 +196,7 @@ class RealPTYTerminal:
         self.websocket = websocket
         self.user_id = user_id
         self.container_id = container_id
-        self.session: Optional[TerminalSession] = None
+        self.session: TerminalSession | None = None
         self._running = False
         self._docker_client = None
         self._exec_id = None
@@ -229,7 +227,9 @@ class RealPTYTerminal:
 
             # Initial resize
             if self.session and self._docker_client and self._exec_id:
-                self._docker_client.api.exec_resize(self._exec_id, self.session.rows, self.session.cols)
+                self._docker_client.api.exec_resize(
+                    self._exec_id, self.session.rows, self.session.cols
+                )
 
             # Attach socket
             self._socket = self._docker_client.api.exec_attach(
@@ -246,7 +246,7 @@ class RealPTYTerminal:
             await self._send_error("PTY_START_FAILED", str(e))
             return False
 
-    async def _send_message(self, msg_type: str, data: Optional[Any] = None) -> bool:
+    async def _send_message(self, msg_type: str, data: Any | None = None) -> bool:
         """Send JSON message to WebSocket."""
         if not self.session or not self.websocket:
             return False
@@ -256,7 +256,7 @@ class RealPTYTerminal:
 
         message = {"type": msg_type}
         if data is not None:
-            if isinstance(data, str) and len(data.encode('utf-8')) > MAX_MESSAGE_BYTES:
+            if isinstance(data, str) and len(data.encode("utf-8")) > MAX_MESSAGE_BYTES:
                 data = data[:MAX_MESSAGE_BYTES]
             message["data"] = data
 
@@ -277,8 +277,8 @@ class RealPTYTerminal:
 
         try:
             sock = self._socket._sock
-            if hasattr(sock, 'send'):
-                sock.send(data.encode('utf-8', errors='replace'))
+            if hasattr(sock, "send"):
+                sock.send(data.encode("utf-8", errors="replace"))
         except Exception:
             pass
 
@@ -311,7 +311,7 @@ class RealPTYTerminal:
                 try:
                     data = sock.recv(4096)
                     if data:
-                        text = data.decode('utf-8', errors='replace')
+                        text = data.decode("utf-8", errors="replace")
                         await self._send_message(TerminalMessage.OUTPUT, text)
                     else:
                         break
@@ -391,7 +391,7 @@ class RealPTYTerminal:
 router = APIRouter(prefix="/ws", tags=["websocket"])
 
 
-async def get_user_id(websocket: WebSocket) -> Optional[str]:
+async def get_user_id(websocket: WebSocket) -> str | None:
     """Extract and validate user from session."""
     session_id = websocket.cookies.get("session")
     if not session_id:
@@ -399,13 +399,17 @@ async def get_user_id(websocket: WebSocket) -> Optional[str]:
 
     try:
         db = Database()
-        row = db._get_conn().execute(
-            """SELECT u.id, s.revoked_at, s.expires_at
+        row = (
+            db._get_conn()
+            .execute(
+                """SELECT u.id, s.revoked_at, s.expires_at
                FROM sessions s
                JOIN users u ON s.user_id = u.id
                WHERE s.session_id = ?""",
-            (session_id,)
-        ).fetchone()
+                (session_id,),
+            )
+            .fetchone()
+        )
 
         if not row or row["revoked_at"]:
             return None
@@ -423,9 +427,7 @@ async def get_user_id(websocket: WebSocket) -> Optional[str]:
 
 @router.websocket("/projects/{project_id}/terminal")
 async def terminal_endpoint(
-    websocket: WebSocket,
-    project_id: str,
-    user_id: Optional[str] = Depends(get_user_id)
+    websocket: WebSocket, project_id: str, user_id: str | None = Depends(get_user_id)
 ):
     """
     Real PTY WebSocket terminal.
@@ -448,10 +450,11 @@ async def terminal_endpoint(
     # Verify project ownership
     try:
         db = Database()
-        project = db._get_conn().execute(
-            "SELECT owner_id, sandbox_id FROM projects WHERE id = ?",
-            (project_id,)
-        ).fetchone()
+        project = (
+            db._get_conn()
+            .execute("SELECT owner_id, sandbox_id FROM projects WHERE id = ?", (project_id,))
+            .fetchone()
+        )
 
         if not project or project["owner_id"] != user_id:
             return await websocket.close()

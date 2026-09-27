@@ -56,7 +56,7 @@ Never claim "production-ready" based solely on code review.
 **Runtime Validation** proves:
 - Container isolation
 - Filesystem isolation
-- Network isolation  
+- Network isolation
 - Resource limits
 - Process isolation
 - Actual Docker security
@@ -115,15 +115,16 @@ async def get_current_user_id(websocket: WebSocket) -> Optional[str]:
     session_id = websocket.cookies.get("session")
     if not session_id:
         return None
-    
+
     # Validate against database (not auth_manager which may not exist)
     db = Database()
     conn = db._get_conn()
     row = conn.execute(
         "SELECT u.id FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.session_id = ?",
-        (session_id,)
+        (session_id,),
     ).fetchone()
     return row["id"] if row else None
+
 
 # Authorization check
 if row["owner_id"] != user_id:

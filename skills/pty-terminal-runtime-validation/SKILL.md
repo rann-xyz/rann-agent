@@ -81,17 +81,19 @@ TERMINAL_IDLE_TIMEOUT=3600
 
 ### Container Creation
 ```python
-container_id = subprocess.run([
-    "docker", "run", "-d", "--rm",
-    "rann-sandbox:latest"
-], capture_output=True, text=True).stdout.strip()
+container_id = subprocess.run(
+    ["docker", "run", "-d", "--rm", "rann-sandbox:latest"], capture_output=True, text=True
+).stdout.strip()
 ```
 
 ### Command Execution
 ```python
-result = subprocess.run([
-    "docker", "exec", container_id, "bash", "-c", command
-], capture_output=True, text=True, timeout=30)
+result = subprocess.run(
+    ["docker", "exec", container_id, "bash", "-c", command],
+    capture_output=True,
+    text=True,
+    timeout=30,
+)
 ```
 
 ## Security Checks

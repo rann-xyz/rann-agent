@@ -156,10 +156,10 @@ All data is UTF-8 encoded with error replacement:
 
 ```python
 # Server output
-data.decode('utf-8', errors='replace')
+data.decode("utf-8", errors="replace")
 
 # Client input
-data.encode('utf-8', errors='replace')
+data.encode("utf-8", errors="replace")
 ```
 
 ### Special Terminal Bytes

@@ -1,0 +1,37 @@
+{
+  "ci_workflow": {
+    "quality_job": {
+      "python_version": "3.12",
+      "install_cmd": "pip install -r requirements.txt -r requirements-dev.txt",
+      "lint_cmds": ["ruff check .", "black --check ."]
+    },
+    "test_job": {
+      "python_version": "3.12",
+      "cmd": "pytest tests/ -v --cov=rann_agent --cov-report=xml --cov-fail-under=15"
+    },
+    "benchmark_job": {
+      "python_version": "3.12",
+      "cmd": "pytest tests/benchmarks/ -v --benchmark-disable-gc",
+      "regression_threshold": "20%"
+    }
+  },
+  "security_workflow": {
+    "python_version": "3.11",
+    "steps": [
+      "checkout",
+      "setup_python",
+      "verify_docker",
+      "install_deps",
+      "unit_tests",
+      "auth_tests",
+      "bypass_audit",
+      "fail_closed_check",
+      "docker_integration_tests"
+    ],
+    "common_failures": [
+      "docker commands fail without Docker installed",
+      "hardcoded paths in tests/security/test_execution_bypass_audit.py",
+      "missing pytest.mark.unit markers"
+    ]
+  }
+}

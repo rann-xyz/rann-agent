@@ -12,15 +12,16 @@ Tests cover:
 
 import asyncio
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from fastapi.testclient import TestClient
 
+import pytest
+from fastapi.testclient import TestClient
 from rann_agent.web.app import app
+
 from rann_agent.web.websocket_terminal import (
     TerminalSessionManager,
-    WebSocketTerminal,
     TerminalStatus,
+    WebSocketTerminal,
 )
 
 
@@ -46,7 +47,7 @@ class TestWebSocketTerminalSession:
         session = asyncio.get_event_loop().run_until_complete(
             terminal_manager.create_session("user_1", "project_1", websocket)
         )
-        
+
         assert session.id.startswith("term_")
         assert session.user_id == "user_1"
         assert session.project_id == "project_1"
@@ -58,11 +59,11 @@ class TestWebSocketTerminalSession:
         session = asyncio.get_event_loop().run_until_complete(
             terminal_manager.create_session("user_1", "project_1", websocket)
         )
-        
+
         retrieved = asyncio.get_event_loop().run_until_complete(
             terminal_manager.get_session(session.id)
         )
-        
+
         assert retrieved.id == session.id
 
     def test_remove_session(self, terminal_manager):
@@ -71,15 +72,16 @@ class TestWebSocketTerminalSession:
         session = asyncio.get_event_loop().run_until_complete(
             terminal_manager.create_session("user_1", "project_1", websocket)
         )
-        
+
         result = asyncio.get_event_loop().run_until_complete(
             terminal_manager.remove_session(session.id)
         )
-        
+
         assert result is True
-        assert asyncio.get_event_loop().run_until_complete(
-            terminal_manager.get_session(session.id)
-        ) is None
+        assert (
+            asyncio.get_event_loop().run_until_complete(terminal_manager.get_session(session.id))
+            is None
+        )
 
 
 class TestWebSocketTerminalEndpoint:
@@ -87,7 +89,7 @@ class TestWebSocketTerminalEndpoint:
 
     def test_websocket_requires_auth(self, client):
         """WebSocket should require authentication."""
-        with client.websocket_connect("/ws/projects/test-project/terminal") as websocket:
+        with client.websocket_connect("/ws/projects/test-project/terminal"):
             # Should close immediately without auth
             with pytest.raises(Exception):
                 pass  # Connection should be closed
@@ -109,16 +111,16 @@ class TestTerminalMessage:
     def test_message_types(self):
         """Verify all message types exist."""
         from rann_agent.web.websocket_terminal import TerminalMessage
-        
-        assert hasattr(TerminalMessage, 'INPUT')
-        assert hasattr(TerminalMessage, 'STDOUT')
-        assert hasattr(TerminalMessage, 'STDERR')
-        assert hasattr(TerminalMessage, 'EXIT')
-        assert hasattr(TerminalMessage, 'ERROR')
-        assert hasattr(TerminalMessage, 'PING')
-        assert hasattr(TerminalMessage, 'PONG')
-        assert hasattr(TerminalMessage, 'RESIZE')
-        assert hasattr(TerminalMessage, 'STATUS')
+
+        assert hasattr(TerminalMessage, "INPUT")
+        assert hasattr(TerminalMessage, "STDOUT")
+        assert hasattr(TerminalMessage, "STDERR")
+        assert hasattr(TerminalMessage, "EXIT")
+        assert hasattr(TerminalMessage, "ERROR")
+        assert hasattr(TerminalMessage, "PING")
+        assert hasattr(TerminalMessage, "PONG")
+        assert hasattr(TerminalMessage, "RESIZE")
+        assert hasattr(TerminalMessage, "STATUS")
 
 
 class TestTerminalAuthorization:
@@ -139,15 +141,16 @@ class TestCommandExecution:
 
     def test_command_execution_structure(self):
         """Verify command execution architecture."""
-        from rann_agent.web.websocket_terminal import WebSocketTerminal
-        
         # Verify terminal uses sandbox provider
         import inspect
+
+        from rann_agent.web.websocket_terminal import WebSocketTerminal
+
         source = inspect.getsource(WebSocketTerminal._handle_input)
-        
+
         # Should use sandbox_provider.execute
         assert "sandbox_provider.execute" in source or "sandbox_provider" in source
-        
+
         # Should NOT call subprocess directly on host
         assert "subprocess.Popen" not in source
         assert "subprocess.run" not in source
@@ -158,11 +161,12 @@ class TestTerminalSecurity:
 
     def test_no_host_shell_execution(self):
         """Terminal should never execute on host."""
-        from rann_agent.web.websocket_terminal import WebSocketTerminal
-        
         import inspect
+
+        from rann_agent.web.websocket_terminal import WebSocketTerminal
+
         source = inspect.getsource(WebSocketTerminal._handle_input)
-        
+
         # Command execution goes through sandbox provider
         assert "self.sandbox_provider.execute" in source
 
@@ -171,7 +175,7 @@ class TestTerminalSecurity:
         message = {"type": "stdout", "data": "test output"}
         encoded = json.dumps(message)
         decoded = json.loads(encoded)
-        
+
         assert decoded["type"] == "stdout"
         assert decoded["data"] == "test output"
 
