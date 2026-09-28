@@ -51,14 +51,14 @@ jobs:
         continue-on-error: true
 
       # ============================================================
-      # 2. Security Unit Tests (No Docker Required)
+      # 2. Security Tests (All Tests, No Marker Filter)
       # ============================================================
-      - name: Security Unit Tests
-        id: unit-tests
+      - name: Security Tests
+        id: security-tests
         run: |
-          echo "=== SECURITY UNIT TESTS ==="
-          pytest tests/security/ -v -m unit --tb=short
-          echo "unit_tests=PASSED" >> $GITHUB_OUTPUT
+          echo "=== SECURITY TESTS ==="
+          pytest tests/security/ -v --tb=short
+          echo "security_tests=PASSED" >> $GITHUB_OUTPUT
 
       # ============================================================
       # 3. Authentication Tests
@@ -150,8 +150,13 @@ jobs:
             # Verify Docker container test can actually run
             docker run --rm hello-world || echo "Docker basic test completed"
 
-            # Run integration tests
-            pytest tests/security/ -v -m integration --tb=long -v
+            # Run integration tests (only if they exist)
+            if [ -d "tests/security/integration" ]; then
+              pytest tests/security/integration/ -v --tb=short
+            else
+              echo "No integration tests directory found, skipping"
+              echo "integration_tests=SKIPPED_NO_TESTS" >> $GITHUB_OUTPUT
+            fi
           else
             echo "⚠️ Docker not available - skipping integration tests"
             echo "integration_tests=SKIPPED_DOCKER_NOT_AVAILABLE" >> $GITHUB_OUTPUT
@@ -165,14 +170,14 @@ jobs:
         run: |
           echo "=== SECURITY VERIFICATION SUMMARY ==="
           echo "Bypass Audit: ${{ steps.bypass-audit.outcome }}"
-          echo "Unit Tests: ${{ steps.unit-tests.outcome }}"
+          echo "Security Tests: ${{ steps.security-tests.outcome }}"
           echo "Auth Tests: ${{ steps.auth-tests.outcome }}"
           echo "Integration Tests: ${{ steps.integration-tests.outcome }}"
 
           if [ "${{ steps.integration-tests.outcome }}" == "success" ]; then
             echo "✅ All runtime security assertions PASSED"
           elif [ "${{ steps.integration-tests.outcome }}" == "skipped" ]; then
-            echo "⚠️ Integration tests skipped (Docker not available)"
+            echo "⚠️ Integration tests skipped (Docker not available or no tests)"
           else
             echo "⚠️ Integration tests did not complete successfully"
           fi
