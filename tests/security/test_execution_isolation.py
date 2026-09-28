@@ -167,9 +167,9 @@ class TestContainerExecution:
             await backend.submit(job)
             result = await backend.get_result("secret-test")
 
-            assert (
-                test_secret not in result.stdout
-            ), "SECURITY FAILURE: Server secret leaked to container!"
+            assert test_secret not in result.stdout, (
+                "SECURITY FAILURE: Server secret leaked to container!"
+            )
 
         finally:
             if original:

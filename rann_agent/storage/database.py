@@ -49,8 +49,7 @@ class Database:
     def _ensure_schema(self) -> None:
         """Create all tables if they don't exist, with migrations."""
         with self._get_conn() as conn:
-            conn.executescript(
-                """
+            conn.executescript("""
                 -- Users table
                 CREATE TABLE IF NOT EXISTS users (
                     id TEXT PRIMARY KEY,
@@ -368,8 +367,7 @@ class Database:
                     reviewed_at TEXT,
                     rejection_reason TEXT
                 );
-            """
-            )
+            """)
 
             # Migration: Add csrf_token_hash column to sessions if missing
             try:

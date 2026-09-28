@@ -184,9 +184,9 @@ class TestDockerRuntime:
         )
         # Check ANSI codes are present (either as \x1b or literal)
         stdout = result.stdout
-        assert (
-            "\\033[31m" in stdout or "\x1b[31m" in stdout or "RED" in stdout
-        ), f"ANSI codes may be stripped: {stdout[:100]}"
+        assert "\\033[31m" in stdout or "\x1b[31m" in stdout or "RED" in stdout, (
+            f"ANSI codes may be stripped: {stdout[:100]}"
+        )
 
     def test_no_sensitive_env_vars(self, test_container):
         """Verify no sensitive environment variables are exposed."""

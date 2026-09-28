@@ -115,9 +115,9 @@ class TestSecurityBasics:
             if hasattr(fs, "_resolve_path"):
                 resolved = fs._resolve_path(path)
                 # Should be sandboxed to workspace
-                assert str(resolved).startswith(
-                    "/tmp/rann_test"
-                ), f"Path traversal allowed: {path} -> {resolved}"
+                assert str(resolved).startswith("/tmp/rann_test"), (
+                    f"Path traversal allowed: {path} -> {resolved}"
+                )
             elif hasattr(fs, "read_file"):
                 # If no sanitization exists, this will read outside workspace
                 # which is the vulnerability we're testing for
