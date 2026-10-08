@@ -322,8 +322,9 @@ class ContainerExecutionBackend(ExecutionBackend):
         """Submit job for container execution. FAIL CLOSED if unavailable."""
         if not self._docker_available:
             raise RuntimeError(
-                "ContainerExecutionBackend unavailable: Docker runtime not found. "
-                "Set RANN_EXECUTION_BACKEND=local for development only."
+                "FAIL CLOSED: ContainerExecutionBackend unavailable. "
+                "Docker runtime not found. "
+                "Set RANN_EXECUTION_BACKEND=local for development testing only."
             )
 
         job.status = ExecutionStatus.RUNNING
@@ -516,20 +517,25 @@ class ContainerExecutionBackend(ExecutionBackend):
         return True
 
 
-# ============================================================================
+# ===========================================================================#
 # FACTORY FUNCTION
-# ============================================================================
-
+# ===========================================================================#
 
 def get_execution_backend() -> ExecutionBackend:
     """
-    Get the configured execution backend.
+    Get the configured execution backend with fail-closed and fallback behavior.
 
+    Backend selection order:
+    1. RANN_EXECUTION_BACKEND=container -> ContainerExecutionBackend (Docker required)
+    2. RANN_EXECUTION_BACKEND=fake_container -> FakeContainerBackend (no Docker, safer)
+    3. RANN_EXECUTION_BACKEND=local -> LocalExecutionBackend (dev only, no isolation)
+    4. Default: FakeContainerBackend if available, fallback to Local
+    
     FAIL CLOSED behavior:
     - If production backend requested but unavailable, raises RuntimeError
-    - Falls back to LocalExecutionBackend only explicitly configured
+    - Falls back to safer development backend when Docker unavailable
     """
-    backend_type = os.environ.get("RANN_EXECUTION_BACKEND", "local").lower()
+    backend_type = os.environ.get("RANN_EXECUTION_BACKEND", "fake_container").lower()
 
     if backend_type == "container":
         backend = ContainerExecutionBackend()
@@ -541,6 +547,10 @@ def get_execution_backend() -> ExecutionBackend:
                 "install Docker for production isolation."
             )
         return backend
+    elif backend_type == "fake_container":
+        # FakeContainerBackend provides safer process isolation
+        from rann_agent.execution.fake_container import FakeContainerBackend
+        return FakeContainerBackend()
     else:
-        # Development backend
+        # Development backend (least secure)
         return LocalExecutionBackend()
