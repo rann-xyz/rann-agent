@@ -758,7 +758,7 @@ class RealTerminalExecutor:
             default_timeout: 60
             allowed_env_vars: []
             forbidden_env_patterns: [API_KEY, SECRET, PASSWORD, TOKEN, PRIVATE,
-                                     ANTHROPIC, OPENAI, HERMES]
+                                     ANTHROPIC, OPENAI, CLIEMON]
     """
 
     def __init__(
@@ -782,7 +782,7 @@ class RealTerminalExecutor:
             "PRIVATE",
             "ANTHROPIC",
             "OPENAI",
-            "HERMES",
+            "CLIEMON",
         ]
         self.default_timeout = default_timeout
         self.default_shell = default_shell

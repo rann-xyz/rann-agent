@@ -931,24 +931,24 @@ Test Suite:
 
 ---
 
-## 30. Hermes Comparison Notes
+## 30. Architectural Gap Analysis
 
-| Dimension | RANN Agent | Hermes | RANN Gap |
-|-----------|-----------|--------|----------|
-| **Architecture** | Monolithic core modules | Plugin-based | Different patterns |
-| **State Machine** | ❌ Missing | ✅ Has states | Major gap |
-| **Event System** | ❌ Missing | ✅ Structured events | Major gap |
-| **Tool Policy** | ❌ Missing | ✅ Permission system | Major gap |
-| **Multi-Agent** | ⚠️ Basic spawning | ✅ Hierarchical | Moderate gap |
-| **Memory** | ⚠️ SQLite-based | ⚠️ Session-based | Similar |
-| **Verification** | ❌ Missing | ⚠️ Basic | Major gap |
-| **Self-Healing** | ⚠️ Partial | ✅ Yes | Moderate gap |
-| **Checkpoint** | ❌ Missing | ✅ Yes | Major gap |
-| **Model Routing** | ❌ Missing | ✅ Yes | Major gap |
-| **Cost Intelligence** | ❌ Missing | ❌ No | Both missing |
-| **Observability** | ⚠️ Basic logging | ⚠️ Basic | Similar |
+| Dimension | RANN Agent | Target Gap |
+|-----------|-----------|------------|
+| **Architecture** | Monolithic core modules | Different from plugin-based |
+| **State Machine** | ❌ Missing | Needs explicit states |
+| **Event System** | ❌ Missing | Needs structured events |
+| **Tool Policy** | ❌ Missing | Needs permission system |
+| **Multi-Agent** | ⚠️ Basic spawning | Needs hierarchical |
+| **Memory** | ⚠️ SQLite-based | Similar to session-based |
+| **Verification** | ❌ Missing | Needs proof-of-completion |
+| **Self-Healing** | ⚠️ Partial | Can be enhanced |
+| **Checkpoint** | ❌ Missing | Needs persistence |
+| **Model Routing** | ❌ Missing | Needs cost-aware routing |
+| **Cost Intelligence** | ❌ Missing | Cross-cutting need |
+| **Observability** | ⚠️ Basic logging | Needs tracing/metrics |
 
-**Conclusion:** RANN Agent is architecturally behind Hermes in several critical dimensions (state machine, events, policy, verification, checkpointing). These are not cosmetic — they are foundational to autonomous operation.
+**Conclusion:** Several critical architectural components are missing (state machine, events, tool policy, verification, checkpointing, model routing). These are foundational to autonomous operation and must be prioritized.
 
 ---
 

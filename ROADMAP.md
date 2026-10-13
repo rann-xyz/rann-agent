@@ -45,7 +45,7 @@
 ---
 
 ## Phase 2: Advanced Features (Week 3-4)
-**Goal: Differentiation from Hermes** ✅ SELF-HEALING COMPLETE
+**Goal: Enhanced Self-Healing** ✅ COMPLETE
 
 ### 2.1 Enhanced Self-Healing ✅ COMPLETE
 - [x] **Pattern Recognition** — fix_strategies.py with 9 pre-compiled regex strategies
@@ -201,17 +201,17 @@
 
 ## Competitive Analysis
 
-| Feature | Rann Agent | Hermes | AutoGPT | Devin |
-|---------|-----------|--------|---------|-------|
-| Self-healing | ✅ REAL | ❌ No | ⚠️ Basic | ✅ Yes |
-| Rollback Engine | ✅ REAL | ❌ No | ❌ No | ⚠️ Basic |
-| Tool Permissions | ✅ REAL | ❌ No | ❌ No | ❌ No |
-| Multi-agent | ⚠️ Planned | ❌ No | ❌ No | ✅ Yes |
-| Local models | ✅ Ollama | ✅ Yes | ❌ No | ❌ No |
-| Web UI | ✅ Yes | ⚠️ Basic | ✅ Yes | ✅ Yes |
-| Open source | ✅ MIT | ✅ Apache | ✅ MIT | ❌ No |
-| Vector memory | 🔄 Planned | ❌ No | ⚠️ Basic | ✅ Yes |
-| Price | 🆓 Free | 🆓 Free | 🆓 Free | 💰 $500/mo |
+|| Feature | Rann Agent | Alternative A | Alternative B | Alternative C |
+||---------|-----------|---------------|---------------|---------------|
+|| Self-healing | ✅ REAL | ❌ No | ⚠️ Basic | ✅ Yes |
+|| Rollback Engine | ✅ REAL | ❌ No | ❌ No | ⚠️ Basic |
+|| Tool Permissions | ✅ REAL | ❌ No | ❌ No | ❌ No |
+|| Multi-agent | ⚠️ Planned | ❌ No | ❌ No | ✅ Yes |
+|| Local models | ✅ Ollama | ✅ Yes | ❌ No | ❌ No |
+|| Web UI | ✅ Yes | ⚠️ Basic | ✅ Yes | ✅ Yes |
+|| Open source | ✅ MIT | ✅ Apache | ✅ MIT | ❌ No |
+|| Vector memory | 🔄 Planned | ❌ No | ⚠️ Basic | ✅ Yes |
+|| Price | 🆓 Free | 🆓 Free | 🆓 Free | 💰 $500/mo |
 
 ---
 
