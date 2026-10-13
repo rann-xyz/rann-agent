@@ -25,53 +25,44 @@ python -m venv venv && source venv/bin/activate
 pip install -e .
 ```
 
-### Run a Task
-
-```bash
-rann run "create a file hello.txt with content 'Hello World'"
-```
-
 ### Start the Web API
 
 ```bash
-python -m rann_agent.web_api
+# Start the FastAPI server
+python -m rann_agent.web.app
+# Or use: uvicorn rann_agent.web.app:app --reload
+```
+
+### Use the CLI
+
+```bash
+# Run a task
+rann run "create a file hello.txt with content 'Hello World'"
 ```
 
 ---
 
-## Security Status
-
-| Layer | Status |
-|-------|--------|
-| Authentication | ✅ VERIFIED |
-| Authorization | ✅ VERIFIED |
-| Session Security | ✅ VERIFIED |
-| CSRF Protection | ✅ VERIFIED |
-| Environment Isolation | ⚠️ PARTIAL |
-| Process Isolation | ❌ NOT IMPLEMENTED |
-| Network Isolation | ❌ NOT IMPLEMENTED |
-| Resource Limits | ⚠️ PARTIAL |
-| **Overall** | ❌ **NOT READY FOR PUBLIC EXECUTION** |
-
----
-
-## Architecture
+## Project Structure
 
 ```
-rann_agent/
-├── auth/           # Database sessions, CSRF, auth router
-├── execution/      # Execution backend abstraction (development only)
-├── core/
-│   ├── runtime.py  # RuntimeAgent
-│   ├── security.py # WorkspaceGuard, CommandSanitizer
-│   └── state.py    # 16-state machine
-├── tools/
-│   ├── terminal.py # Shell execution (needs sandbox)
-│   └── files.py    # File operations
-├── storage/
-│   └── database.py # SQLite with users/sessions
-└── web/
-    └── app.py      # FastAPI endpoints
+rann_agent/           # Core Python agent package
+├── auth/               # Database sessions, CSRF, auth router
+├── execution/          # Execution backend (Local + Container)
+├── core/               # Runtime, state machine, config
+├── api/                # REST API routes
+├── web/                # WebSocket terminal
+├── tools/              # Shell, file, git tools
+├── storage/            # SQLite database
+├── intelligence/       # LLM integration, code analysis
+├── memory/             # Session context, episodic memory
+└── ...                 # Other modules
+
+frontend/             # Next.js React frontend
+docs/                 # Documentation and security audits
+tests/                # Test suite (pytest)
+scripts/              # Development scripts
+docker/               # Sandbox container
+skills/               # RANN agent skills and validation
 ```
 
 ### Execution Planes
@@ -82,8 +73,8 @@ rann_agent/
 - Task/run ownership
 
 **Execution Plane (Development Only)**
-- LocalExecutionBackend runs subprocesses in API process
-- Requires ContainerExecutionBackend for production
+- `LocalExecutionBackend` runs subprocesses in API process
+- Requires `DockerSandboxProvider` for production isolation
 
 ---
 
@@ -91,6 +82,7 @@ rann_agent/
 
 - [SECURITY.md](SECURITY.md) - Security model and limitations
 - [docs/STATUS.md](docs/STATUS.md) - Factual security status table
+- [docs/security-audit/](docs/security-audit/) - Internal security audit methodology
 
 ---
 
@@ -100,11 +92,14 @@ rann_agent/
 # Run all tests
 pytest tests/ -v
 
-# Auth tests
-pytest tests/auth/ -v
+# Run unit tests
+pytest tests/unit/ -v
 
-# Security tests
+# Run security tests
 pytest tests/security/ -v
+
+# Run auth tests
+pytest tests/auth/ -v
 ```
 
 ---
