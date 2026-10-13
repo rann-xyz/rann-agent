@@ -7,7 +7,7 @@ Stores agent experience as episodes (goal → action → result → learning).
 import json
 import sqlite3
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from pathlib import Path
 from typing import Any
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 
 import structlog
 from rich.console import Console

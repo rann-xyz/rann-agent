@@ -303,7 +303,7 @@ async def register(data: RegisterRequest, request: Request, resp: Response):
 
 
 @router.post("/login")
-async def login(request: LoginRequest, resp: Response):
+async def login(data: LoginRequest, request: Request, resp: Response):
     """Authenticate user and create session."""
     client_ip = get_client_ip(request)
     ip_key = f"login:{client_ip}"
@@ -316,7 +316,7 @@ async def login(request: LoginRequest, resp: Response):
 
     # Find user
     conn = db._get_conn()
-    row = conn.execute("SELECT * FROM users WHERE email = ?", (request.email.lower(),)).fetchone()
+    row = conn.execute("SELECT * FROM users WHERE email = ?", (data.email.lower(),)).fetchone()
 
     if not row:
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -324,7 +324,7 @@ async def login(request: LoginRequest, resp: Response):
     user = dict(row)
 
     # Verify password
-    if not verify_password(request.password, user["password_hash"]):
+    if not verify_password(data.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     # Check if disabled

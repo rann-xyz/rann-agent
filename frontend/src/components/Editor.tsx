@@ -1,20 +1,39 @@
 /**
- * Editor Component - Monaco Editor integration
+ * Editor Component - Monaco Editor integration with real backend file operations
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import EditorWorker from '@monaco-editor/plugins/lib/workers/editor/editor.worker?worker';
 import { cn } from '../lib/utils';
+import { FileAPI } from '../services/api';
 
 interface EditorProps {
   filePath: string | null;
+  projectId: string;
   className?: string;
 }
 
 let editorInstance: any = null;
 
-export function Editor({ filePath, className }: EditorProps): JSX.Element {
+export function Editor({ filePath, projectId, className }: EditorProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [content, setContent] = useState('// RANN Agent Project\n\nconsole.log("Hello, World!");\n\nfunction main() {\n  console.log("Starting agent...");\n}\n\nmain();');
+
+  // Load file content when file path changes
+  useEffect(() => {
+    if (filePath) {
+      loadFileContent(filePath);
+    }
+  }, [filePath]);
+
+  async function loadFileContent(path: string) {
+    try {
+      const response = await FileAPI.read(projectId, path);
+      setContent(response.content);
+    } catch (err) {
+      console.error('Failed to load file:', err);
+    }
+  }
 
   useEffect(() => {
     // Monaco Editor initialization
@@ -29,8 +48,8 @@ export function Editor({ filePath, className }: EditorProps): JSX.Element {
       const monaco = await import('monaco-editor');
 
       editorInstance = monaco.editor.create(containerRef.current, {
-        value: `// RANN Agent Project\n\nconsole.log("Hello, World!");\n\nfunction main() {\n  console.log("Starting agent...");\n}\n\nmain();`,
-        language: 'python',
+        value: content,
+        language: filePath && filePath.endsWith('.py') ? 'python' : 'javascript',
         theme: 'vs-dark',
         fontSize: 14,
         fontFamily: 'Consolas, Menlo, Monaco, monospace',
@@ -44,6 +63,9 @@ export function Editor({ filePath, className }: EditorProps): JSX.Element {
         tabSize: 4,
         insertSpaces: true,
       });
+
+      // Update content when editor is created
+      editorInstance.setValue(content);
     };
 
     initEditor();
@@ -56,10 +78,15 @@ export function Editor({ filePath, className }: EditorProps): JSX.Element {
   }, []);
 
   // Handle file save
-  const handleSave = () => {
-    if (editorInstance) {
+  const handleSave = async () => {
+    if (editorInstance && filePath) {
       const value = editorInstance.getValue();
-      console.log('Save file:', filePath, value);
+      try {
+        await FileAPI.write(projectId, { path: filePath, content: value });
+        console.log('File saved:', filePath);
+      } catch (err) {
+        console.error('Failed to save file:', err);
+      }
     }
   };
 

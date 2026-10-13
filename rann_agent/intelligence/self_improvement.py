@@ -9,7 +9,7 @@ RANN Agent can:
 """
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from typing import Any
 
 from rann_agent.intelligence.fix_strategies import generate_fixes as _generate_fix_suggestions

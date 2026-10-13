@@ -5,7 +5,7 @@ Cron job scheduler for autonomous recurring tasks.
 import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from rann_agent.utils.datetime_compat import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 

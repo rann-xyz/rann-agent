@@ -8,7 +8,7 @@ this system enables safe self-modification.
 import hashlib
 import re
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from pathlib import Path
 from typing import Any
 

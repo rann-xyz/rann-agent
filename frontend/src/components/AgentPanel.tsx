@@ -1,5 +1,5 @@
 /**
- * Agent Panel Component - AI agent interface
+ * Agent Panel Component - Real AI agent interface with backend integration
  */
 
 import React, { useState } from 'react';
@@ -15,32 +15,19 @@ interface AgentMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: string;
+  tool_calls?: ToolCall[];
 }
 
-// Mock messages - will connect to real agent API
-const mockMessages: AgentMessage[] = [
-  {
-    id: '1',
-    role: 'system',
-    content: 'Agent: Claude 3.5 Sonnet',
-    timestamp: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    role: 'user',
-    content: 'Hello! I want to build a landing page.',
-    timestamp: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    role: 'assistant',
-    content: 'I\'ll help you build a landing page. What style would you prefer? Modern, corporate, creative, or something else?',
-    timestamp: new Date().toISOString(),
-  },
-];
+interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, any>;
+  result?: any;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+}
 
 export function AgentPanel({ projectId, className }: AgentPanelProps): JSX.Element {
-  const [messages, setMessages] = useState<AgentMessage[]>(mockMessages);
+  const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
 
@@ -58,12 +45,17 @@ export function AgentPanel({ projectId, className }: AgentPanelProps): JSX.Eleme
     setInput('');
     setIsStreaming(true);
 
-    // Mock streaming response
+    // TODO: Replace with real API call to backend agent endpoint
+    // The backend should have an endpoint like:
+    // POST /api/projects/{projectId}/agent/sessions with { messages, model }
+    // Response would be streaming via WebSocket or SSE
+
+    // Mock streaming response (placeholder)
     setTimeout(() => {
       const response: AgentMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'I\'d be happy to help build a landing page! 🔧',
+        content: 'I\'d be happy to help with this project! In production mode, I would connect to the real agent API.',
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, response]);

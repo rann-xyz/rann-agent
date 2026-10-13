@@ -9,7 +9,7 @@ This module provides the cognitive layer for RANN Agent:
 """
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from enum import Enum
 from typing import Any
 

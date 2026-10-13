@@ -8,7 +8,7 @@ As required by MASTER PROMPT Section 26.
 import json
 import os
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 
 import structlog
 

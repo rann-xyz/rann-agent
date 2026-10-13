@@ -4,7 +4,7 @@ Uses ChromaDB for efficient similarity search and retrieval.
 """
 
 import hashlib
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from typing import Any
 
 

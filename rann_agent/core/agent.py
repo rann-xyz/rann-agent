@@ -342,7 +342,7 @@ Respond concisely in JSON format as an array of objects."""
     def _generate_session_id(self) -> str:
         """Generate unique session ID"""
         import uuid
-        from datetime import UTC, datetime
+        from rann_agent.utils.datetime_compat import UTC, datetime
 
         timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         short_uuid = str(uuid.uuid4())[:8]
