@@ -19,13 +19,12 @@ All operations:
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 import structlog
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException
 
-from rann_agent.auth.router import AuthUser, get_current_user
-from rann_agent.core.security import WorkspaceGuard, WorkspaceSecurity
+from rann_agent.auth.router import AuthUser, require_auth
+from rann_agent.core.security import WorkspaceGuard
 from rann_agent.storage.database import Database
 
 logger = structlog.get_logger()
@@ -61,7 +60,7 @@ class FileEntry:
 async def list_directory(
     project_id: str,
     path: str = "",
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """List directory contents."""
     # Verify project ownership
@@ -130,7 +129,7 @@ async def list_directory(
 async def read_file(
     project_id: str,
     path: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Read file contents."""
     db = Database()
@@ -186,7 +185,7 @@ async def write_file(
     project_id: str,
     path: str,
     content: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Create or update file content."""
     db = Database()
@@ -244,7 +243,7 @@ async def create_file(
     path: str,
     is_directory: bool = False,
     content: str | None = None,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Create a file or directory."""
     db = Database()
@@ -300,7 +299,7 @@ async def rename_move_file(
     project_id: str,
     path: str,
     new_path: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Rename or move a file."""
     db = Database()
@@ -358,7 +357,7 @@ async def rename_move_file(
 async def delete_file(
     project_id: str,
     path: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Delete a file or directory."""
     db = Database()

@@ -19,7 +19,10 @@ from typing import Optional
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
+
+# Use plain str for email to avoid email-validator dependency requirement
+# Email format validation can be done at the application layer if needed
 
 from rann_agent.storage.database import Database
 
@@ -42,12 +45,12 @@ MIN_PASSWORD_LENGTH = 8
 
 
 class RegisterRequest(BaseModel):
-    email: EmailStr
+    email: str  # Email format validated at application layer
     password: str = Field(..., min_length=MIN_PASSWORD_LENGTH)
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str  # Email format validated at application layer
     password: str
 
 
@@ -218,7 +221,7 @@ def csrf_required(func):
 
 
 @router.post("/register")
-async def register(request: RegisterRequest, resp: Response):
+async def register(data: RegisterRequest, request: Request, resp: Response):
     """Register a new user."""
     client_ip = get_client_ip(request)
     ip_key = f"register:{client_ip}"
@@ -233,7 +236,7 @@ async def register(request: RegisterRequest, resp: Response):
     try:
         conn = db._get_conn()
         row = conn.execute(
-            "SELECT id FROM users WHERE email = ?", (request.email.lower(),)
+            "SELECT id FROM users WHERE email = ?", (data.email.lower(),)
         ).fetchone()
         if row:
             raise HTTPException(status_code=409, detail="Email already registered")
@@ -243,7 +246,7 @@ async def register(request: RegisterRequest, resp: Response):
 
     # Create user
     user_id = f"user_{secrets.token_urlsafe(16)}"
-    password_hash = hash_password(request.password)
+    password_hash = hash_password(data.password)
 
     # Generate CSRF token
     csrf_token = generate_csrf_token()
@@ -252,7 +255,7 @@ async def register(request: RegisterRequest, resp: Response):
     try:
         conn.execute(
             "INSERT INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (user_id, request.email.lower(), password_hash, "user", now, now),
+            (user_id, data.email.lower(), password_hash, "user", now, now),
         )
         conn.execute(
             "INSERT INTO sessions (session_id, user_id, token_hash, csrf_token_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
@@ -295,7 +298,7 @@ async def register(request: RegisterRequest, resp: Response):
 
     return {
         "authenticated": True,
-        "user": {"id": user_id, "email": request.email.lower(), "role": "user"},
+        "user": {"id": user_id, "email": data.email.lower(), "role": "user"},
     }
 
 
@@ -476,7 +479,7 @@ async def get_current_user(request: Request) -> AuthUser | None:
     return AuthUser(user_id=session["user_id"], email=session["email"], role=session["role"])
 
 
-def require_auth(user: AuthUser = Depends(get_current_user)):
+async def require_auth(user: AuthUser = Depends(get_current_user)) -> AuthUser:
     """Dependency that requires authentication."""
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")

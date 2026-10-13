@@ -12,13 +12,12 @@ All operations require authentication and enforce ownership.
 """
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 
-from rann_agent.auth.router import AuthUser, get_current_user
-from rann_agent.core.security import WorkspaceGuard
+from rann_agent.auth.router import AuthUser, require_auth
 from rann_agent.storage.database import Database
 
 logger = structlog.get_logger()
@@ -40,8 +39,8 @@ def get_project_workspace(project_id: str) -> str:
 
 @router.post("/projects")
 async def create_project(
-    name: str,
-    user: AuthUser = Depends(get_current_user),
+    name: Annotated[str, Body(..., embed=True)],
+    user: AuthUser = Depends(require_auth),
 ):
     """Create a new project owned by the authenticated user."""
     db = Database()
@@ -82,7 +81,7 @@ async def create_project(
 
 
 @router.get("/projects")
-async def list_projects(user: AuthUser = Depends(get_current_user)):
+async def list_projects(user: AuthUser = Depends(require_auth)):
     """List all projects owned by the authenticated user."""
     db = Database()
 
@@ -103,7 +102,7 @@ async def list_projects(user: AuthUser = Depends(get_current_user)):
 
 
 @router.get("/projects/{project_id}")
-async def get_project(project_id: str, user: AuthUser = Depends(get_current_user)):
+async def get_project(project_id: str, user: AuthUser = Depends(require_auth)):
     """Get project details if owned by authenticated user."""
     db = Database()
 
@@ -131,7 +130,7 @@ async def get_project(project_id: str, user: AuthUser = Depends(get_current_user
 async def update_project(
     project_id: str,
     name: str | None = None,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Update project metadata."""
     db = Database()
@@ -156,7 +155,7 @@ async def update_project(
 
 
 @router.delete("/projects/{project_id}")
-async def delete_project(project_id: str, user: AuthUser = Depends(get_current_user)):
+async def delete_project(project_id: str, user: AuthUser = Depends(require_auth)):
     """Delete project and all contents."""
     db = Database()
 
