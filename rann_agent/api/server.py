@@ -33,12 +33,14 @@ from rann_agent.api.projects import router as projects_router
 from rann_agent.api.agent_sessions import router as agent_sessions_router
 from rann_agent.api.files import router as files_router
 from rann_agent.api.terminal_sessions import router as terminal_router
+from rann_agent.web.websocket_terminal import router as websocket_router
 
 # Include API routers
 app.include_router(projects_router)
 app.include_router(agent_sessions_router)
 app.include_router(files_router)
 app.include_router(terminal_router)
+app.include_router(websocket_router)
 
 # Load config
 config = Config.load()
