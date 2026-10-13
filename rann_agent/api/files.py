@@ -21,7 +21,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
+from pydantic import BaseModel
 
 from rann_agent.auth.router import AuthUser, require_auth
 from rann_agent.core.security import WorkspaceGuard
@@ -54,6 +55,12 @@ class FileEntry:
             "size": self.size,
             "modified": self.modified,
         }
+
+
+class FileContentRequest(BaseModel):
+    """Request body for file write operations."""
+    path: str
+    content: str
 
 
 @router.get("/projects/{project_id}/files")
@@ -183,8 +190,7 @@ async def read_file(
 @router.put("/projects/{project_id}/files/content")
 async def write_file(
     project_id: str,
-    path: str,
-    content: str,
+    file_data: FileContentRequest,
     user: AuthUser = Depends(require_auth),
 ):
     """Create or update file content."""
@@ -201,6 +207,9 @@ async def write_file(
     if project["owner_id"] != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
+    path = file_data.path
+    content = file_data.content
+    
     # Check content size
     content_size = len(content.encode("utf-8"))
     if content_size > MAX_FILE_SIZE_BYTES:
