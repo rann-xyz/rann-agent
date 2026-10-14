@@ -6,7 +6,7 @@ As required by MASTER PROMPT Section 25.
 """
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from typing import Any
 
 import structlog

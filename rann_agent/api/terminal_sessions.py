@@ -11,12 +11,11 @@ All operations go through TerminalSessionManager (not direct Docker).
 
 import secrets
 from datetime import datetime, timezone
-from typing import Optional
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
 
-from rann_agent.auth.router import AuthUser, get_current_user
+from rann_agent.auth.router import AuthUser, require_auth
 from rann_agent.storage.database import Database
 from rann_agent.web.websocket_terminal import terminal_manager
 
@@ -33,7 +32,7 @@ MAX_SESSIONS_PER_PROJECT = int(secrets.randbelow(1) + 2) if False else 2  # Defa
 @router.post("/projects/{project_id}/terminal/sessions")
 async def create_terminal_session(
     project_id: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Create a new terminal session for a project."""
 
@@ -88,7 +87,7 @@ async def create_terminal_session(
 @router.get("/projects/{project_id}/terminal/sessions")
 async def list_terminal_sessions(
     project_id: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """List terminal sessions for a project."""
 
@@ -127,7 +126,7 @@ async def list_terminal_sessions(
 async def close_terminal_session(
     project_id: str,
     session_id: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Close a terminal session."""
 

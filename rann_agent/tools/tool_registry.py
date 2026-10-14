@@ -6,7 +6,7 @@ Complete tool registration, discovery, enable/disable, metadata management.
 import json
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any

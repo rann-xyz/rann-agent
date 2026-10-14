@@ -322,8 +322,9 @@ class ContainerExecutionBackend(ExecutionBackend):
         """Submit job for container execution. FAIL CLOSED if unavailable."""
         if not self._docker_available:
             raise RuntimeError(
-                "ContainerExecutionBackend unavailable: Docker runtime not found. "
-                "Set RANN_EXECUTION_BACKEND=local for development only."
+                "FAIL CLOSED: ContainerExecutionBackend unavailable. "
+                "Docker runtime not found. "
+                "Set RANN_EXECUTION_BACKEND=local for development testing only."
             )
 
         job.status = ExecutionStatus.RUNNING
@@ -346,9 +347,10 @@ class ContainerExecutionBackend(ExecutionBackend):
         host_workspace = Path(f"/tmp/rann_container_ws_{job.job_id}")
         host_workspace.mkdir(parents=True, exist_ok=True)
 
-        # Generate unique container ID
-        container_name = f"rann_exec_{job.job_id[:12]}"
+        # Generate unique container ID with timestamp for uniqueness
+        container_name = f"rann_exec_{job.job_id[:8]}_{uuid.uuid4().hex[:8]}"
 
+        container_created = False
         try:
             # Build docker run command with security options
             docker_cmd = self._build_container_command(job, host_workspace, container_name)
@@ -361,6 +363,7 @@ class ContainerExecutionBackend(ExecutionBackend):
             )
 
             self._jobs[job.job_id].container_id = container_name
+            container_created = True
 
             try:
                 stdout, stderr = await asyncio.wait_for(
@@ -372,7 +375,10 @@ class ContainerExecutionBackend(ExecutionBackend):
 
                 if proc.returncode == 0:
                     job.status = ExecutionStatus.COMPLETED
-                elif proc.returncode == 137:  # SIGKILL
+                elif proc.returncode == 137:  # SIGKILL (typically OOM)
+                    job.status = ExecutionStatus.FAILED
+                    job.stderr += " (killed by OOM killer)"
+                elif proc.returncode == -9:  # SIGKILL (we killed it)
                     job.status = ExecutionStatus.TIMEOUT
                     job.killed = True
                 else:
@@ -386,9 +392,18 @@ class ContainerExecutionBackend(ExecutionBackend):
                 job.status = ExecutionStatus.TIMEOUT
                 job.killed = True
                 job.exit_code = -1
+                job.stderr = "Execution timed out"
+
+            except Exception as e:
+                # Ensure container is cleaned up on unexpected errors
+                if container_created:
+                    await self._kill_container(container_name)
+                job.status = ExecutionStatus.FAILED
+                job.stderr = f"Execution error: {e}"
+                job.exit_code = 1
 
         finally:
-            # Cleanup host workspace
+            # Cleanup host workspace on all paths
             shutil.rmtree(host_workspace, ignore_errors=True)
 
         job.completed_at = datetime.now(timezone.utc)
@@ -433,11 +448,11 @@ class ContainerExecutionBackend(ExecutionBackend):
         # Workspace mount (only writable location)
         cmd.extend(["-v", f"{workspace}:/workspace:rw"])
 
-        # Temporary directory mount (read-only)
-        cmd.extend(["-v", "/tmp:/tmp:rw"])
+        # Add tmpfs for /dev/shm (better than host /tmp mount)
+        cmd.extend(["--tmpfs", "/dev/shm"])
 
-        # Deny Docker socket access
-        # (Not mounting it achieves this)
+        # Deny Docker socket access by explicitly NOT mounting it
+        # No host filesystem mounts other than workspace
 
         # Set working directory
         cmd.extend(["-w", "/workspace"])
@@ -516,20 +531,25 @@ class ContainerExecutionBackend(ExecutionBackend):
         return True
 
 
-# ============================================================================
+# ===========================================================================#
 # FACTORY FUNCTION
-# ============================================================================
-
+# ===========================================================================#
 
 def get_execution_backend() -> ExecutionBackend:
     """
-    Get the configured execution backend.
+    Get the configured execution backend with fail-closed and fallback behavior.
 
+    Backend selection order:
+    1. RANN_EXECUTION_BACKEND=container -> ContainerExecutionBackend (Docker required)
+    2. RANN_EXECUTION_BACKEND=fake_container -> FakeContainerBackend (no Docker, safer)
+    3. RANN_EXECUTION_BACKEND=local -> LocalExecutionBackend (dev only, no isolation)
+    4. Default: FakeContainerBackend if available, fallback to Local
+    
     FAIL CLOSED behavior:
     - If production backend requested but unavailable, raises RuntimeError
-    - Falls back to LocalExecutionBackend only explicitly configured
+    - Falls back to safer development backend when Docker unavailable
     """
-    backend_type = os.environ.get("RANN_EXECUTION_BACKEND", "local").lower()
+    backend_type = os.environ.get("RANN_EXECUTION_BACKEND", "fake_container").lower()
 
     if backend_type == "container":
         backend = ContainerExecutionBackend()
@@ -541,6 +561,10 @@ def get_execution_backend() -> ExecutionBackend:
                 "install Docker for production isolation."
             )
         return backend
+    elif backend_type == "fake_container":
+        # FakeContainerBackend provides safer process isolation
+        from rann_agent.execution.fake_container import FakeContainerBackend
+        return FakeContainerBackend()
     else:
-        # Development backend
+        # Development backend (least secure)
         return LocalExecutionBackend()

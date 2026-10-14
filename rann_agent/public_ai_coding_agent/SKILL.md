@@ -12,7 +12,6 @@ tags:
   - web
 related_skills:
   - verification-loop
-  - hermes-agent
 ---
 
 # Public AI Coding Agent - Security-Hardened Multi-User Deployment

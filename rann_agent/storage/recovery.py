@@ -147,7 +147,7 @@ class CrashRecovery:
 
         # Mark run as rolled back
         import json
-        from datetime import UTC, datetime
+        from rann_agent.utils.datetime_compat import UTC, datetime
 
         result_data = json.dumps(
             {

@@ -60,6 +60,9 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Performance Benchmarks (machine-specific)
+.benchmarks/
+
 # Rann Agent specific
 .rann-agent/
 config.yaml

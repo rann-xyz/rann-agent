@@ -5,7 +5,7 @@ These complement the core commands in rann.py.
 
 import asyncio
 import json
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from pathlib import Path
 
 import click

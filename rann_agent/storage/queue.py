@@ -7,7 +7,7 @@ import json
 import sqlite3
 import uuid
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -269,7 +269,7 @@ class DurableQueue:
 
     def cleanup_stale(self, stale_seconds: int = 300) -> int:
         """Reset stale running jobs back to pending. Returns count."""
-        from datetime import UTC, timedelta
+        from rann_agent.utils.datetime_compat import UTC, timedelta
 
         cutoff = (datetime.now(UTC) - timedelta(seconds=stale_seconds)).isoformat()
         conn = self._get_conn()

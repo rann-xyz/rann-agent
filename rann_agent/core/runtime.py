@@ -7,7 +7,7 @@ As required by MASTER PROMPT Section 6, 7, 8, 14, 23-24.
 
 import asyncio
 from collections.abc import AsyncIterator, Callable
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from typing import Any
 
 import structlog

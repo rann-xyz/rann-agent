@@ -4,7 +4,7 @@ Builds a deepening model of the user across sessions.
 """
 
 import json
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from typing import Any
 
 

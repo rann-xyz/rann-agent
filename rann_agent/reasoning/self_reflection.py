@@ -2,7 +2,7 @@
 Self-reflection and critique system.
 """
 
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from typing import Any
 
 

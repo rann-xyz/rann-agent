@@ -8,7 +8,7 @@ Implements V3 Section 12 specification.
 import json
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any

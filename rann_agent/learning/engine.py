@@ -5,7 +5,7 @@ As required by MASTER PROMPT Section 30.
 
 import json
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from typing import Optional
 
 import structlog

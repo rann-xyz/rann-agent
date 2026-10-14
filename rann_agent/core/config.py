@@ -110,7 +110,7 @@ class Config(BaseSettings):
     database_url: str = Field("sqlite:///~/.rann-agent/data/sessions.db", alias="DATABASE_URL")
 
     model_config = {
-        "extra": "ignore",  # Ignore extra env vars from other apps (e.g., ~/.hermes/.env)
+        "extra": "ignore",  # Ignore extra env vars from other applications
         "env_file": [
             ".env",
             str(Path.cwd() / ".env"),

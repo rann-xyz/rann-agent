@@ -15,36 +15,49 @@
  * └─────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { FileExplorer } from '../components/FileExplorer';
 import { Editor } from '../components/Editor';
 import { AgentPanel } from '../components/AgentPanel';
 import { TerminalComponent } from '../components/Terminal';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { AuthGuard } from '../contexts/AuthGuard';
+import { ProjectAPI } from '../services/api';
 
-// TODO: These will be replaced with actual API integration
-const mockProject = {
-  id: 'demo-project',
-  name: 'demo-project',
-  description: 'RANN Agent Project',
-  owner_id: 'user-1',
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-};
-
-export function TerminalWorkspace(): JSX.Element {
+function WorkspaceContent(): JSX.Element {
+  const { currentProject, setCurrentProject, projects } = useAuth();
   const [activeView, setActiveView] = useState<'files' | 'editor' | 'agent'>('editor');
   const [activeFile, setActiveFile] = useState<string | null>(null);
 
+  // Auto-select first project if none selected
+  useEffect(() => {
+    if (!currentProject && projects.length > 0) {
+      setCurrentProject(projects[0]);
+    }
+  }, [projects, currentProject, setCurrentProject]);
+
+  if (!currentProject) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl text-gray-400 mb-4">No project selected</h2>
+          <p className="text-gray-600">Select or create a project to begin</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-gray-950 text-gray-100">
-      <Header project={mockProject} />
+      <Header project={currentProject} />
 
       <div className="flex flex-1 overflow-hidden">
         {/* File Explorer Sidebar */}
         <FileExplorer 
           className="w-64 flex-shrink-0 border-r border-gray-800"
           onFileSelect={setActiveFile}
+          projectId={currentProject.id}
         />
 
         {/* Main Content Area */}
@@ -78,11 +91,12 @@ export function TerminalWorkspace(): JSX.Element {
             {activeView === 'editor' && (
               <Editor 
                 filePath={activeFile}
+                projectId={currentProject.id}
                 className="h-full"
               />
             )}
             {activeView === 'agent' && (
-              <AgentPanel projectId={mockProject.id} />
+              <AgentPanel projectId={currentProject.id} />
             )}
           </div>
         </div>
@@ -91,11 +105,19 @@ export function TerminalWorkspace(): JSX.Element {
       {/* Terminal at Bottom */}
       <div className="border-t border-gray-800">
         <TerminalComponent 
-          sessionId={mockProject.id}
-          projectId={mockProject.id}
-          userId="user-1"
+          sessionId={currentProject.id}
+          projectId={currentProject.id}
+          userId={currentProject.owner_id}
         />
       </div>
     </div>
+  );
+}
+
+export function TerminalWorkspace(): JSX.Element {
+  return (
+    <AuthProvider>
+      <WorkspaceContent />
+    </AuthProvider>
   );
 }

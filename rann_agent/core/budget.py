@@ -6,12 +6,16 @@ As required by MASTER PROMPT Section 14.
 """
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import structlog
 
 logger = structlog.get_logger()
+
+
+# Python 3.10 compatibility: use timezone.utc instead of datetime.UTC
+UTC = timezone.utc
 
 
 @dataclass

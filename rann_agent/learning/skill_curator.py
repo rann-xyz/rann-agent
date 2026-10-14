@@ -3,7 +3,7 @@ Skill curator - autonomous skill creation and improvement.
 Agent creates skills from experience and improves them during use.
 """
 
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from typing import Any
 
 

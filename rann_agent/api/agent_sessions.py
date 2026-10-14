@@ -12,20 +12,16 @@ Provides:
 import asyncio
 import json
 import secrets
-import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
 
-from rann_agent.auth.router import AuthUser, get_current_user
+from rann_agent.auth.router import AuthUser, require_auth
 from rann_agent.core.config import Config
 from rann_agent.core.runtime import RuntimeAgent
-from rann_agent.core.security import WorkspaceGuard
 from rann_agent.storage.database import Database
-from rann_agent.tools.registry import ToolRegistry
 
 logger = structlog.get_logger()
 
@@ -138,7 +134,7 @@ agent_manager = AgentSessionManager()
 @router.post("/projects/{project_id}/agent/sessions")
 async def create_agent_session(
     project_id: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Create a new agent session."""
     # Verify project ownership
@@ -171,7 +167,7 @@ async def create_agent_session(
 @router.get("/projects/{project_id}/agent/sessions")
 async def list_agent_sessions(
     project_id: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """List agent sessions for a project."""
     # Verify project ownership
@@ -208,7 +204,7 @@ async def list_agent_sessions(
 async def get_agent_session(
     project_id: str,
     session_id: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Get agent session details."""
     session = await agent_manager.get_session(session_id)
@@ -250,7 +246,7 @@ async def get_agent_session(
 async def close_agent_session(
     project_id: str,
     session_id: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Close an agent session."""
     # Verify project ownership

@@ -5,7 +5,7 @@ As required by MASTER PROMPT Section 20.
 
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from rann_agent.utils.datetime_compat import UTC, datetime
 from enum import Enum
 from typing import Optional
 

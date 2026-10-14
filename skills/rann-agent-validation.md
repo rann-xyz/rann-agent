@@ -1,13 +1,13 @@
 # RANN Agent Validation Workflow
 
 ## Purpose
-Provides standardized approach for validating RANN Agent backend implementations without disrupting Hermes configuration.
+Provides standardized approach for validating RANN Agent backend implementations.
 
 ## Key Requirements
 
 ### Configuration Isolation
 - Use `model_config = ConfigDict(extra="ignore")` in Pydantic Settings classes
-- Prevents loading `~/.hermes/.env` which causes validation conflicts
+- Prevents loading environment files from other applications
 - RANN must have independent configuration namespace
 
 ### Database Schema Management

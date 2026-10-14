@@ -19,13 +19,13 @@ All operations:
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 import structlog
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Body, Depends, HTTPException
+from pydantic import BaseModel
 
-from rann_agent.auth.router import AuthUser, get_current_user
-from rann_agent.core.security import WorkspaceGuard, WorkspaceSecurity
+from rann_agent.auth.router import AuthUser, require_auth
+from rann_agent.core.security import WorkspaceGuard
 from rann_agent.storage.database import Database
 
 logger = structlog.get_logger()
@@ -57,11 +57,17 @@ class FileEntry:
         }
 
 
+class FileContentRequest(BaseModel):
+    """Request body for file write operations."""
+    path: str
+    content: str
+
+
 @router.get("/projects/{project_id}/files")
 async def list_directory(
     project_id: str,
     path: str = "",
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """List directory contents."""
     # Verify project ownership
@@ -121,6 +127,8 @@ async def list_directory(
         if "traversal" in str(e).lower() or "escape" in str(e).lower():
             raise HTTPException(status_code=400, detail="Invalid path")
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("list_directory_error", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to list directory")
@@ -130,7 +138,7 @@ async def list_directory(
 async def read_file(
     project_id: str,
     path: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Read file contents."""
     db = Database()
@@ -176,6 +184,10 @@ async def read_file(
         if "traversal" in str(e).lower() or "escape" in str(e).lower():
             raise HTTPException(status_code=400, detail="Invalid path")
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="File not found")
     except Exception as e:
         logger.error("read_file_error", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to read file")
@@ -184,9 +196,8 @@ async def read_file(
 @router.put("/projects/{project_id}/files/content")
 async def write_file(
     project_id: str,
-    path: str,
-    content: str,
-    user: AuthUser = Depends(get_current_user),
+    file_data: FileContentRequest,
+    user: AuthUser = Depends(require_auth),
 ):
     """Create or update file content."""
     db = Database()
@@ -202,6 +213,9 @@ async def write_file(
     if project["owner_id"] != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
 
+    path = file_data.path
+    content = file_data.content
+    
     # Check content size
     content_size = len(content.encode("utf-8"))
     if content_size > MAX_FILE_SIZE_BYTES:
@@ -233,6 +247,8 @@ async def write_file(
         if "traversal" in str(e).lower() or "escape" in str(e).lower():
             raise HTTPException(status_code=400, detail="Invalid path")
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("write_file_error", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to write file")
@@ -244,7 +260,7 @@ async def create_file(
     path: str,
     is_directory: bool = False,
     content: str | None = None,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Create a file or directory."""
     db = Database()
@@ -290,6 +306,8 @@ async def create_file(
         if "traversal" in str(e).lower() or "escape" in str(e).lower():
             raise HTTPException(status_code=400, detail="Invalid path")
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("create_file_error", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to create file")
@@ -300,7 +318,7 @@ async def rename_move_file(
     project_id: str,
     path: str,
     new_path: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Rename or move a file."""
     db = Database()
@@ -358,7 +376,7 @@ async def rename_move_file(
 async def delete_file(
     project_id: str,
     path: str,
-    user: AuthUser = Depends(get_current_user),
+    user: AuthUser = Depends(require_auth),
 ):
     """Delete a file or directory."""
     db = Database()
@@ -398,6 +416,8 @@ async def delete_file(
         if "traversal" in str(e).lower() or "escape" in str(e).lower():
             raise HTTPException(status_code=400, detail="Invalid path")
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("delete_file_error", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to delete file")
