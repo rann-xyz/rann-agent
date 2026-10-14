@@ -102,9 +102,23 @@ class ToolRegistry:
         self.tools[tool.name] = tool
         logger.info("tool_registered", name=tool.name)
 
+    # Class-level aliases for tool name compatibility
+    TOOL_ALIASES = {
+        "shell": "terminal",  # Map 'shell' alias to 'terminal' tool
+    }
+
     def get(self, name: str) -> Tool | None:
-        """Get tool by name"""
-        return self.tools.get(name)
+        """Get tool by name (with alias support)"""
+        # First try exact match
+        tool = self.tools.get(name)
+        if tool:
+            return tool
+        
+        # Check for aliases
+        if name in self.TOOL_ALIASES:
+            return self.tools.get(self.TOOL_ALIASES[name])
+        
+        return None
 
     def get_enabled(self) -> list[Tool]:
         """Get list of enabled tools"""
@@ -127,7 +141,8 @@ class ToolRegistry:
             return ToolResult(tool=name, success=False, error=f"Tool not found: {name}").to_dict()
 
         # Check if tool is enabled
-        if name not in self.config.tools.enabled:
+        resolved_name = self.TOOL_ALIASES.get(name, name)
+        if name not in self.config.tools.enabled and resolved_name not in self.config.tools.enabled:
             return ToolResult(tool=name, success=False, error=f"Tool not enabled: {name}").to_dict()
 
         try:
@@ -162,6 +177,7 @@ class ToolRegistry:
         for tool in self.tools.values():
             if tool.name not in self.config.tools.enabled:
                 continue
+            # Add the primary tool name
             definitions.append(
                 {
                     "type": "function",
@@ -180,4 +196,25 @@ class ToolRegistry:
                     },
                 }
             )
+            # Add alias names for compatibility (with proper JSON schema structure)
+            for alias_name, real_name in self.TOOL_ALIASES.items():
+                if real_name == tool.name:
+                    definitions.append(
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": alias_name,
+                                "description": f"Alias for {tool.name}: {tool.description}",
+                                "parameters": {
+                                    "type": "object",
+                                    "properties": tool.parameters,
+                                    "required": (
+                                        [k for k, v in tool.parameters.items() if v.get("required", False)]
+                                        if tool.parameters
+                                        else []
+                                    ),
+                                },
+                            },
+                        }
+                    )
         return definitions

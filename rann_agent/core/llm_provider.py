@@ -169,6 +169,14 @@ class CustomProvider(BaseLLMProvider):
         self.base_url = base_url.rstrip("/")
         self.temperature = kwargs.get("temperature", 0.7)
         self.max_tokens = kwargs.get("max_tokens", 4096)
+        # Configurable timeout (default 60 seconds, can be set via LLM_TIMEOUT env var)
+        self.timeout = kwargs.get("timeout", float(os.getenv("LLM_TIMEOUT", "60")))
+        try:
+            self.timeout = float(self.timeout)
+            if self.timeout <= 0:
+                self.timeout = 60.0
+        except (ValueError, TypeError):
+            self.timeout = 60.0
 
     async def _create_url(self) -> str:
         """Create proper chat completions URL, handling /v1 prefix in base_url."""
@@ -195,7 +203,8 @@ class CustomProvider(BaseLLMProvider):
 
         chat_url = await self._create_url()
 
-        async with aiohttp.ClientSession() as session:
+        timeout = aiohttp.ClientTimeout(total=self.timeout)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(
                 chat_url,
                 headers={
@@ -204,8 +213,11 @@ class CustomProvider(BaseLLMProvider):
                 },
                 json=payload,
             ) as resp:
-                if resp.status != 200:
+                try:
                     text = await resp.text()
+                except Exception:
+                    text = ""
+                if resp.status != 200:
                     raise RuntimeError(f"API error {resp.status}: {text}")
                 result = await resp.json()
                 message = result["choices"][0]["message"]
@@ -287,7 +299,9 @@ class LLMProvider:
     def __init__(self, config):
         self.config = config
         self.provider = config.agent.llm.provider.lower()
-        self.model = config.agent.llm.model
+        # Use env var overrides for model and max_tokens
+        self.model = config.get_llm_model()
+        self.max_tokens = config.get_llm_max_tokens()
 
         if self.provider not in self.VALID_PROVIDERS:
             raise ValueError(
@@ -295,7 +309,8 @@ class LLMProvider:
             )
 
         self.primary = self._create_provider(
-            self.provider, self.model, config.get_api_key(self.provider)
+            self.provider, self.model, config.get_api_key(self.provider),
+            max_tokens=self.max_tokens
         )
         self.fallbacks = []
         for fb in config.agent.llm.fallback_providers:
@@ -304,7 +319,8 @@ class LLMProvider:
                 logger.warning("invalid_fallback_provider", provider=provider)
                 continue
             provider_instance = self._create_provider(
-                provider, fb["model"], config.get_api_key(provider)
+                provider, fb["model"], config.get_api_key(provider),
+                max_tokens=config.get_llm_max_tokens()
             )
             self.fallbacks.append(provider_instance)
 
@@ -315,10 +331,10 @@ class LLMProvider:
             fallbacks=len(self.fallbacks),
         )
 
-    def _create_provider(self, provider: str, model: str, api_key: str | None) -> BaseLLMProvider:
+    def _create_provider(self, provider: str, model: str, api_key: str | None, max_tokens: int | None = None) -> BaseLLMProvider:
         kwargs = {
             "temperature": self.config.agent.llm.temperature,
-            "max_tokens": self.config.agent.llm.max_tokens,
+            "max_tokens": max_tokens or self.config.agent.llm.max_tokens,
         }
 
         if provider == "anthropic":

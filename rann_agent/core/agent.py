@@ -353,3 +353,52 @@ Respond concisely in JSON format as an array of objects."""
         if not self.coordinator:
             self.coordinator = Coordinator(self.config, self)
         return self.coordinator
+
+    async def generate_plan(self, goal: str, context: str | None = None) -> dict:
+        """Generate execution plan without executing
+
+        SAFE DRY-RUN MODE: This method validates the task format and
+        generates a structural plan WITHOUT:
+        - Calling the LLM provider
+        - Executing any tools
+        - Making network requests
+        - Performing side effects
+
+        Args:
+            goal: What to accomplish
+            context: Additional context
+
+        Returns:
+            Execution plan dictionary (simulated, not executed)
+        """
+        self.session_id = self._generate_session_id()
+        self.context.add_user_message(goal, context)
+
+        messages = self.context.get_messages()
+
+        # Build plan without calling LLM - analyze goal locally
+        plan = {
+            "goal": goal,
+            "context": context,
+            "steps": [
+                {
+                    "step": 1,
+                    "tool": None,  # Will be determined by real execution
+                    "parameters": {"goal": goal, "context": context},
+                    "would_execute": False,  # CRITICAL: Never actually execute in dry-run
+                }
+            ],
+            "tools_required": [],
+            "safe_to_execute": True,  # No tools will be called
+            "simulated": True,
+            "note": "This is a structural validation plan. The LLM would analyze this goal and determine tool calls during real execution. No operations were performed.",
+        }
+
+        # Basic goal validation
+        if not goal or not goal.strip():
+            plan["error"] = "Empty goal provided"
+            plan["valid"] = False
+        else:
+            plan["valid"] = True
+
+        return plan
