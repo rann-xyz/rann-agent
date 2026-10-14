@@ -85,7 +85,10 @@ class APIConfig(BaseModel):
     enabled: bool = True
     host: str = "0.0.0.0"
     port: int = 8000
-    cors: dict[str, Any] = {"enabled": True}
+    cors: dict[str, Any] = {
+        "enabled": True,
+        "origins": ["http://localhost:3000", "http://localhost:8000"]
+    }
     websocket: dict[str, Any] = {"enabled": True, "path": "/ws"}
 
 
@@ -108,6 +111,10 @@ class Config(BaseSettings):
     anthropic_api_key: str | None = Field(None, alias="ANTHROPIC_API_KEY")
     openai_api_key: str | None = Field(None, alias="OPENAI_API_KEY")
     database_url: str = Field("sqlite:///~/.rann-agent/data/sessions.db", alias="DATABASE_URL")
+    
+    # LLM_MODEL and LLM_MAX_TOKENS environment variables (overrides config.yaml)
+    llm_model: str | None = Field(None, alias="LLM_MODEL")
+    llm_max_tokens: int | None = Field(None, alias="LLM_MAX_TOKENS")
 
     model_config = {
         "extra": "ignore",  # Ignore extra env vars from other applications
@@ -143,6 +150,24 @@ class Config(BaseSettings):
         elif provider == "custom":
             return os.getenv("LLM_API_KEY") or os.getenv("CUSTOM_API_KEY")
         return None
+    
+    def get_llm_model(self) -> str:
+        """Get LLM model with environment variable override"""
+        # Precedence: LLM_MODEL env var > config.yaml model
+        return self.llm_model or self.agent.llm.model
+    
+    def get_llm_max_tokens(self) -> int:
+        """Get max_tokens with environment variable override and validation"""
+        # Precedence: LLM_MAX_TOKENS env var > config.yaml max_tokens
+        max_tokens = self.llm_max_tokens or self.agent.llm.max_tokens
+        # Validate: must be positive integer
+        try:
+            max_tokens = int(max_tokens)
+            if max_tokens <= 0:
+                return 4096  # Safe default
+        except (ValueError, TypeError):
+            return 4096  # Safe default
+        return max_tokens
 
     def validate_config(self) -> list[str]:
         warnings = []
