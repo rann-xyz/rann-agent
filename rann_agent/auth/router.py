@@ -31,11 +31,18 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 # Configuration
+import os
+
 SESSION_TTL_HOURS = 24
 CSRF_TOKEN_LENGTH = 32
 RATE_LIMIT_WINDOW = 3600  # 1 hour
 RATE_LIMIT_REGISTER = 5
 RATE_LIMIT_LOGIN = 10
+
+# Cookie settings - secure in production
+COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "true").lower() == "true"
+if os.environ.get("ENVIRONMENT") == "development":
+    COOKIE_SECURE = False  # Allow HTTP in development
 
 # Password requirements
 MIN_PASSWORD_LENGTH = 8
@@ -257,23 +264,12 @@ async def register(data: RegisterRequest, request: Request, resp: Response):
             "INSERT INTO users (id, email, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
             (user_id, data.email.lower(), password_hash, "user", now, now),
         )
-        conn.execute(
-            "INSERT INTO sessions (session_id, user_id, token_hash, csrf_token_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (
-                generate_session_id(),
-                user_id,
-                "",
-                csrf_hash,
-                now,
-                (datetime.now(timezone.utc) + timedelta(hours=SESSION_TTL_HOURS)).isoformat(),
-            ),
-        )
         conn.commit()
     except Exception as e:
         logger.error("register_db_insert_error", error=str(e))
         raise HTTPException(status_code=500, detail="Registration failed")
 
-    # Create session for new user
+    # Create session for new user (exactly ONE session)
     session_id = generate_session_id()
     token_hash = hash_session_token(session_id)
     expires_at = datetime.now(timezone.utc) + timedelta(hours=SESSION_TTL_HOURS)
@@ -284,12 +280,12 @@ async def register(data: RegisterRequest, request: Request, resp: Response):
     )
     conn.commit()
 
-    # Set secure cookie
+    # Set secure cookie - COOKIE_SECURE is True in production by default
     cookie_params = {
         "key": "session",
         "value": session_id,
         "httponly": True,
-        "secure": False,  # Set True in production with HTTPS
+        "secure": COOKIE_SECURE,  # True in production with HTTPS
         "samesite": "Lax",
         "path": "/",
         "expires": expires_at,
@@ -361,7 +357,7 @@ async def login(data: LoginRequest, request: Request, resp: Response):
         "key": "session",
         "value": session_id,
         "httponly": True,
-        "secure": False,  # Set True in production with HTTPS
+        "secure": COOKIE_SECURE,
         "samesite": "Lax",
         "path": "/",
         "expires": expires_at,
@@ -391,7 +387,7 @@ async def logout(request: Request, resp: Response):
         conn.commit()
 
         # Clear cookie
-        resp.delete_cookie("session", path="/")
+        resp.delete_cookie("session", path="/", secure=COOKIE_SECURE)
 
     return {"authenticated": False, "message": "Logged out"}
 
