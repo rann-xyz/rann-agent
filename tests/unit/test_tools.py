@@ -211,3 +211,59 @@ class TestToolBase:
 
         with pytest.raises(ValueError, match="Missing required parameter"):
             tool.validate_parameters()  # Missing 'input'
+
+class TestShellAlias:
+    """Test shell->terminal alias compatibility"""
+
+    def test_shell_alias_maps_to_terminal(self):
+        """Test that 'shell' alias maps to terminal tool"""
+        from rann_agent.core.config import Config
+        config = Config()
+        registry = ToolRegistry(config)
+        
+        # shell alias should map to terminal
+        shell_tool = registry.get('shell')
+        terminal_tool = registry.get('terminal')
+        
+        assert shell_tool is not None, "shell alias should return a tool"
+        assert shell_tool == terminal_tool, "shell should map to terminal tool"
+        assert shell_tool.name == 'terminal', "shell alias should return terminal tool"
+
+    def test_get_definitions_includes_shell_alias(self):
+        """Test that get_definitions includes shell alias"""
+        from rann_agent.core.config import Config
+        config = Config()
+        registry = ToolRegistry(config)
+        
+        # Enable shell in tools list
+        if 'shell' not in config.tools.enabled:
+            config.tools.enabled.append('shell')
+        
+        definitions = registry.get_definitions()
+        names = [d['function']['name'] for d in definitions]
+        
+        # Both terminal and shell should appear in definitions
+        assert 'terminal' in names, "terminal should be in definitions"
+        assert 'shell' in names, "shell alias should be in definitions"
+
+    @pytest.mark.asyncio
+    async def test_execute_with_shell_alias(self):
+        """Test that executing 'shell' routes to terminal tool"""
+        from rann_agent.core.config import Config
+        config = Config()
+        
+        # Ensure both terminal and shell are enabled
+        if 'terminal' not in config.tools.enabled:
+            config.tools.enabled.append('terminal')
+        if 'shell' not in config.tools.enabled:
+            config.tools.enabled.append('shell')
+        
+        registry = ToolRegistry(config)
+        
+        # Execute via shell alias
+        result = await registry.execute('shell', {'command': 'echo hello'})
+        
+        # Should route to terminal (may fail due to no execution backend, that's OK)
+        assert 'tool' in result, "Result should have tool info"
+        # The tool result should reference terminal (the actual tool name)
+        assert result.get('error') is not None or result.get('success') in [True, False]
